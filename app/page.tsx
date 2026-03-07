@@ -7,32 +7,44 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/contexts/auth-context"
 import { useTheme } from "@/contexts/theme-context"
 import Image from "next/image"
 
 export default function LoginPage() {
-  const { signIn, signInWithGoogle, signUp } = useAuth()
+  const { signIn, signInWithGoogle, signUp, isLoading, error, clearError } = useAuth()
   const { themeStyle } = useTheme()
   const [showPassword, setShowPassword] = useState(false)
-  
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   // Sign In form state
   const [signInEmail, setSignInEmail] = useState("")
   const [signInPassword, setSignInPassword] = useState("")
-  
+
   // Sign Up form state
   const [signUpName, setSignUpName] = useState("")
   const [signUpEmail, setSignUpEmail] = useState("")
   const [signUpPassword, setSignUpPassword] = useState("")
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
-    signIn(signInEmail, signInPassword)
+    setIsSubmitting(true)
+    try {
+      await signIn(signInEmail, signInPassword)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    signUp(signUpEmail, signUpPassword, signUpName)
+    setIsSubmitting(true)
+    try {
+      await signUp(signUpEmail, signUpPassword, signUpName)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -76,6 +88,11 @@ export default function LoginPage() {
 
       {/* Login Form */}
       <main className="flex-1 flex items-center justify-center px-4 py-12">
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[200px]">
+            <p className="text-muted-foreground font-mono">Loading…</p>
+          </div>
+        ) : (
         <div className="w-full max-w-md">
           {/* Intro Image */}
           <Image
@@ -96,7 +113,15 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
-            <Tabs defaultValue="signin" className="w-full">
+            {error && (
+              <Alert variant="destructive" className="mb-4 rounded-none border-2 border-red-500/50">
+                <AlertDescription className="flex items-center justify-between gap-2">
+                  {error}
+                  <button type="button" onClick={clearError} className="text-xs underline">Dismiss</button>
+                </AlertDescription>
+              </Alert>
+            )}
+            <Tabs defaultValue="signin" className="w-full" onValueChange={clearError}>
               <TabsList className="grid w-full grid-cols-2 rounded-none bg-secondary/50 p-1">
                 <TabsTrigger 
                   value="signin" 
@@ -152,9 +177,10 @@ export default function LoginPage() {
                   </div>
                   <Button 
                     type="submit" 
+                    disabled={isSubmitting || isLoading}
                     className="w-full rounded-none border-2 border-green-500 bg-green-500/20 text-green-400 hover:bg-green-500/30 font-mono"
                   >
-                    ENTER
+                    {isSubmitting ? "…" : "ENTER"}
                   </Button>
                 </form>
               </TabsContent>
@@ -213,9 +239,10 @@ export default function LoginPage() {
                   </div>
                   <Button 
                     type="submit" 
+                    disabled={isSubmitting || isLoading}
                     className="w-full rounded-none border-2 border-green-500 bg-green-500/20 text-green-400 hover:bg-green-500/30 font-mono"
                   >
-                    CREATE ADVENTURER
+                    {isSubmitting ? "…" : "CREATE ADVENTURER"}
                   </Button>
                 </form>
               </TabsContent>
@@ -235,6 +262,7 @@ export default function LoginPage() {
             <Button
               type="button"
               variant="outline"
+              disabled={isLoading}
               onClick={signInWithGoogle}
               className="w-full rounded-none border-2 border-muted-foreground/30 hover:border-green-500/50 hover:bg-green-500/10"
             >
@@ -261,6 +289,7 @@ export default function LoginPage() {
           </CardContent>
         </Card>
         </div>
+        )}
       </main>
 
       {/* Footer */}
