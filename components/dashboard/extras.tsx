@@ -51,16 +51,6 @@ const linkCategories: LinkCategory[] = [
         url: "https://crawl.chaosforge.org/",
         description: "Comprehensive wiki with game mechanics, species, and strategies",
       },
-      {
-        title: "Brogue Wiki (Crawl Section)",
-        url: "https://brogue.fandom.com/wiki/Dungeon_Crawl_Stone_Soup",
-        description: "Community-maintained game information",
-      },
-      {
-        title: "Ultraviolent4 Guides",
-        url: "https://www.youtube.com/playlist?list=PLaKyGMIVNUr-B1SfZvHjMQDx4QbJPOZVE",
-        description: "In-depth strategy guides for beginners and advanced players",
-      },
     ],
   },
   {
@@ -85,33 +75,38 @@ const linkCategories: LinkCategory[] = [
     ],
   },
   {
-    title: "YouTube Channels",
+    title: "Active YouTube Channels",
     icon: Youtube,
     links: [
       {
-        title: "Ultraviolent4",
-        url: "https://www.youtube.com/@Ultraviolent4",
-        description: "Detailed tutorials, tier lists, and gameplay commentary",
+        title: "Draconius Beats Roguelikes",
+        url: "https://www.youtube.com/@DraconiusRogueLike",
+        description: "Roguelike gameplay and DCSS content",
       },
       {
-        title: "Demise",
-        url: "https://www.youtube.com/@DemiseCrawl",
-        description: "High-level gameplay and strategy videos",
+        title: "Dr. Incompetent",
+        url: "https://www.youtube.com/@DrIncompetent",
+        description: "Roguelike gameplay and commentary",
       },
       {
-        title: "Gammafunk",
-        url: "https://www.youtube.com/@gammafunk",
-        description: "Developer streams and advanced gameplay",
+        title: "particleface",
+        url: "https://www.youtube.com/@particleface",
+        description: "DCSS gameplay and roguelike content",
       },
       {
-        title: "Lasty",
-        url: "https://www.youtube.com/@LastyDCSS",
-        description: "Speedruns and challenge runs",
+        title: "Torinski",
+        url: "https://www.youtube.com/@thetorinski",
+        description: "DCSS and roguelike videos",
       },
       {
-        title: "Bloax",
-        url: "https://www.youtube.com/@Bloax",
-        description: "Gameplay videos and tutorials",
+        title: "Jonny Community",
+        url: "https://www.youtube.com/@JonnyCommunity",
+        description: "DCSS and roguelike content",
+      },
+      {
+        title: "ThePixelVillain",
+        url: "https://www.youtube.com/@ThePixelVillain",
+        description: "Roguelike gameplay and videos",
       },
     ],
   },
@@ -119,11 +114,6 @@ const linkCategories: LinkCategory[] = [
     title: "Tools & Utilities",
     icon: Users,
     links: [
-      {
-        title: "Sequell Bot",
-        url: "https://github.com/crawl/sequell",
-        description: "IRC bot for DCSS statistics and game tracking",
-      },
       {
         title: "DCSS Scoring",
         url: "https://crawl.akrasiac.org/scoring/overview.html",
