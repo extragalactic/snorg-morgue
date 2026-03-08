@@ -152,7 +152,11 @@ export default function DashboardPage() {
                     icon={Zap}
                   />
                 </div>
-                <PlayerStatsChart>
+                <PlayerStatsChart
+                  speciesStats={stats?.species_stats}
+                  backgroundStats={stats?.background_stats}
+                  godStats={stats?.god_stats}
+                >
                   <PerformanceGraph morgues={morgues} />
                 </PlayerStatsChart>
               </>

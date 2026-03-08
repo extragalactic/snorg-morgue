@@ -39,6 +39,13 @@ export interface ParsedMorgueRow {
   created_at: string
 }
 
+/** One entry in species_stats, background_stats, or god_stats on user_stats. */
+export interface StatEntry {
+  name: string
+  wins: number
+  attempts: number
+}
+
 export interface UserStatsRow {
   user_id: string
   total_wins: number
@@ -50,6 +57,9 @@ export interface UserStatsRow {
   avg_xl_at_death: number
   total_runes: number
   fastest_win_seconds: number | null
+  species_stats?: StatEntry[]
+  background_stats?: StatEntry[]
+  god_stats?: StatEntry[]
   updated_at: string
 }
 

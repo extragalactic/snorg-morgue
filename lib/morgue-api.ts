@@ -11,6 +11,7 @@ import {
   formatFastestWin,
   type ParsedMorgueRow,
   type UserStatsRow,
+  type StatEntry,
   type MorgueFileRow,
 } from "./morgue-db"
 
@@ -200,6 +201,28 @@ export async function recalcUserStats(
   if (error) return
 
   const list = (rows ?? []) as ParsedMorgueRow[]
+
+  function buildStatEntries(
+    list: ParsedMorgueRow[],
+    getName: (r: ParsedMorgueRow) => string
+  ): StatEntry[] {
+    const map = new Map<string, { wins: number; attempts: number }>()
+    for (const r of list) {
+      const name = getName(r) || "(none)"
+      const entry = map.get(name) ?? { wins: 0, attempts: 0 }
+      entry.attempts++
+      if (r.is_win) entry.wins++
+      map.set(name, entry)
+    }
+    return Array.from(map.entries())
+      .map(([name, { wins, attempts }]) => ({ name, wins, attempts }))
+      .sort((a, b) => b.attempts - a.attempts)
+  }
+
+  const species_stats = buildStatEntries(list, (r) => r.species)
+  const background_stats = buildStatEntries(list, (r) => r.background)
+  const god_stats = buildStatEntries(list, (r) => r.god || "(no god)")
+
   const totalGames = list.length
   const wins = list.filter((r) => r.is_win)
   const deaths = list.filter((r) => !r.is_win)
@@ -239,6 +262,9 @@ export async function recalcUserStats(
       avg_xl_at_death: Math.round(avgXlAtDeath * 100) / 100,
       total_runes: totalRunes,
       fastest_win_seconds: fastestWinSeconds,
+      species_stats,
+      background_stats,
+      god_stats,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" }

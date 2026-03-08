@@ -88,4 +88,6 @@ You do **not** need to create these in the Table Editor by hand; the SQL file se
 
 **Important – duplicate detection column:** If uploads fail with *"Could not find the 'message_history_signature' column of 'parsed_morgues' in the schema cache"*, the `parsed_morgues` table is missing the duplicate-detection column. In **SQL Editor**, run the contents of **`supabase/add_message_history_signature.sql`** once. That adds `message_history_signature` to `parsed_morgues`. If you created the tables before this column existed, you must run this migration.
 
+**Species/background/god stats:** To store per-species, per-background, and per-god win/attempt counts on `user_stats`, run **`supabase/add_user_stats_arrays.sql`** in the SQL Editor once. This adds `species_stats`, `background_stats`, and `god_stats` (JSONB arrays). If you skip this, the app still works; those fields will be undefined until the migration is run and stats are recalculated (e.g. by re-uploading a morgue or deleting one).
+
 **Duplicate detection (summary):** If you already had the morgue tables before `message_history_signature` was added, run **`supabase/add_message_history_signature.sql`** in the SQL Editor. New setups from **`supabase/schema.sql`** should include this column (see that migration for the definition).
