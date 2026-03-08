@@ -6,15 +6,18 @@ import type { GameRecord } from "@/lib/morgue-api"
 
 function buildTop10Killers(morgues: GameRecord[]): { name: string; count: number }[] {
   const deaths = morgues.filter((m) => m.result === "death" && m.killer?.trim())
-  const byKiller: Record<string, number> = {}
+  const byKiller: Record<string, { count: number; maxXl: number }> = {}
   deaths.forEach((m) => {
     const k = m.killer!.trim()
-    byKiller[k] = (byKiller[k] ?? 0) + 1
+    if (!byKiller[k]) byKiller[k] = { count: 0, maxXl: 0 }
+    byKiller[k].count += 1
+    byKiller[k].maxXl = Math.max(byKiller[k].maxXl, m.xl)
   })
   return Object.entries(byKiller)
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
+    .map(([name, { count, maxXl }]) => ({ name, count, maxXl }))
+    .sort((a, b) => b.count - a.count || b.maxXl - a.maxXl)
     .slice(0, 10)
+    .map(({ name, count }) => ({ name, count }))
 }
 
 export function Top10Killers({ morgues = [], loading }: { morgues?: GameRecord[]; loading?: boolean }) {
@@ -55,7 +58,7 @@ export function Top10Killers({ morgues = [], loading }: { morgues?: GameRecord[]
         <ol className="list-decimal list-inside space-y-1.5 font-mono text-sm">
           {top10.map(({ name, count }, i) => (
             <li key={`${name}-${i}`} className="text-foreground">
-              <span className="text-primary">{i + 1}.</span> {name}
+              <span className="text-primary">{name}</span>
               <span className="text-muted-foreground ml-1">({count})</span>
             </li>
           ))}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 import { Upload, X, FileText, CheckCircle, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -37,8 +37,11 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [files, setFiles] = useState<PendingFile[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
+  const [processingCurrent, setProcessingCurrent] = useState(0)
+  const [processingTotal, setProcessingTotal] = useState(0)
   const [failureModalOpen, setFailureModalOpen] = useState(false)
   const [failureItems, setFailureItems] = useState<{ filename: string; reason: string }[]>([])
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -97,10 +100,33 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
     }
 
     setIsProcessing(true)
+    setProcessingTotal(pending.length)
+    setProcessingCurrent(0)
+    const total = pending.length
+
+    // Time-based progress: a timer alone drives the displayed count (1 → 2 → … → total)
+    // every 1000ms, so it always counts up on screen regardless of how fast the work runs.
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+    setProcessingCurrent(1)
+    progressIntervalRef.current = setInterval(() => {
+      setProcessingCurrent((prev) => {
+        if (prev >= total) {
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current)
+            progressIntervalRef.current = null
+          }
+          return total
+        }
+        return prev + 1
+      })
+    }, 1000)
+
     const toUpload: { name: string; text: string }[] = []
     const failedReads: { name: string; error: string }[] = []
 
-    for (const p of pending) {
+    try {
+    for (let i = 0; i < pending.length; i++) {
+      const p = pending[i]
       setFiles((prev) =>
         prev.map((f) => (f.id === p.id ? { ...f, status: "uploading" as const } : f))
       )
@@ -160,7 +186,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
               ? `${result.success} morgue${result.success === 1 ? "" : "s"} added. ${result.failed.length} file${result.failed.length === 1 ? "" : "s"} could not be imported — see details below.`
               : `${result.success} morgue${result.success === 1 ? "" : "s"} added.`,
         })
-        onUploadComplete?.()
+        await Promise.resolve(onUploadComplete?.())
       }
       const allFailures: { filename: string; reason: string }[] = [
         ...result.failed.map((f) => ({ filename: f.filename, reason: f.error })),
@@ -173,6 +199,14 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
     } else if (failedReads.length > 0) {
       setFailureItems(failedReads.map((f) => ({ filename: f.name, reason: f.error })))
       setFailureModalOpen(true)
+    }
+
+    } finally {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current)
+        progressIntervalRef.current = null
+      }
+      setProcessingCurrent(pending.length)
     }
 
     setIsProcessing(false)
@@ -206,6 +240,16 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
+          {isProcessing ? (
+            <div className="flex flex-col items-center justify-center border-2 border-dashed border-primary/50 p-8 gap-2">
+              <p className="font-mono text-sm text-foreground">
+                Processing {processingCurrent} of {processingTotal} files…
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Parsing your tales of bravery.
+              </p>
+            </div>
+          ) : (
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -244,6 +288,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
               Browse Files
             </Button>
           </div>
+          )}
 
           {files.length > 0 && (
             <div className="max-h-48 space-y-2 overflow-y-auto">
@@ -310,9 +355,13 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
             <Button
               onClick={processFiles}
               disabled={!canProcess}
-              className="rounded-none border-2 border-primary bg-primary text-primary-foreground font-mono text-xs"
+              className="rounded-none border-2 border-primary bg-primary text-primary-foreground font-mono text-xs min-w-[5.5rem]"
             >
-              {isProcessing ? "Processing…" : "Process Files"}
+              {isProcessing ? (
+                <div className="h-4 w-4 animate-spin border-2 border-primary-foreground border-t-transparent rounded-full" />
+              ) : (
+                "Import"
+              )}
             </Button>
           </div>
         </div>

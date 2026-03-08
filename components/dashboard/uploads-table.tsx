@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { Search, Eye, ChevronLeft, ChevronRight, Skull, Trophy, ChevronUp, ChevronDown, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -55,11 +56,30 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
   const itemsPerPage = 20
 
   const getCombo = (game: GameRecord) => {
+    const species = (game.species ?? "").trim()
+    const background = (game.background ?? "").trim()
     const speciesPart =
-      game.species === "Draconian" || DRACONIAN_COLOUR_NAMES.includes(game.species)
-        ? "Dr"
-        : game.species.substring(0, 2)
-    const bgPart = game.background ? game.background.substring(0, 2) : ""
+      species === "Octopode"
+        ? "Op"
+        : species === "Draconian" || DRACONIAN_COLOUR_NAMES.includes(species)
+          ? "Dr"
+          : species === "Mountain Dwarf"
+            ? "MD"
+            : species === "Demonspawn"
+              ? "Ds"
+              : species.substring(0, 2)
+    const backgroundCodes: Record<string, string> = {
+      "Fire Elementalist": "FE",
+      "Ice Elementalist": "IE",
+      "Air Elementalist": "AE",
+      "Earth Elementalist": "EE",
+      "Hedge Wizard": "HW",
+      "Warper": "Wr",
+      "Wanderer": "Wn",
+    }
+    const bgPart = background
+      ? (backgroundCodes[background] ?? background.substring(0, 2))
+      : ""
     return `${speciesPart}${bgPart}`
   }
 
@@ -217,18 +237,16 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
             {/* Result Filter */}
             <div className="flex gap-1">
               {(["all", "win", "death"] as const).map((filter) => (
-                <Button
+                <FilterToggleButton
                   key={filter}
-                  variant={resultFilter === filter ? "default" : "outline"}
-                  size="sm"
-                  className="rounded-none border-2 font-mono text-xs capitalize"
+                  selected={resultFilter === filter}
                   onClick={() => {
                     setResultFilter(filter)
                     setCurrentPage(1)
                   }}
                 >
                   {filter === "all" ? "All" : filter === "win" ? "Wins" : "Deaths"}
-                </Button>
+                </FilterToggleButton>
               ))}
             </div>
             {/* Search */}

@@ -63,22 +63,34 @@ export function isAbandonedCharacterMorgue(rawText: string): boolean {
 }
 
 function parseTimeToSeconds(timeStr: string): number {
-  const parts = timeStr.trim().split(":")
+  const s = timeStr.trim()
+  // "1 day 08:49:03" or "2 days 12:30:00" -> convert days to hours and parse the time
+  const dayMatch = s.match(/^(\d+)\s+days?\s+(\d{1,2}):(\d{2}):(\d{2})$/i)
+  if (dayMatch) {
+    const days = parseInt(dayMatch[1], 10)
+    const h = parseInt(dayMatch[2], 10)
+    const m = parseInt(dayMatch[3], 10)
+    const sec = parseInt(dayMatch[4], 10)
+    if (!Number.isNaN(days) && !Number.isNaN(h) && !Number.isNaN(m) && !Number.isNaN(sec)) {
+      return (days * 24 + h) * 3600 + m * 60 + sec
+    }
+  }
+  const parts = s.split(":")
   if (parts.length === 3) {
     const h = parseInt(parts[0], 10)
     const m = parseInt(parts[1], 10)
-    const s = parseInt(parts[2], 10)
-    if (!Number.isNaN(h) && !Number.isNaN(m) && !Number.isNaN(s)) {
-      return h * 3600 + m * 60 + s
+    const sec = parseInt(parts[2], 10)
+    if (!Number.isNaN(h) && !Number.isNaN(m) && !Number.isNaN(sec)) {
+      return h * 3600 + m * 60 + sec
     }
   }
   if (parts.length === 2) {
     const m = parseInt(parts[0], 10)
-    const s = parseInt(parts[1], 10)
-    if (!Number.isNaN(m) && !Number.isNaN(s)) return m * 60 + s
+    const sec = parseInt(parts[1], 10)
+    if (!Number.isNaN(m) && !Number.isNaN(sec)) return m * 60 + sec
   }
-  const s = parseInt(parts[0], 10)
-  return Number.isNaN(s) ? 0 : s
+  const sec = parseInt(parts[0], 10)
+  return Number.isNaN(sec) ? 0 : sec
 }
 
 /** Abbreviations sometimes used in morgue title line (Species Background). Expand before splitting.
@@ -180,9 +192,9 @@ export function parseMorgue(rawText: string): ParsedMorgue {
   // Game seed
   const gameSeed = text.match(/Game seed:\s*(\S+)/)?.[1]?.trim() ?? ""
 
-  // Title line: "Name the Title (Species Background)               Turns: N, Time: H:MM:SS"
+  // Title line: "Name the Title (Species Background)               Turns: N, Time: H:MM:SS" or "Time: 1 day 08:49:03"
   const titleLine = text.match(
-    /^(.+?)\s+\(([^)]+)\)\s+Turns:\s*(\d+),\s*Time:\s*([\d:]+)/m
+    /^(.+?)\s+\(([^)]+)\)\s+Turns:\s*(\d+),\s*Time:\s*([^\n]+)/m
   )
   if (!titleLine) {
     fail(
@@ -196,12 +208,13 @@ export function parseMorgue(rawText: string): ParsedMorgue {
   const timeStr = titleLine[4].trim()
   if (Number.isNaN(turns)) fail("Could not read turn count.")
   const durationSeconds = parseTimeToSeconds(timeStr)
-  const durationFormatted = timeStr.includes(":")
-    ? timeStr
-    : formatDuration(durationSeconds)
+  // Always format as total hours (e.g. 32:49:03), never "1 day 08:49:03"
+  const durationFormatted = formatDuration(durationSeconds)
 
   // Species and background: use known backgrounds so "Naga Hedge Wizard" -> Naga, Hedge Wizard
-  const { species, background } = parseSpeciesBackground(speciesBackground)
+  const { species: rawSpecies, background: rawBackground } = parseSpeciesBackground(speciesBackground)
+  const species = rawSpecies.trim()
+  const background = rawBackground.trim()
 
   // XL: from stats line "XL:     25"
   const xlMatch = text.match(/\bXL:\s*(\d+)/)
@@ -246,11 +259,37 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     if (beganMatch) gameCompletionDate = parseMorgueDate(beganMatch[1].trim())
   }
 
-  // Place: "You are on level 4 of the Depths." -> Depths:4
-  const placeMatch = text.match(/You are on level (\d+) of (?:the )?(.+?)\./)
+  // Place: "You are on level 4 of the Depths." -> Depths:4; normalize branch names.
+  const PLACE_BRANCH_MAP: Record<string, string> = {
+    "spider nest": "Spider",
+    "snake pit": "Snake",
+    "swamp": "Swamp",
+    "shoals": "Shoals",
+    "depths": "Depths",
+    "vaults": "Vaults",
+    "a sewer": "Sewer",
+    "sewer": "Sewer",
+    "the dungeon": "D",
+    "dungeon": "D",
+    "pits of slime": "Slime",
+    "lair of beasts": "Lair",
+    "realm of zot": "Zot",
+    "the abyss": "Abyss",
+    "abyss": "Abyss",
+  }
+  function normalizePlaceBranch(raw: string): string {
+    const key = raw.trim().toLowerCase()
+    return PLACE_BRANCH_MAP[key] ?? raw.trim()
+  }
+  let placeMatch = text.match(/You are on level (\d+) of (?:the )?(.+?)\./)
+  if (!placeMatch) {
+    // Fallback: "Level 5 of the Dungeon." or "You died on level 5 of the Dungeon." etc.
+    placeMatch = text.match(/level\s+(\d+)\s+of\s+(?:the\s+)?(.+?)\./i)
+  }
   let place = ""
   if (placeMatch) {
-    const branch = placeMatch[2].trim()
+    const branchRaw = placeMatch[2].replace(/\s+on\s+\w{3}\s+\d{1,2},\s+\d{4}$/i, "").trim()
+    const branch = normalizePlaceBranch(branchRaw)
     place = `${branch}:${placeMatch[1]}`
   }
   if (!place && runesCount >= 3) {
@@ -258,7 +297,7 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     const zotMatch = text.match(/Zot[:\s](\d+)/i)
     if (zotMatch) place = `Zot:${zotMatch[1]}`
   }
-  if (!place && isWin) place = "Escaped"
+  if (isWin) place = "Escaped with Orb"
   if (!place) place = "unknown"
 
   // Gold - support both "You have collected" and "You collected" (0.33+)
@@ -279,6 +318,7 @@ export function parseMorgue(rawText: string): ParsedMorgue {
   // Killer: for deaths only. Line is directly under the God line. Format e.g.:
   // "Slain by a four-headed hydra (10 damage)", "Shot with an arrow by an orc warrior (10 damage)"
   // "Hit by a bolt of cold from an orc sorcerer (15 damage)". Creature name is before " (N damage)".
+  // Or: "Succumbed to a gnoll's poison" -> creature is before "'s".
   let killer: string | null = null
   if (!isWin) {
     const lines = text.split(/\n/)
@@ -287,17 +327,28 @@ export function parseMorgue(rawText: string): ParsedMorgue {
       godLineIndex >= 0 && godLineIndex < lines.length - 1
         ? lines[godLineIndex + 1].trim()
         : ""
-    const killerMatch = candidateLine.match(
-      /.+(?:by|from) (?:a|an) (.+?)\s*\(\d+\s+damage\)\s*$/i
-    )
-    if (killerMatch) {
-      killer = killerMatch[1].trim()
+
+    const damagePattern = /.+(?:by|from) (?:a|an) (.+?)\s*\(\d+\s+damage\)\s*$/i
+    const succumbedPattern = /succumbed to (?:a|an) (.+?)'s/i
+
+    const matchDamage = candidateLine.match(damagePattern)
+    const matchSuccumbed = candidateLine.match(succumbedPattern)
+    if (matchDamage) {
+      killer = matchDamage[1].trim()
+    } else if (matchSuccumbed) {
+      killer = matchSuccumbed[1].trim()
     } else {
-      // Fallback: search any line for the death-cause pattern
+      // Fallback: search any line for either pattern
       for (const line of lines) {
-        const m = line.trim().match(/.+(?:by|from) (?:a|an) (.+?)\s*\(\d+\s+damage\)\s*$/i)
-        if (m) {
-          killer = m[1].trim()
+        const trimmed = line.trim()
+        const mDamage = trimmed.match(damagePattern)
+        const mSuccumbed = trimmed.match(succumbedPattern)
+        if (mDamage) {
+          killer = mDamage[1].trim()
+          break
+        }
+        if (mSuccumbed) {
+          killer = mSuccumbed[1].trim()
           break
         }
       }

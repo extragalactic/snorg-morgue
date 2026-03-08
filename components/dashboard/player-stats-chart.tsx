@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import {
   Select,
   SelectContent,
@@ -376,59 +377,47 @@ export function PlayerStatsChart({ children, speciesStats = [], backgroundStats 
               <div className="flex items-center gap-3">
                 <span className="font-mono text-xs text-primary">SORT BY:</span>
                 <div className="flex gap-2">
-                  <Button
-                    variant={sortMethod === "wins" ? "default" : "outline"}
-                    size="sm"
-                    className="rounded-none border-2 font-mono text-xs hover:text-yellow-400"
+                  <FilterToggleButton
+                    selected={sortMethod === "wins"}
                     onClick={() => setSortMethod("wins")}
                   >
                     Wins
-                  </Button>
-                  <Button
-                    variant={sortMethod === "attempts" ? "default" : "outline"}
-                    size="sm"
-                    className="rounded-none border-2 font-mono text-xs hover:text-yellow-400"
+                  </FilterToggleButton>
+                  <FilterToggleButton
+                    selected={sortMethod === "attempts"}
                     onClick={() => setSortMethod("attempts")}
                   >
                     Attempts
-                  </Button>
-                  <Button
-                    variant={sortMethod === "default" ? "default" : "outline"}
-                    size="sm"
-                    className="rounded-none border-2 font-mono text-xs hover:text-yellow-400"
+                  </FilterToggleButton>
+                  <FilterToggleButton
+                    selected={sortMethod === "default"}
                     onClick={() => setSortMethod("default")}
                   >
                     Default
-                  </Button>
+                  </FilterToggleButton>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <span className="font-mono text-xs text-primary">SHOW:</span>
                 <div className="flex gap-2">
-                  <Button
-                    variant={showMode === "wins" ? "default" : "outline"}
-                    size="sm"
-                    className="rounded-none border-2 font-mono text-xs hover:text-yellow-400"
+                  <FilterToggleButton
+                    selected={showMode === "wins"}
                     onClick={() => setShowMode("wins")}
                   >
                     Wins
-                  </Button>
-                  <Button
-                    variant={showMode === "attempts" ? "default" : "outline"}
-                    size="sm"
-                    className="rounded-none border-2 font-mono text-xs hover:text-yellow-400"
+                  </FilterToggleButton>
+                  <FilterToggleButton
+                    selected={showMode === "attempts"}
                     onClick={() => setShowMode("attempts")}
                   >
                     Attempts
-                  </Button>
-                  <Button
-                    variant={showMode === "both" ? "default" : "outline"}
-                    size="sm"
-                    className="rounded-none border-2 font-mono text-xs hover:text-yellow-400"
+                  </FilterToggleButton>
+                  <FilterToggleButton
+                    selected={showMode === "both"}
                     onClick={() => setShowMode("both")}
                   >
                     Both
-                  </Button>
+                  </FilterToggleButton>
                 </div>
               </div>
             </div>

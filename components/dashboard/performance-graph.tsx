@@ -11,31 +11,29 @@ import {
   ResponsiveContainer,
 } from "recharts"
 
-function buildPerformanceData(morgues: GameRecord[]): { month: string; winRate: number; avgXL: number; runesCollected: number }[] {
+function buildPerformanceData(morgues: GameRecord[]): { month: string; winRate: number; avgXL: number }[] {
   if (morgues.length === 0) {
     return [
-      { month: "—", winRate: 0, avgXL: 0, runesCollected: 0 },
+      { month: "—", winRate: 0, avgXL: 0 },
     ]
   }
-  const byMonth: Record<string, { wins: number; total: number; xlSum: number; runes: number }> = {}
+  const byMonth: Record<string, { wins: number; total: number; xlSum: number }> = {}
   morgues.forEach((m) => {
     const date = m.date.slice(0, 7)
-    if (!byMonth[date]) byMonth[date] = { wins: 0, total: 0, xlSum: 0, runes: 0 }
+    if (!byMonth[date]) byMonth[date] = { wins: 0, total: 0, xlSum: 0 }
     byMonth[date].total++
     if (m.result === "win") byMonth[date].wins++
     byMonth[date].xlSum += m.xl
-    byMonth[date].runes += m.runes
   })
   const sorted = Object.entries(byMonth).sort(([a], [b]) => a.localeCompare(b))
   return sorted.map(([month, d]) => ({
     month,
     winRate: d.total ? Math.round((d.wins / d.total) * 100) : 0,
     avgXL: d.total ? Math.round((d.xlSum / d.total) * 10) / 10 : 0,
-    runesCollected: d.runes,
   }))
 }
 
-const emptyPerformanceData = [{ month: "—", winRate: 0, avgXL: 0, runesCollected: 0 }]
+const emptyPerformanceData = [{ month: "—", winRate: 0, avgXL: 0 }]
 
 interface CustomTooltipProps {
   active?: boolean
@@ -52,9 +50,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
           <p key={index} className="text-sm" style={{ color: entry.color }}>
             {entry.dataKey === "winRate"
               ? "Win Rate"
-              : entry.dataKey === "avgXL"
-              ? "Avg XL"
-              : "Runes"}
+              : "Avg XL"}
             : {entry.value}
             {entry.dataKey === "winRate" ? "%" : ""}
           </p>
@@ -99,13 +95,6 @@ export function PerformanceGraph({ morgues = [] }: { morgues?: GameRecord[] }) {
               strokeWidth={2}
               dot={{ fill: "var(--chart-2)", strokeWidth: 0, r: 4 }}
             />
-            <Line
-              type="stepAfter"
-              dataKey="runesCollected"
-              stroke="var(--chart-3)"
-              strokeWidth={2}
-              dot={{ fill: "var(--chart-3)", strokeWidth: 0, r: 4 }}
-            />
           </LineChart>
         </ResponsiveContainer>
         <div className="mt-4 flex flex-wrap items-center justify-center gap-6">
@@ -116,10 +105,6 @@ export function PerformanceGraph({ morgues = [] }: { morgues?: GameRecord[] }) {
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 bg-[var(--chart-2)]" />
             <span className="text-xs text-muted-foreground">Avg XL</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 bg-[var(--chart-3)]" />
-            <span className="text-xs text-muted-foreground">Runes Collected</span>
           </div>
         </div>
       </CardContent>
