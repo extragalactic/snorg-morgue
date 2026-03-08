@@ -2,6 +2,17 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Trophy, Skull, Target, Clock, Flame, Zap, Award } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Navigation } from "@/components/dashboard/navigation"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { PlayerStatsChart } from "@/components/dashboard/player-stats-chart"
@@ -13,11 +24,13 @@ import { UploadsTable } from "@/components/dashboard/uploads-table"
 import { Extras } from "@/components/dashboard/extras"
 import { useAuth } from "@/contexts/auth-context"
 import { supabase } from "@/lib/supabase"
+import { toast } from "@/hooks/use-toast"
 import {
   fetchMorgues,
   fetchUserStats,
   formatPlayTime,
   formatFastestWin,
+  deleteAllMorgues,
   type GameRecord,
 } from "@/lib/morgue-api"
 
@@ -28,6 +41,8 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Awaited<ReturnType<typeof fetchUserStats>>>(null)
   const [statsLoading, setStatsLoading] = useState(true)
   const [morguesLoading, setMorguesLoading] = useState(true)
+  const [nukeConfirmOpen, setNukeConfirmOpen] = useState(false)
+  const [isNuking, setIsNuking] = useState(false)
 
   const loadData = useCallback(async () => {
     if (!userId) {
@@ -87,8 +102,59 @@ export default function DashboardPage() {
               {activeTab === "extras" && "Helpful links and community resources"}
             </p>
           </div>
-          <UploadDialog onUploadComplete={loadData} />
+          <div className="flex items-center gap-2">
+            <UploadDialog onUploadComplete={loadData} />
+            {activeTab === "morgues" && (
+              <Button
+                variant="destructive"
+                className="rounded-none border-2 font-mono text-xs"
+                onClick={() => setNukeConfirmOpen(true)}
+                disabled={isNuking}
+              >
+                {isNuking ? "Nuking…" : "Nuke Morgue"}
+              </Button>
+            )}
+          </div>
         </div>
+
+        <AlertDialog open={nukeConfirmOpen} onOpenChange={setNukeConfirmOpen}>
+          <AlertDialogContent className="rounded-none border-2 border-primary/30">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-mono">Nuke Morgue</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete all the morgue files for this user?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                className="rounded-none border-2 font-mono text-xs"
+                disabled={isNuking}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="rounded-none border-2 bg-red-600 text-white hover:bg-red-700 font-mono text-xs"
+                onClick={async (e) => {
+                  e.preventDefault()
+                  if (!userId) return
+                  setIsNuking(true)
+                  setNukeConfirmOpen(false)
+                  const { error } = await deleteAllMorgues(supabase, userId)
+                  setIsNuking(false)
+                  if (error) {
+                    toast({ title: "Nuke failed", description: error, variant: "destructive" })
+                    return
+                  }
+                  toast({ title: "Morgues cleared", description: "All morgue files and stats have been removed." })
+                  loadData()
+                }}
+                disabled={isNuking}
+              >
+                Yes, delete all
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {activeTab === "analysis" && (
           <div className="space-y-6">

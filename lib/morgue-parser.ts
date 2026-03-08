@@ -3,6 +3,8 @@
  * Throws with a friendly message if the format is unrecognized.
  */
 
+import { ALL_BACKGROUND_NAMES } from "./dcss-constants"
+
 export interface ParsedMorgue {
   version: string
   gameSeed: string
@@ -23,6 +25,8 @@ export interface ParsedMorgue {
   creaturesVanquished: number
   isWin: boolean
   killer: string | null
+  /** Game completion date (YYYY-MM-DD) from morgue file. */
+  gameCompletionDate: string
 }
 
 const ERR_PREFIX = "This doesn’t look like a valid DCSS morgue file."
@@ -54,6 +58,82 @@ function parseTimeToSeconds(timeStr: string): number {
   }
   const s = parseInt(parts[0], 10)
   return Number.isNaN(s) ? 0 : s
+}
+
+/** Abbreviations sometimes used in morgue title line (Species Background). Expand before splitting.
+ * Elementalist backgrounds use double capital letters: FE, EE, AE, IE
+ * (Fire, Earth, Air, Ice Elementalist). */
+const TITLE_ABBREVIATIONS: Record<string, string> = {
+  ReIE: "Revenant Ice Elementalist",
+  MDFE: "Mountain Dwarf Fire Elementalist",
+  MDIE: "Mountain Dwarf Ice Elementalist",
+  MDAE: "Mountain Dwarf Air Elementalist",
+  MDEE: "Mountain Dwarf Earth Elementalist",
+  DrFE: "Draconian Fire Elementalist",
+  DrIE: "Draconian Ice Elementalist",
+  DrAE: "Draconian Air Elementalist",
+  DrEE: "Draconian Earth Elementalist",
+  // Coloured Draconian + Fire Elementalist (same pattern for IE/AE/EE if needed)
+  RdDrFE: "Red Draconian Fire Elementalist",
+  GnDrFE: "Green Draconian Fire Elementalist",
+  WhDrFE: "White Draconian Fire Elementalist",
+  BkDrFE: "Black Draconian Fire Elementalist",
+  YwDrFE: "Yellow Draconian Fire Elementalist",
+  PuDrFE: "Purple Draconian Fire Elementalist",
+  GyDrFE: "Grey Draconian Fire Elementalist",
+  MoDrFE: "Mottled Draconian Fire Elementalist",
+  PlDrFE: "Pale Draconian Fire Elementalist",
+  RdDrIE: "Red Draconian Ice Elementalist",
+  GnDrIE: "Green Draconian Ice Elementalist",
+  WhDrIE: "White Draconian Ice Elementalist",
+  BkDrIE: "Black Draconian Ice Elementalist",
+  YwDrIE: "Yellow Draconian Ice Elementalist",
+  PuDrIE: "Purple Draconian Ice Elementalist",
+  GyDrIE: "Grey Draconian Ice Elementalist",
+  MoDrIE: "Mottled Draconian Ice Elementalist",
+  PlDrIE: "Pale Draconian Ice Elementalist",
+  RdDrAE: "Red Draconian Air Elementalist",
+  GnDrAE: "Green Draconian Air Elementalist",
+  WhDrAE: "White Draconian Air Elementalist",
+  BkDrAE: "Black Draconian Air Elementalist",
+  YwDrAE: "Yellow Draconian Air Elementalist",
+  PuDrAE: "Purple Draconian Air Elementalist",
+  GyDrAE: "Grey Draconian Air Elementalist",
+  MoDrAE: "Mottled Draconian Air Elementalist",
+  PlDrAE: "Pale Draconian Air Elementalist",
+  RdDrEE: "Red Draconian Earth Elementalist",
+  GnDrEE: "Green Draconian Earth Elementalist",
+  WhDrEE: "White Draconian Earth Elementalist",
+  BkDrEE: "Black Draconian Earth Elementalist",
+  YwDrEE: "Yellow Draconian Earth Elementalist",
+  PuDrEE: "Purple Draconian Earth Elementalist",
+  GyDrEE: "Grey Draconian Earth Elementalist",
+  MoDrEE: "Mottled Draconian Earth Elementalist",
+  PlDrEE: "Pale Draconian Earth Elementalist",
+}
+
+/**
+ * Split "Species Background" string using known background names (longest match at end).
+ * Handles multi-word backgrounds e.g. "Naga Hedge Wizard" -> Naga, Hedge Wizard.
+ * Exported for use when normalizing stored parsed_morgues data during stats recalc.
+ */
+export function parseSpeciesBackground(speciesBackground: string): { species: string; background: string } {
+  let sb = speciesBackground.trim()
+  if (!sb) return { species: "", background: "" }
+  const expanded = TITLE_ABBREVIATIONS[sb]
+  if (expanded) sb = expanded
+  const backgroundsByLength = [...ALL_BACKGROUND_NAMES].sort((a, b) => b.length - a.length)
+  for (const bg of backgroundsByLength) {
+    if (sb.endsWith(" " + bg)) {
+      const species = sb.slice(0, sb.length - bg.length - 1).trim()
+      if (species.length > 0) return { species, background: bg }
+    }
+  }
+  const lastSpace = sb.lastIndexOf(" ")
+  if (lastSpace > 0) {
+    return { species: sb.slice(0, lastSpace), background: sb.slice(lastSpace + 1) }
+  }
+  return { species: sb, background: "" }
 }
 
 function formatDuration(totalSeconds: number): string {
@@ -99,12 +179,8 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     ? timeStr
     : formatDuration(durationSeconds)
 
-  // Species and background: "Kobold Enchanter" -> species = Kobold, background = Enchanter
-  const lastSpace = speciesBackground.lastIndexOf(" ")
-  const species =
-    lastSpace > 0 ? speciesBackground.slice(0, lastSpace) : speciesBackground
-  const background =
-    lastSpace > 0 ? speciesBackground.slice(lastSpace + 1) : ""
+  // Species and background: use known backgrounds so "Naga Hedge Wizard" -> Naga, Hedge Wizard
+  const { species, background } = parseSpeciesBackground(speciesBackground)
 
   // XL: from stats line "XL:     25"
   const xlMatch = text.match(/\bXL:\s*(\d+)/)
@@ -123,6 +199,31 @@ export function parseMorgue(rawText: string): ParsedMorgue {
 
   // Win: escaped with the Orb (needed for place fallback below)
   const isWin = /escaped with the Orb/i.test(text)
+
+  // Game completion date: from "... and N runes on Month DD, YYYY!" (wins) or "Began as ... on Month DD, YYYY." (fallback)
+  const monthNames: Record<string, number> = {
+    Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6,
+    Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12,
+  }
+  function parseMorgueDate(s: string): string {
+    const m = s.match(/^(\w{3})\s+(\d{1,2}),\s+(\d{4})$/)
+    if (!m) return ""
+    const month = monthNames[m[1]]
+    if (!month) return ""
+    const day = parseInt(m[2], 10)
+    const year = m[3]
+    if (Number.isNaN(day) || day < 1 || day > 31) return ""
+    return `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`
+  }
+  let gameCompletionDate = ""
+  const runesDateMatch = text.match(/\.\.\.\s+and\s+\d+\s+runes?\s+on\s+(\w{3}\s+\d{1,2},\s+\d{4})!/i)
+  if (runesDateMatch) {
+    gameCompletionDate = parseMorgueDate(runesDateMatch[1].trim())
+  }
+  if (!gameCompletionDate) {
+    const beganMatch = text.match(/Began as\s+.+?\s+on\s+(\w{3}\s+\d{1,2},\s+\d{4})\./i)
+    if (beganMatch) gameCompletionDate = parseMorgueDate(beganMatch[1].trim())
+  }
 
   // Place: "You are on level 4 of the Depths." -> Depths:4
   const placeMatch = text.match(/You are on level (\d+) of (?:the )?(.+?)\./)
@@ -183,6 +284,7 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     creaturesVanquished,
     isWin,
     killer,
+    gameCompletionDate: gameCompletionDate || "",
   }
 }
 

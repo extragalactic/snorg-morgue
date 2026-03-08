@@ -11,6 +11,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useTheme } from "@/contexts/theme-context"
+import {
+  ALL_SPECIES_NAMES,
+  DRACONIAN_COLOUR_NAMES,
+  ALL_BACKGROUND_NAMES,
+  GOD_NAMES_FOR_CHART,
+} from "@/lib/dcss-constants"
 import type { StatEntry } from "@/lib/morgue-db"
 import {
   BarChart,
@@ -60,17 +66,6 @@ const godColors = [
   "#a0c98f",
 ]
 
-// Full canonical lists so we can show zero-data entries (DCSS playable species, backgrounds, gods)
-const ALL_SPECIES_NAMES = [
-  "Gnoll", "Minotaur", "Merfolk", "Gargoyle", "Mountain Dwarf", "Draconian", "Troll", "Deep Elf", "Armataur",
-  "Human", "Kobold", "Revenant", "Demonspawn", "Djinni", "Spriggan", "Tengu", "Oni", "Barachi",
-  "Coglin", "Vine Stalker", "Poltergeist", "Demigod", "Formicid", "Naga", "Octopode", "Felid", "Mummy",
-]
-// Draconian colour variants (sub-rows under "Draconian" summary); bar and label use grey
-const DRACONIAN_COLOUR_NAMES = [
-  "Red Draconian", "Green Draconian", "White Draconian", "Black Draconian", "Yellow Draconian",
-  "Purple Draconian", "Grey Draconian", "Mottled Draconian", "Pale Draconian",
-]
 const DRACONIAN_BAR_GREY = "#9ca3af"
 const DRACONIAN_LABEL_GREY = "#6b7280"
 
@@ -79,29 +74,20 @@ function speciesDisplayLabel(name: string): string {
   if (DRACONIAN_COLOUR_NAMES.includes(name)) return name.replace(/\s+Draconian$/, "")
   return name
 }
-const ALL_BACKGROUND_NAMES = [
-  "Fighter", "Gladiator", "Monk", "Hunter", "Brigand",
-  "Berserker", "Cinder Acolyte", "Chaos Knight",
-  "Artificer", "Shapeshifter", "Wanderer", "Delver",
-  "Warper", "Hexslinger", "Enchanter", "Reaver",
-  "Hedge Wizard", "Conjurer", "Summoner", "Necromancer", "Forgewright",
-  "Fire Elementalist", "Ice Elementalist", "Air Elementalist", "Earth Elementalist", "Alchemist",
-]
-const ALL_GOD_NAMES = [
-  "Ashenzari", "Beogh", "Cheibriados", "Dithmenos", "Elyvilon", "Fedhas Madash", "Gozag", "Hepliaklqana",
-  "Ignis", "Jiyva", "Kikubaaqudgha", "Lugonu", "Makhleb", "Nemelex Xobeh", "Okawaru", "Qazlal", "Ru",
-  "Sif Muna", "Trog", "Uskayaw", "Vehumet", "Wu Jian", "Xom", "Yredelemnul", "Zin", "The Shining One",
-  "(no god)",
-]
 
 function mergeWithFullList(fullNames: string[], stats: StatEntry[]): StatEntry[] {
   const byName = new Map(stats.map((s) => [s.name, s]))
   return fullNames.map((name) => byName.get(name) ?? { name, wins: 0, attempts: 0 })
 }
 
-/** Species list with Draconian as summary row + one row per colour (grey styling for colours). */
+/** Species list with Draconian as summary row + one row per colour (grey styling for colours).
+ * Any species in stats that are not in the canonical list are aggregated into an "Other" row so totals match. */
 function buildSpeciesListWithDraconian(stats: StatEntry[]): StatEntry[] {
   const byName = new Map(stats.map((s) => [s.name, s]))
+  const canonicalSpecies = new Set([
+    ...ALL_SPECIES_NAMES,
+    ...DRACONIAN_COLOUR_NAMES,
+  ])
   const draconianNames = ["Draconian", ...DRACONIAN_COLOUR_NAMES]
   let draconianWins = 0
   let draconianAttempts = 0
@@ -124,6 +110,18 @@ function buildSpeciesListWithDraconian(stats: StatEntry[]): StatEntry[] {
     } else {
       result.push(byName.get(name) ?? { name, wins: 0, attempts: 0 })
     }
+  }
+  // Include wins/attempts for species not in canonical list (e.g. different DCSS version spelling) so chart total matches
+  let otherWins = 0
+  let otherAttempts = 0
+  for (const entry of stats) {
+    if (!canonicalSpecies.has(entry.name)) {
+      otherWins += entry.wins
+      otherAttempts += entry.attempts
+    }
+  }
+  if (otherWins > 0 || otherAttempts > 0) {
+    result.push({ name: "Other", wins: otherWins, attempts: otherAttempts })
   }
   return result
 }
@@ -255,9 +253,18 @@ export function PlayerStatsChart({ children, speciesStats = [], backgroundStats 
     [backgroundStats]
   )
   const allGodsData = useMemo(
-    () => withColors(mergeWithFullList(ALL_GOD_NAMES, godStats), godColors, () => ({ description: "" })),
+    () => withColors(mergeWithFullList(GOD_NAMES_FOR_CHART, godStats), godColors, () => ({ description: "" })),
     [godStats]
   )
+
+  // No-god summary for Gods chart header (from full godStats including "(no god)")
+  const noGodSummary = useMemo(() => {
+    const total = godStats.reduce((s, e) => s + e.attempts, 0)
+    const noGod = godStats.find((e) => e.name === "(no god)")
+    const count = noGod?.attempts ?? 0
+    const pct = total ? (count / total) * 100 : 0
+    return { count, pct }
+  }, [godStats])
 
   // Memoize colors based on theme to force re-render when theme changes
   const speciesColors = useMemo(() => 
@@ -285,10 +292,22 @@ export function PlayerStatsChart({ children, speciesStats = [], backgroundStats 
 
   const sortedSpeciesData = useMemo(() => {
     if (sortMethod === "default") return allSpeciesData
-    return [...allSpeciesData].sort((a, b) => 
-      sortMethod === "wins" ? b.wins - a.wins : b.attempts - a.attempts
+    // Keep Draconian block (main row + colour rows) together; only the main Draconian row participates in sort.
+    const others = allSpeciesData.filter(
+      (e) => e.name !== "Draconian" && !DRACONIAN_COLOUR_NAMES.includes(e.name)
     )
-  }, [sortMethod])
+    const draconianMain = allSpeciesData.find((e) => e.name === "Draconian")!
+    const draconianColourRows = DRACONIAN_COLOUR_NAMES.map((name) =>
+      allSpeciesData.find((e) => e.name === name)!
+    )
+    const sortKey = sortMethod === "wins" ? "wins" : "attempts"
+    const sorted = [...others, draconianMain].sort(
+      (a, b) => (b[sortKey] as number) - (a[sortKey] as number)
+    )
+    return sorted.flatMap((e) =>
+      e.name === "Draconian" ? [e, ...draconianColourRows] : [e]
+    )
+  }, [sortMethod, allSpeciesData])
 
   const sortedBackgroundData = useMemo(() => {
     if (sortMethod === "default") return allBackgroundData
@@ -347,6 +366,11 @@ export function PlayerStatsChart({ children, speciesStats = [], backgroundStats 
                 </SelectContent>
               </Select>
               <span>PERFORMANCE</span>
+              {chartType === "gods" && (
+                <span className="text-muted-foreground text-sm font-normal" style={{ marginLeft: 20 }}>
+                  {noGodSummary.count} attempts ({noGodSummary.pct.toFixed(0)}%) had no god
+                </span>
+              )}
             </CardTitle>
             <div className="flex flex-wrap items-center gap-6 pt-3">
               <div className="flex items-center gap-3">
@@ -426,12 +450,6 @@ export function PlayerStatsChart({ children, speciesStats = [], backgroundStats 
                   stroke="var(--muted-foreground)" 
                   fontSize={14}
                   domain={[0, xDomainMax]}
-                  label={{ 
-                    value: "Wins / Attempts", 
-                    position: "bottom", 
-                    offset: -5,
-                    style: { fill: 'var(--muted-foreground)', fontSize: 13 }
-                  }}
                 />
                 <YAxis
                   type="category"
@@ -487,25 +505,29 @@ export function PlayerStatsChart({ children, speciesStats = [], backgroundStats 
               </div>
             )}
             <div className="mt-4 flex flex-wrap items-center justify-center gap-4">
-              <div className="flex items-center gap-2">
-                <div 
-                  className="h-3 w-6" 
-                  style={{ 
-                    backgroundSize: '4px 100%', 
-                    backgroundImage: themeStyle === "ascii" 
-                      ? 'repeating-linear-gradient(90deg, #22c55e, #22c55e 2px, rgba(34,197,94,0.4) 2px, rgba(34,197,94,0.4) 4px)'
-                      : 'repeating-linear-gradient(90deg, #d4a574, #d4a574 2px, rgba(212,165,116,0.4) 2px, rgba(212,165,116,0.4) 4px)' 
-                  }} 
-                />
-                <span className="text-sm text-muted-foreground">Wins</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div 
-                  className="h-3 w-6" 
-                  style={{ backgroundColor: themeStyle === "ascii" ? "rgba(34,197,94,0.5)" : "rgba(212,165,116,0.5)" }} 
-                />
-                <span className="text-sm text-muted-foreground">Attempts</span>
-              </div>
+              {(showMode === "both" || showMode === "wins") && (
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="h-3 w-6" 
+                    style={{ 
+                      backgroundSize: '4px 100%', 
+                      backgroundImage: themeStyle === "ascii" 
+                        ? 'repeating-linear-gradient(90deg, #22c55e, #22c55e 2px, rgba(34,197,94,0.4) 2px, rgba(34,197,94,0.4) 4px)'
+                        : 'repeating-linear-gradient(90deg, #d4a574, #d4a574 2px, rgba(212,165,116,0.4) 2px, rgba(212,165,116,0.4) 4px)' 
+                    }} 
+                  />
+                  <span className="text-sm text-muted-foreground">Wins</span>
+                </div>
+              )}
+              {(showMode === "both" || showMode === "attempts") && (
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="h-3 w-6" 
+                    style={{ backgroundColor: themeStyle === "ascii" ? "rgba(34,197,94,0.5)" : "rgba(212,165,116,0.5)" }} 
+                  />
+                  <span className="text-sm text-muted-foreground">Attempts</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -75,8 +75,16 @@ export function LevelAtDeathChart({ morgues = [], loading }: { morgues?: GameRec
   return (
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <CardTitle className="font-mono text-sm text-primary">
-          LEVEL AT DEATH
+        <CardTitle className="font-mono text-sm text-primary flex items-center justify-between gap-2">
+          <span>LEVEL AT DEATH</span>
+          {morgues.length > 0 && (() => {
+            const deaths = morgues.filter((m) => m.result === "death").length
+            return (
+              <span className="font-mono text-xs font-normal text-muted-foreground">
+                Out of {deaths} YASD{deaths === 1 ? "" : "s"}
+              </span>
+            )
+          })()}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4">

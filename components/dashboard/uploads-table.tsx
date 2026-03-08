@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Search, Eye, ChevronLeft, ChevronRight, Skull, Trophy, ChevronUp, ChevronDown, Trash2 } from "lucide-react"
+import { Search, Eye, ChevronLeft, ChevronRight, Skull, Trophy, ChevronUp, ChevronDown, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,10 +29,11 @@ import { supabase } from "@/lib/supabase"
 import { deleteMorgue } from "@/lib/morgue-api"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "@/hooks/use-toast"
+import { DRACONIAN_COLOUR_NAMES } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 
 type ResultFilter = "all" | "win" | "death"
-type SortField = "character" | "combo" | "xl" | "place" | "duration" | "result"
+type SortField = "character" | "combo" | "xl" | "place" | "duration" | "date" | "result"
 type SortDirection = "asc" | "desc"
 
 interface UploadsTableProps {
@@ -53,8 +54,14 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
   const itemsPerPage = 20
 
-  const getCombo = (game: GameRecord) => 
-    `${game.species.substring(0, 2)}${game.background.substring(0, 2)}`
+  const getCombo = (game: GameRecord) => {
+    const speciesPart =
+      game.species === "Draconian" || DRACONIAN_COLOUR_NAMES.includes(game.species)
+        ? "Dr"
+        : game.species.substring(0, 2)
+    const bgPart = game.background ? game.background.substring(0, 2) : ""
+    return `${speciesPart}${bgPart}`
+  }
 
   const filteredAndSortedData = useMemo(() => {
     // First filter by search query (including combo)
@@ -93,6 +100,9 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
             break
           case "duration":
             comparison = a.duration.localeCompare(b.duration)
+            break
+          case "date":
+            comparison = a.date.localeCompare(b.date)
             break
           case "result":
             comparison = a.result.localeCompare(b.result)
@@ -217,7 +227,7 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
             </div>
             {/* Search */}
             <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Search morgues..."
                 value={searchQuery}
@@ -225,8 +235,23 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
                   setSearchQuery(e.target.value)
                   setCurrentPage(1)
                 }}
-                className="rounded-none border-2 border-primary/50 bg-input pl-9 text-sm focus:border-primary"
+                className="rounded-none border-2 border-primary/50 bg-input pl-9 pr-9 text-sm focus:border-primary"
               />
+              {searchQuery.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-none text-muted-foreground hover:text-foreground hover:bg-primary/10"
+                  onClick={() => {
+                    setSearchQuery("")
+                    setCurrentPage(1)
+                  }}
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -241,6 +266,7 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
                 <SortableHeader field="xl">XL</SortableHeader>
                 <SortableHeader field="place" className="hidden sm:table-cell">Place</SortableHeader>
                 <SortableHeader field="duration" className="hidden md:table-cell">Duration</SortableHeader>
+                <SortableHeader field="date">Date</SortableHeader>
                 <SortableHeader field="result">Result</SortableHeader>
                 <TableHead className="font-mono text-xs text-primary w-24 text-right">Actions</TableHead>
               </TableRow>
@@ -263,6 +289,7 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
                   <TableCell className="hidden md:table-cell text-muted-foreground">
                     {game.duration}
                   </TableCell>
+                  <TableCell className="text-muted-foreground">{game.date}</TableCell>
                   <TableCell>
                     {game.result === "win" ? (
                       <Badge className="rounded-none bg-green-500/20 text-green-500 border border-green-500/50 hover:bg-green-500/30">

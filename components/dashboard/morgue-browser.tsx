@@ -112,7 +112,7 @@ export function MorgueBrowser({ game, onBack }: MorgueBrowserProps) {
               <div className="p-8 text-center text-destructive text-sm">{error}</div>
             )}
             {rawText && !loading && (
-              <pre className="p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words">
+              <pre className="p-4 font-mono text-sm leading-relaxed whitespace-pre-wrap break-words">
                 {rawText}
               </pre>
             )}

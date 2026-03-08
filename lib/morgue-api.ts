@@ -4,7 +4,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { parseMorgue, getMessageHistorySignature } from "./morgue-parser"
+import { parseMorgue, getMessageHistorySignature, parseSpeciesBackground } from "./morgue-parser"
 import {
   parsedToRow,
   formatPlayTime,
@@ -202,6 +202,40 @@ export async function recalcUserStats(
 
   const list = (rows ?? []) as ParsedMorgueRow[]
 
+  // Order by game play date (from morgue filename) so best_streak = consecutive wins chronologically.
+  const fileIds = [...new Set(list.map((r) => r.morgue_file_id))]
+  const filenameByFileId = new Map<string, string>()
+  if (fileIds.length > 0) {
+    const { data: files } = await supabase
+      .from("morgue_files")
+      .select("id, filename")
+      .eq("user_id", userId)
+      .in("id", fileIds)
+    for (const f of files ?? []) {
+      filenameByFileId.set(f.id, (f as { filename: string }).filename ?? "")
+    }
+  }
+  // DCSS filenames: morgue-Name-YYYYMMDD-HHMMSS.txt; use as sort key for chronological order
+  const sortKey = (r: ParsedMorgueRow) => {
+    const filename = filenameByFileId.get(r.morgue_file_id) ?? ""
+    const match = filename.match(/-(\d{8})-(\d{6})/)
+    if (match) return `${match[1]}${match[2]}`
+    return r.created_at
+  }
+  const listByPlayDate = [...list].sort((a, b) => {
+    const ka = sortKey(a)
+    const kb = sortKey(b)
+    return ka < kb ? -1 : ka > kb ? 1 : 0
+  })
+
+  // Normalize species/background from stored data (may have been parsed with older logic,
+  // e.g. "Naga Hedge" + "Wizard" instead of "Naga" + "Hedge Wizard") so stats use canonical names.
+  const normalizedList = list.map((r) => {
+    const combined = r.background ? `${r.species} ${r.background}` : r.species
+    const { species, background } = parseSpeciesBackground(combined)
+    return { ...r, species, background }
+  })
+
   function buildStatEntries(
     list: ParsedMorgueRow[],
     getName: (r: ParsedMorgueRow) => string
@@ -219,9 +253,9 @@ export async function recalcUserStats(
       .sort((a, b) => b.attempts - a.attempts)
   }
 
-  const species_stats = buildStatEntries(list, (r) => r.species)
-  const background_stats = buildStatEntries(list, (r) => r.background)
-  const god_stats = buildStatEntries(list, (r) => r.god || "(no god)")
+  const species_stats = buildStatEntries(normalizedList, (r) => r.species)
+  const background_stats = buildStatEntries(normalizedList, (r) => r.background)
+  const god_stats = buildStatEntries(normalizedList, (r) => r.god || "(no god)")
 
   const totalGames = list.length
   const wins = list.filter((r) => r.is_win)
@@ -241,7 +275,7 @@ export async function recalcUserStats(
 
   let bestStreak = 0
   let current = 0
-  for (const r of list) {
+  for (const r of listByPlayDate) {
     if (r.is_win) {
       current++
       bestStreak = Math.max(bestStreak, current)
@@ -280,28 +314,31 @@ export async function fetchMorgues(
 ): Promise<GameRecord[]> {
   const { data, error } = await supabase
     .from("parsed_morgues")
-    .select("id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, created_at, is_win, runes_count, killer, god")
+    .select("id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, created_at, is_win, runes_count, killer, god, game_completion_date")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
 
   if (error) return []
 
-  return (data ?? []).map((r) => ({
-    id: r.id,
-    morgueFileId: r.morgue_file_id,
-    character: r.character_name,
-    species: r.species,
-    background: r.background,
-    xl: r.xl,
-    place: r.place,
-    turns: r.turns,
-    duration: r.duration_formatted,
-    date: r.created_at.slice(0, 10),
-    result: r.is_win ? ("win" as const) : ("death" as const),
-    runes: r.runes_count,
-    killer: r.killer ?? undefined,
-    god: r.god ?? undefined,
-  }))
+  return (data ?? []).map((r) => {
+    const row = r as { game_completion_date?: string | null; created_at: string; [k: string]: unknown }
+    return {
+      id: r.id,
+      morgueFileId: r.morgue_file_id,
+      character: r.character_name,
+      species: r.species,
+      background: r.background,
+      xl: r.xl,
+      place: r.place,
+      turns: r.turns,
+      duration: r.duration_formatted,
+      date: row.game_completion_date?.trim() ? row.game_completion_date : row.created_at.slice(0, 10),
+      result: r.is_win ? ("win" as const) : ("death" as const),
+      runes: r.runes_count,
+      killer: r.killer ?? undefined,
+      god: r.god ?? undefined,
+    }
+  })
 }
 
 /**
@@ -350,6 +387,23 @@ export async function deleteMorgue(
     .from("morgue_files")
     .delete()
     .eq("id", morgueFileId)
+    .eq("user_id", userId)
+
+  if (error) return { error: error.message }
+  await recalcUserStats(supabase, userId)
+  return { error: null }
+}
+
+/**
+ * Delete all morgue files for the user (and clear their stats). For testing / clean re-upload.
+ */
+export async function deleteAllMorgues(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from("morgue_files")
+    .delete()
     .eq("user_id", userId)
 
   if (error) return { error: error.message }

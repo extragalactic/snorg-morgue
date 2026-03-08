@@ -37,6 +37,8 @@ export interface ParsedMorgueRow {
   killer: string | null
   message_history_signature: string
   created_at: string
+  /** Game completion date from morgue file (YYYY-MM-DD). */
+  game_completion_date?: string
 }
 
 /** One entry in species_stats, background_stats, or god_stats on user_stats. */
@@ -90,6 +92,7 @@ export function parsedToRow(
     creatures_vanquished: p.creaturesVanquished,
     is_win: p.isWin,
     killer: p.killer,
+    game_completion_date: p.gameCompletionDate || "",
   }
 }
 

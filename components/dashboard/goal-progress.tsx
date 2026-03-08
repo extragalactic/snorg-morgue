@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { TOTAL_SPECIES, TOTAL_BACKGROUNDS, TOTAL_GODS } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 
 interface Goal {
@@ -27,16 +28,16 @@ function computeGoals(morgues: GameRecord[]): Goal[] {
   const backgrounds = new Set(wins.map((m) => m.background))
   const gods = new Set(wins.map((m) => m.god).filter(Boolean) as string[])
   return [
-    { name: "Great Player", description: "Win with 27 different species", current: species.size, max: 27 },
-    { name: "Greater Player", description: "Achieve Great Player +\nWin with 27 different backgrounds", current: backgrounds.size, max: 27 },
-    { name: "Polytheist", description: "Win while worshipping 27 different gods", current: gods.size, max: 27 },
+    { name: "Great Player", description: `Win with all ${TOTAL_SPECIES} species`, current: species.size, max: TOTAL_SPECIES },
+    { name: "Greater Player", description: `Achieve Great Player +\nWin with all ${TOTAL_BACKGROUNDS} backgrounds`, current: backgrounds.size, max: TOTAL_BACKGROUNDS },
+    { name: "Polytheist", description: `Win with all ${TOTAL_GODS} gods`, current: gods.size, max: TOTAL_GODS },
   ]
 }
 
 const defaultGoals: Goal[] = [
-  { name: "Great Player", description: "Win with 27 different species", current: 0, max: 27 },
-  { name: "Greater Player", description: "Achieve Great Player +\nWin with 27 different backgrounds", current: 0, max: 27 },
-  { name: "Polytheist", description: "Win while worshipping 27 different gods", current: 0, max: 27 },
+  { name: "Great Player", description: `Win with all ${TOTAL_SPECIES} species`, current: 0, max: TOTAL_SPECIES },
+  { name: "Greater Player", description: `Achieve Great Player +\nWin with all ${TOTAL_BACKGROUNDS} backgrounds`, current: 0, max: TOTAL_BACKGROUNDS },
+  { name: "Polytheist", description: `Win with all ${TOTAL_GODS} gods`, current: 0, max: TOTAL_GODS },
 ]
 
 export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps) {
