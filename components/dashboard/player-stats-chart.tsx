@@ -510,10 +510,10 @@ export function PlayerStatsChart({ children, speciesStats = [], backgroundStats 
                   <div 
                     className="h-3 w-6" 
                     style={{ 
-                      backgroundSize: '4px 100%', 
+                      backgroundSize: '6px 6px', 
                       backgroundImage: themeStyle === "ascii" 
-                        ? 'repeating-linear-gradient(90deg, #22c55e, #22c55e 2px, rgba(34,197,94,0.4) 2px, rgba(34,197,94,0.4) 4px)'
-                        : 'repeating-linear-gradient(90deg, #d4a574, #d4a574 2px, rgba(212,165,116,0.4) 2px, rgba(212,165,116,0.4) 4px)' 
+                        ? 'repeating-linear-gradient(-45deg, #22c55e, #22c55e 2px, rgba(34,197,94,0.4) 2px, rgba(34,197,94,0.4) 4px)'
+                        : 'repeating-linear-gradient(-45deg, #d4a574, #d4a574 2px, rgba(212,165,116,0.4) 2px, rgba(212,165,116,0.4) 4px)' 
                     }} 
                   />
                   <span className="text-sm text-muted-foreground">Wins</span>
@@ -533,7 +533,7 @@ export function PlayerStatsChart({ children, speciesStats = [], backgroundStats 
         </Card>
 
         {/* Right side - Performance Graph */}
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-6">
           {children}
         </div>
       </div>

@@ -118,6 +118,12 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
   const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedData = filteredAndSortedData.slice(startIndex, startIndex + itemsPerPage)
+  const totalCount = morgues.length
+  const filteredCount = filteredAndSortedData.length
+  const titleText =
+    filteredCount === totalCount
+      ? `${totalCount} Morgue Files`
+      : `${filteredCount} of ${totalCount} Morgue Files`
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -172,7 +178,7 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
     return (
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">MORGUE FILES</CardTitle>
+          <CardTitle className="font-mono text-sm text-primary">Morgue Files</CardTitle>
         </CardHeader>
         <CardContent className="p-8">
           <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
@@ -188,7 +194,7 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
     return (
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">MORGUE FILES</CardTitle>
+          <CardTitle className="font-mono text-sm text-primary">0 Morgue Files</CardTitle>
         </CardHeader>
         <CardContent className="p-8 text-center">
           <p className="font-mono text-primary mb-2">No morgue files yet</p>
@@ -202,11 +208,11 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
 
   return (
     <Card className="border-2 border-primary/30 rounded-none">
-      <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="font-mono text-sm text-primary">
-            MORGUE FILES
-          </CardTitle>
+        <CardHeader className="border-b-2 border-primary/20 pb-3">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="font-mono text-sm text-primary">
+              {titleText}
+            </CardTitle>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             {/* Result Filter */}
             <div className="flex gap-1">

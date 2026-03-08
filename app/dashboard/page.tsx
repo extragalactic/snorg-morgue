@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Trophy, Skull, Target, Clock, Flame, Zap, Award } from "lucide-react"
+import { Trophy, Skull, Target, Flame, Zap, Award } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   AlertDialog,
@@ -19,6 +19,7 @@ import { PlayerStatsChart } from "@/components/dashboard/player-stats-chart"
 import { PerformanceGraph } from "@/components/dashboard/performance-graph"
 import { GoalProgress } from "@/components/dashboard/goal-progress"
 import { LevelAtDeathChart } from "@/components/dashboard/level-at-death-chart"
+import { Top10Killers } from "@/components/dashboard/top-10-killers"
 import { UploadDialog } from "@/components/dashboard/upload-dialog"
 import { UploadsTable } from "@/components/dashboard/uploads-table"
 import { Extras } from "@/components/dashboard/extras"
@@ -186,20 +187,13 @@ export default function DashboardPage() {
                     icon={Target}
                   />
                   <StatCard
-                    title="Play Time"
-                    value={statsData?.totalPlayTime ?? "0m"}
-                    valueSubtext={statsData ? `${(statsData.totalPlayTimeSeconds / 3600).toFixed(1)} hours` : undefined}
-                    subtitle="Total game time"
-                    icon={Clock}
-                  />
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <StatCard
                     title="Best Streak"
                     value={statsData?.bestStreak ?? 0}
                     subtitle="Consecutive wins"
                     icon={Flame}
                   />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <StatCard
                     title="Avg XL at Death"
                     value={statsData ? statsData.avgXlAtDeath.toFixed(1) : "—"}
@@ -224,6 +218,7 @@ export default function DashboardPage() {
                   backgroundStats={stats?.background_stats}
                   godStats={stats?.god_stats}
                 >
+                  <Top10Killers morgues={morgues} loading={statsLoading} />
                   <PerformanceGraph morgues={morgues} />
                 </PlayerStatsChart>
               </>

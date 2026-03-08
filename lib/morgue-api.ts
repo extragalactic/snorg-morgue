@@ -4,7 +4,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { parseMorgue, getMessageHistorySignature, parseSpeciesBackground } from "./morgue-parser"
+import { parseMorgue, getMessageHistorySignature, parseSpeciesBackground, isAbandonedCharacterMorgue } from "./morgue-parser"
 import {
   parsedToRow,
   formatPlayTime,
@@ -94,6 +94,13 @@ export async function uploadMorgues(
 
   for (const file of files) {
     try {
+      if (isAbandonedCharacterMorgue(file.text)) {
+        const msg =
+          "Skipped: file appears to be an abandoned character (quit from D:1 with abandon prompt)."
+        failed.push({ filename: file.name, error: msg })
+        logImportFailure(file.name, msg, { phase: "parse" })
+        continue
+      }
       const parsed = parseMorgue(file.text)
       const signature = getMessageHistorySignature(file.text)
 

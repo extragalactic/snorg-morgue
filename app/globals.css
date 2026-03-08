@@ -151,6 +151,9 @@
   --sidebar-accent-foreground: oklch(0.75 0.18 145);
   --sidebar-border: oklch(0.25 0.08 145);
   --sidebar-ring: oklch(0.65 0.2 145);
+  /* Yellow utilities (e.g. play time hours) → green in ASCII theme */
+  --color-yellow-400: oklch(0.8 0.2 145);
+  --color-yellow-500: oklch(0.8 0.2 145);
 }
 
 /* ASCII theme specific overrides */
@@ -182,7 +185,8 @@
   border-color: oklch(0.3 0.08 145) !important;
 }
 
-.theme-ascii .text-yellow-400 {
+.theme-ascii .text-yellow-400,
+.theme-ascii .text-yellow-500 {
   color: oklch(0.8 0.2 145) !important;
 }
 

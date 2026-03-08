@@ -41,6 +41,27 @@ function extractMatch(text: string, regex: RegExp, fieldName: string): string {
   return m[1].trim()
 }
 
+const ABANDON_PROMPT = "Are you sure you want to abandon this character and return to the main menu?"
+const ABANDON_CONFIRM = '(Confirm with "quit".).'
+const DUNGEON_1_15 = "Dungeon (1/15)"
+
+/**
+ * Returns true if the raw morgue text is an abandoned-character file that should be skipped on import:
+ * - Contains "Dungeon (1/15)" (player never left D:1)
+ * - Contains the abandon prompt followed by the confirm line and a blank line.
+ */
+export function isAbandonedCharacterMorgue(rawText: string): boolean {
+  if (!rawText.includes(DUNGEON_1_15)) return false
+  const lines = rawText.split(/\r?\n/)
+  for (let i = 0; i < lines.length - 2; i++) {
+    if (!lines[i].includes(ABANDON_PROMPT)) continue
+    const nextLine = lines[i + 1].trim()
+    const afterNext = lines[i + 2].trim()
+    if (nextLine.includes(ABANDON_CONFIRM) && afterNext === "") return true
+  }
+  return false
+}
+
 function parseTimeToSeconds(timeStr: string): number {
   const parts = timeStr.trim().split(":")
   if (parts.length === 3) {
@@ -255,13 +276,32 @@ export function parseMorgue(rawText: string): ParsedMorgue {
       ? parseInt(creaturesMatch[1], 10)
       : 0
 
-  // Killer: "Killed by X" or "X killed you"
+  // Killer: for deaths only. Line is directly under the God line. Format e.g.:
+  // "Slain by a four-headed hydra (10 damage)", "Shot with an arrow by an orc warrior (10 damage)"
+  // "Hit by a bolt of cold from an orc sorcerer (15 damage)". Creature name is before " (N damage)".
   let killer: string | null = null
-  const killedByMatch = text.match(/Killed by (.+?)(?:\s+on\s+|\s*$)/i)
-  if (killedByMatch) killer = killedByMatch[1].trim()
-  else {
-    const killedYouMatch = text.match(/(.+?)\s+killed you/i)
-    if (killedYouMatch) killer = killedYouMatch[1].trim()
+  if (!isWin) {
+    const lines = text.split(/\n/)
+    const godLineIndex = lines.findIndex((line) => /God:\s+/.test(line))
+    const candidateLine =
+      godLineIndex >= 0 && godLineIndex < lines.length - 1
+        ? lines[godLineIndex + 1].trim()
+        : ""
+    const killerMatch = candidateLine.match(
+      /.+(?:by|from) (?:a|an) (.+?)\s*\(\d+\s+damage\)\s*$/i
+    )
+    if (killerMatch) {
+      killer = killerMatch[1].trim()
+    } else {
+      // Fallback: search any line for the death-cause pattern
+      for (const line of lines) {
+        const m = line.trim().match(/.+(?:by|from) (?:a|an) (.+?)\s*\(\d+\s+damage\)\s*$/i)
+        if (m) {
+          killer = m[1].trim()
+          break
+        }
+      }
+    }
   }
 
   return {
