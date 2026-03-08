@@ -12,9 +12,13 @@ import type { GameRecord } from "@/lib/morgue-api"
 interface MorgueBrowserProps {
   game: GameRecord
   onBack: () => void
+  /** When true, hide the "Back to Morgues" button (e.g. when used inside a modal that has its own back button). */
+  hideBackButton?: boolean
+  /** When true, fill available vertical space (e.g. in modal) instead of fixed height. */
+  fillHeight?: boolean
 }
 
-export function MorgueBrowser({ game, onBack }: MorgueBrowserProps) {
+export function MorgueBrowser({ game, onBack, hideBackButton, fillHeight }: MorgueBrowserProps) {
   const [rawText, setRawText] = useState<string | null>(null)
   const [filename, setFilename] = useState<string>("")
   const [loading, setLoading] = useState(true)
@@ -49,18 +53,20 @@ export function MorgueBrowser({ game, onBack }: MorgueBrowserProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className={fillHeight ? "flex min-h-0 flex-1 flex-col gap-4" : "space-y-4"}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2 rounded-none border-2 border-primary/50 hover:border-primary hover:bg-primary/10"
-            onClick={onBack}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Morgues
-          </Button>
+          {!hideBackButton && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 rounded-none border-2 border-primary/50 hover:border-primary hover:bg-primary/10"
+              onClick={onBack}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Morgues
+            </Button>
+          )}
           <div>
             <h2 className="font-mono text-lg text-primary">{game.character}</h2>
             <p className="text-sm text-muted-foreground">
@@ -91,8 +97,8 @@ export function MorgueBrowser({ game, onBack }: MorgueBrowserProps) {
         </div>
       </div>
 
-      <Card className="border-2 border-primary/30 rounded-none">
-        <CardHeader className="border-b-2 border-primary/20 py-3">
+      <Card className={fillHeight ? "flex min-h-0 flex-1 flex-col border-2 border-primary/30 rounded-none" : "border-2 border-primary/30 rounded-none"}>
+        <CardHeader className="flex-shrink-0 border-b-2 border-primary/20 py-3">
           <div className="flex items-center justify-between">
             <p className="font-mono text-xs text-primary">MORGUE FILE</p>
             {filename && (
@@ -100,8 +106,8 @@ export function MorgueBrowser({ game, onBack }: MorgueBrowserProps) {
             )}
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="h-[550px] overflow-y-auto bg-background">
+        <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
+          <div className={fillHeight ? "min-h-0 flex-1 overflow-y-auto bg-background morgue-modal-scroll" : "h-[550px] overflow-y-auto bg-background"}>
             {loading && (
               <div className="p-8 flex items-center justify-center text-muted-foreground text-sm">
                 <div className="h-5 w-5 animate-spin border-2 border-primary border-t-transparent rounded-full mr-2" />

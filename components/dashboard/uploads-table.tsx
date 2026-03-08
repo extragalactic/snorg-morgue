@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Search, Eye, ChevronLeft, ChevronRight, Skull, Trophy, ChevronUp, ChevronDown, Trash2, X } from "lucide-react"
+import { Search, Eye, ChevronLeft, ChevronRight, Skull, Trophy, ChevronUp, ChevronDown, Trash2, X, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { Input } from "@/components/ui/input"
@@ -25,6 +25,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { MorgueBrowser } from "./morgue-browser"
 import { supabase } from "@/lib/supabase"
 import { deleteMorgue } from "@/lib/morgue-api"
@@ -184,16 +190,6 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
     onRefresh?.()
   }
 
-  // If viewing a morgue, show the Morgue Browser
-  if (viewingMorgue) {
-    return (
-      <MorgueBrowser 
-        game={viewingMorgue} 
-        onBack={() => setViewingMorgue(null)} 
-      />
-    )
-  }
-
   if (loading) {
     return (
       <Card className="border-2 border-primary/30 rounded-none">
@@ -227,6 +223,7 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
   }
 
   return (
+    <>
     <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -420,5 +417,35 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
         </div>
       </CardContent>
     </Card>
+    {viewingMorgue && (
+      <Dialog open={!!viewingMorgue} onOpenChange={(open) => !open && setViewingMorgue(null)}>
+        <DialogContent
+          showCloseButton={false}
+          className="morgue-detail-modal fixed left-1/2 top-5 bottom-5 m-0 flex h-[calc(100vh-40px)] w-[min(2400px,calc(100vw-100px))] max-w-none sm:max-w-none -translate-x-1/2 translate-y-0 flex-col gap-0 rounded-none border-2 border-primary/30 p-0"
+        >
+          <DialogHeader className="flex shrink-0 flex-row items-center gap-2 border-b-2 border-primary/20 px-4 py-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 rounded-none border-2 border-primary/50 hover:border-primary hover:bg-primary/10"
+              onClick={() => setViewingMorgue(null)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Morgue list
+            </Button>
+            <DialogTitle className="sr-only">Morgue details</DialogTitle>
+          </DialogHeader>
+          <div className="morgue-modal-scroll flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+            <MorgueBrowser
+              game={viewingMorgue}
+              onBack={() => setViewingMorgue(null)}
+              hideBackButton
+              fillHeight
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    )}
+    </>
   )
 }

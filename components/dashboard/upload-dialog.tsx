@@ -372,7 +372,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
       <DialogContent className="border-4 border-primary rounded-none bg-card sm:max-w-lg">
         <DialogHeader className="border-b-2 border-primary/30 pb-4">
           <DialogTitle className="font-mono text-primary">
-            IMPORT FAILED
+            SOME IMPORTS SKIPPED
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             The following file(s) could not be imported. Successful files were still added.

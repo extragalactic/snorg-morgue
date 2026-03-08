@@ -42,7 +42,8 @@ function extractMatch(text: string, regex: RegExp, fieldName: string): string {
 }
 
 const ABANDON_PROMPT = "Are you sure you want to abandon this character and return to the main menu?"
-const ABANDON_CONFIRM = '(Confirm with "quit".).'
+/** Distinctive phrase on the confirm line (avoids relying on exact trailing punctuation, which can vary). */
+const ABANDON_CONFIRM_PHRASE = '(Confirm with "quit"'
 const DUNGEON_1_15 = "Dungeon (1/15)"
 
 /**
@@ -57,7 +58,7 @@ export function isAbandonedCharacterMorgue(rawText: string): boolean {
     if (!lines[i].includes(ABANDON_PROMPT)) continue
     const nextLine = lines[i + 1].trim()
     const afterNext = lines[i + 2].trim()
-    if (nextLine.includes(ABANDON_CONFIRM) && afterNext === "") return true
+    if (nextLine.includes(ABANDON_CONFIRM_PHRASE) && afterNext === "") return true
   }
   return false
 }
@@ -211,10 +212,24 @@ export function parseMorgue(rawText: string): ParsedMorgue {
   // Always format as total hours (e.g. 32:49:03), never "1 day 08:49:03"
   const durationFormatted = formatDuration(durationSeconds)
 
-  // Species and background: use known backgrounds so "Naga Hedge Wizard" -> Naga, Hedge Wizard
-  const { species: rawSpecies, background: rawBackground } = parseSpeciesBackground(speciesBackground)
-  const species = rawSpecies.trim()
-  const background = rawBackground.trim()
+  // Species and background: use known backgrounds so "Naga Hedge Wizard" -> Naga, Hedge Wizard.
+  // When the title line uses (level N, HPs) instead of (Species Background), get species/background from "Began as a X Y on ...".
+  let species = ""
+  let background = ""
+  const looksLikeLevelStats = /^level\s+\d+/i.test(speciesBackground)
+  if (looksLikeLevelStats) {
+    const beganMatch = text.match(/Began as\s+(?:a|an)\s+(.+?)\s+on\s+\w{3}\s+\d{1,2},\s+\d{4}\./i)
+    if (beganMatch && beganMatch[1]) {
+      const { species: s, background: b } = parseSpeciesBackground(beganMatch[1].trim())
+      species = s.trim()
+      background = b.trim()
+    }
+  }
+  if (!species && !background) {
+    const { species: rawSpecies, background: rawBackground } = parseSpeciesBackground(speciesBackground)
+    species = rawSpecies.trim()
+    background = rawBackground.trim()
+  }
 
   // XL: from stats line "XL:     25"
   const xlMatch = text.match(/\bXL:\s*(\d+)/)
