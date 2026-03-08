@@ -28,7 +28,7 @@ export function StatCard({
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">{title}</p>
             <p className="font-mono text-2xl text-primary">{value}</p>
-            {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+            {subtitle && <p className="text-sm text-muted-foreground whitespace-pre-line">{subtitle}</p>}
             {trend && trendValue && (
               <p
                 className={cn(

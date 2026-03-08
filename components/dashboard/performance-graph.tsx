@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import type { GameRecord } from "@/lib/morgue-api"
 import {
   LineChart,
   Line,
@@ -10,16 +11,31 @@ import {
   ResponsiveContainer,
 } from "recharts"
 
-const performanceData = [
-  { month: "Jan", winRate: 8, avgXL: 12, runesCollected: 2 },
-  { month: "Feb", winRate: 10, avgXL: 14, runesCollected: 5 },
-  { month: "Mar", winRate: 7, avgXL: 11, runesCollected: 3 },
-  { month: "Apr", winRate: 15, avgXL: 16, runesCollected: 8 },
-  { month: "May", winRate: 18, avgXL: 18, runesCollected: 12 },
-  { month: "Jun", winRate: 22, avgXL: 20, runesCollected: 15 },
-  { month: "Jul", winRate: 20, avgXL: 19, runesCollected: 14 },
-  { month: "Aug", winRate: 25, avgXL: 22, runesCollected: 18 },
-]
+function buildPerformanceData(morgues: GameRecord[]): { month: string; winRate: number; avgXL: number; runesCollected: number }[] {
+  if (morgues.length === 0) {
+    return [
+      { month: "—", winRate: 0, avgXL: 0, runesCollected: 0 },
+    ]
+  }
+  const byMonth: Record<string, { wins: number; total: number; xlSum: number; runes: number }> = {}
+  morgues.forEach((m) => {
+    const date = m.date.slice(0, 7)
+    if (!byMonth[date]) byMonth[date] = { wins: 0, total: 0, xlSum: 0, runes: 0 }
+    byMonth[date].total++
+    if (m.result === "win") byMonth[date].wins++
+    byMonth[date].xlSum += m.xl
+    byMonth[date].runes += m.runes
+  })
+  const sorted = Object.entries(byMonth).sort(([a], [b]) => a.localeCompare(b))
+  return sorted.map(([month, d]) => ({
+    month,
+    winRate: d.total ? Math.round((d.wins / d.total) * 100) : 0,
+    avgXL: d.total ? Math.round((d.xlSum / d.total) * 10) / 10 : 0,
+    runesCollected: d.runes,
+  }))
+}
+
+const emptyPerformanceData = [{ month: "—", winRate: 0, avgXL: 0, runesCollected: 0 }]
 
 interface CustomTooltipProps {
   active?: boolean
@@ -49,7 +65,8 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   return null
 }
 
-export function PerformanceGraph() {
+export function PerformanceGraph({ morgues = [] }: { morgues?: GameRecord[] }) {
+  const performanceData = morgues.length > 0 ? buildPerformanceData(morgues) : emptyPerformanceData
   return (
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">

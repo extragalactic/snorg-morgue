@@ -69,3 +69,23 @@ Without this, only email/password auth will work; Google sign-in will fail until
 | Set Site URL and Redirect URLs for auth | **Yes for Google**; good practice for email too |
 
 After setting the env vars, run `pnpm dev` and use **Sign Up** then **Sign In** on the login page.
+
+---
+
+## 6. Morgue tables (for uploads and stats)
+
+To enable morgue uploads and the Analysis/Morgues pages:
+
+1. In the Supabase dashboard, open **SQL Editor** → **New query**.
+2. Copy the entire contents of **`supabase/schema.sql`** in this project.
+3. Run the query. It creates:
+   - **`morgue_files`** – raw morgue file text per upload
+   - **`parsed_morgues`** – parsed game data (one row per morgue)
+   - **`user_stats`** – aggregated stats per user (recalculated when morgues are uploaded)
+   - Indexes and RLS policies so users only see their own data.
+
+You do **not** need to create these in the Table Editor by hand; the SQL file sets up columns, indexes, and RLS.
+
+**Important – duplicate detection column:** If uploads fail with *"Could not find the 'message_history_signature' column of 'parsed_morgues' in the schema cache"*, the `parsed_morgues` table is missing the duplicate-detection column. In **SQL Editor**, run the contents of **`supabase/add_message_history_signature.sql`** once. That adds `message_history_signature` to `parsed_morgues`. If you created the tables before this column existed, you must run this migration.
+
+**Duplicate detection (summary):** If you already had the morgue tables before `message_history_signature` was added, run **`supabase/add_message_history_signature.sql`** in the SQL Editor. New setups from **`supabase/schema.sql`** should include this column (see that migration for the definition).

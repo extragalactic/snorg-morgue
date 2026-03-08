@@ -13,6 +13,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null
+  userId: string | null
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
@@ -36,6 +37,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -43,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const setSession = (session: Session | null) => {
     setUser(mapSupabaseUser(session?.user ?? null))
+    setUserId(session?.user?.id ?? null)
   }
 
   useEffect(() => {
@@ -154,6 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        userId,
         isAuthenticated: !!user,
         isLoading,
         error,
