@@ -20,9 +20,9 @@ interface NavigationProps {
 }
 
 const navItems = [
-  { id: "analysis", label: "Analysis", icon: BarChart3 },
+  { id: "analysis", label: "Analytics", icon: BarChart3 },
   { id: "morgues", label: "Morgues", icon: ScrollText },
-  { id: "extras", label: "Extras", icon: ExternalLink },
+  { id: "extras", label: "Resources", icon: ExternalLink },
 ]
 
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {

@@ -92,9 +92,9 @@ export default function DashboardPage() {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-mono text-lg text-primary">
-              {activeTab === "analysis" && "PERFORMANCE ANALYSIS"}
+              {activeTab === "analysis" && "PERFORMANCE ANALYTICS"}
               {activeTab === "morgues" && "MORGUE FILES"}
-              {activeTab === "extras" && "DCSS RESOURCES"}
+              {activeTab === "extras" && "RESOURCES"}
             </h1>
             <p className="text-sm text-muted-foreground">
               {activeTab === "analysis" && "Track and analyze your dungeon crawling progress"}
@@ -188,6 +188,7 @@ export default function DashboardPage() {
                   <StatCard
                     title="Play Time"
                     value={statsData?.totalPlayTime ?? "0m"}
+                    valueSubtext={statsData ? `${(statsData.totalPlayTimeSeconds / 3600).toFixed(1)} hours` : undefined}
                     subtitle="Total game time"
                     icon={Clock}
                   />

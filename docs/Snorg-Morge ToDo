@@ -1,4 +1,18 @@
 Snorg-Morge ToDo
 
-- test for duplicate morgue uploads
+- morgue uploads need to ignore "uninteresting" games
 - enable Google auth
+
+
+Make a custom Achievements section 
+(maybe use custom icons based on monster graphics, shadowed vs. coloured):
+- D1 Padawan 50h
+- S-Branch Assassin 250h
+- Vault Mercenary 500h
+- Zot Special Ops 1000h
+- Nerd God-King of the Realm 2000h
+
+New section: Top Killers (scrape the monster graphics)
+
+
+
