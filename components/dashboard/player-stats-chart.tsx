@@ -371,7 +371,7 @@ export function PlayerStatsChart({ children, speciesStats = [], backgroundStats 
               <span>PERFORMANCE</span>
               {chartType === "gods" && (
                 <span className="text-muted-foreground text-sm font-normal" style={{ marginLeft: 20 }}>
-                  {noGodSummary.count} attempts ({noGodSummary.pct.toFixed(0)}%) had no god
+                  {noGodSummary.pct.toFixed(0)}% of games had no god
                 </span>
               )}
             </CardTitle>

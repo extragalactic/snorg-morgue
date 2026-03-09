@@ -315,7 +315,9 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
                   </TableCell>
                   <TableCell>{game.xl}</TableCell>
                   <TableCell className="hidden sm:table-cell text-muted-foreground">
-                    {game.place}
+                    {game.place?.startsWith("Orcish Mines")
+                      ? game.place.replace("Orcish Mines", "Orc")
+                      : game.place}
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-muted-foreground">
                     {game.duration}

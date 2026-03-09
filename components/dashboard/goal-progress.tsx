@@ -2,7 +2,14 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { TOTAL_SPECIES, TOTAL_BACKGROUNDS, TOTAL_GODS, DRACONIAN_COLOUR_NAMES, TOTAL_DRACONIAN_COLOURS } from "@/lib/dcss-constants"
+import {
+  TOTAL_SPECIES,
+  TOTAL_BACKGROUNDS,
+  TOTAL_GODS,
+  DRACONIAN_COLOUR_NAMES,
+  TOTAL_DRACONIAN_COLOURS,
+  ALL_SPECIES_NAMES,
+} from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 
 /** Play time achievements: hours played -> { title, thresholdSeconds } */
@@ -35,6 +42,7 @@ interface GoalProgressProps {
 
 function computeGoals(morgues: GameRecord[]): Goal[] {
   const wins = morgues.filter((m) => m.result === "win")
+
   const species = new Set(wins.map((m) => m.species))
   const backgrounds = new Set(wins.map((m) => m.background))
   const gods = new Set(wins.map((m) => m.god).filter(Boolean) as string[])
@@ -43,12 +51,86 @@ function computeGoals(morgues: GameRecord[]): Goal[] {
       .map((m) => m.species)
       .filter((s): s is string => !!s && DRACONIAN_COLOUR_NAMES.includes(s))
   )
-  return [
-    { name: "Great Player", description: `Win with all ${TOTAL_SPECIES} species`, current: species.size, max: TOTAL_SPECIES },
-    { name: "Greater Player", description: `Achieve Great Player +\nWin with all ${TOTAL_BACKGROUNDS} backgrounds`, current: backgrounds.size, max: TOTAL_BACKGROUNDS },
-    { name: "Polytheist", description: `Win with all ${TOTAL_GODS} gods`, current: gods.size, max: TOTAL_GODS },
-    { name: "Tiamat", description: `Win with all ${TOTAL_DRACONIAN_COLOURS} colours of Draconian`, current: dracColours.size, max: TOTAL_DRACONIAN_COLOURS },
+
+  // For each species, track how many distinct backgrounds and gods have wins
+  const speciesBackgroundWins = new Map<string, Set<string>>()
+  const speciesGodWins = new Map<string, Set<string>>()
+  for (const m of wins) {
+    const sp = m.species
+    const bg = m.background
+    const god = m.god
+    if (sp && bg) {
+      let bgSet = speciesBackgroundWins.get(sp)
+      if (!bgSet) {
+        bgSet = new Set<string>()
+        speciesBackgroundWins.set(sp, bgSet)
+      }
+      bgSet.add(bg)
+    }
+    if (sp && god) {
+      let godSet = speciesGodWins.get(sp)
+      if (!godSet) {
+        godSet = new Set<string>()
+        speciesGodWins.set(sp, godSet)
+      }
+      godSet.add(god)
+    }
+  }
+
+  const goals: Goal[] = [
+    {
+      name: "Great Player",
+      description: `Win with all ${TOTAL_SPECIES} species`,
+      current: species.size,
+      max: TOTAL_SPECIES,
+    },
+    {
+      name: "Greater Player",
+      description: `Achieve Great Player +\nWin with all ${TOTAL_BACKGROUNDS} backgrounds`,
+      current: backgrounds.size,
+      max: TOTAL_BACKGROUNDS,
+    },
+    {
+      name: "Polytheist",
+      description: `Win with all ${TOTAL_GODS} gods`,
+      current: gods.size,
+      max: TOTAL_GODS,
+    },
+    {
+      name: "Tiamat",
+      description: `Win with all ${TOTAL_DRACONIAN_COLOURS} colours of Draconian`,
+      current: dracColours.size,
+      max: TOTAL_DRACONIAN_COLOURS,
+    },
   ]
+
+  // Greater Species achievements: one per species, showing backgrounds won with that species
+  for (const speciesName of ALL_SPECIES_NAMES) {
+    const bgSet = speciesBackgroundWins.get(speciesName) ?? new Set<string>()
+    // Hide species with zero wins (no backgrounds cleared yet)
+    if (bgSet.size === 0) continue
+    goals.push({
+      name: `Greater ${speciesName}`,
+      description: `Win with all ${TOTAL_BACKGROUNDS} backgrounds as a ${speciesName}`,
+      current: bgSet.size,
+      max: TOTAL_BACKGROUNDS,
+    })
+  }
+
+  // Devoted Species achievements: one per species, showing gods won with that species
+  for (const speciesName of ALL_SPECIES_NAMES) {
+    const godSet = speciesGodWins.get(speciesName) ?? new Set<string>()
+    // Hide species with zero wins (no gods yet)
+    if (godSet.size === 0) continue
+    goals.push({
+      name: `Devoted ${speciesName}`,
+      description: `Win with all ${TOTAL_GODS} gods as a ${speciesName}`,
+      current: godSet.size,
+      max: TOTAL_GODS,
+    })
+  }
+
+  return goals
 }
 
 const defaultGoals: Goal[] = [
@@ -60,6 +142,17 @@ const defaultGoals: Goal[] = [
 
 export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps) {
   const goals = morgues.length > 0 ? computeGoals(morgues) : defaultGoals
+  const coreGoals = goals.filter(
+    (g) =>
+      g.name === "Great Player" ||
+      g.name === "Greater Player" ||
+      g.name === "Polytheist" ||
+      g.name === "Tiamat"
+  )
+  const greaterSpeciesGoals = goals.filter(
+    (g) => g.name.startsWith("Greater ") && g.name !== "Greater Player"
+  )
+  const devotedSpeciesGoals = goals.filter((g) => g.name.startsWith("Devoted "))
   if (loading) {
     return (
       <Card className="border-2 border-primary/30 rounded-none">
@@ -67,21 +160,24 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           <CardTitle className="font-mono text-sm text-primary">ACHIEVEMENTS</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
-          <div className="h-20 flex items-center justify-center text-muted-foreground text-sm">Loading…</div>
+          <div className="h-20 flex items-center justify-center text-muted-foreground text-sm">
+            Loading…
+          </div>
         </CardContent>
       </Card>
     )
   }
+
   return (
-    <Card className="border-2 border-primary/30 rounded-none">
-      <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <CardTitle className="font-mono text-sm text-primary">
-          ACHIEVEMENTS
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-4">
-        <div className="grid gap-6 md:grid-cols-4">
-          {goals.map((goal) => {
+    <>
+      {/* Great Players card */}
+      <Card className="border-2 border-primary/30 rounded-none">
+        <CardHeader className="border-b-2 border-primary/20 pb-3">
+          <CardTitle className="font-mono text-sm text-primary">GREAT PLAYERS</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="grid gap-6 md:grid-cols-4">
+          {coreGoals.map((goal) => {
             const percentage = (goal.current / goal.max) * 100
             return (
               <div key={goal.name} className="space-y-2">
@@ -91,19 +187,26 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                     {goal.current}/{goal.max}
                   </span>
                 </div>
-                <Progress 
-                  value={percentage} 
+                <Progress
+                  value={percentage}
                   className="h-3 rounded-none bg-secondary border border-primary/30"
                 />
-                <p className="text-xs text-muted-foreground whitespace-pre-line">{goal.description}</p>
+                <p className="text-xs text-muted-foreground whitespace-pre-line">
+                  {goal.description}
+                </p>
               </div>
             )
           })}
-        </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Snorg Awards: play time achievements */}
-        <div className="mt-6 pt-6 border-t-2 border-primary/20">
-          <h3 className="font-mono text-sm text-primary mb-1">Snorg Awards</h3>
+      {/* Snorg Awards card */}
+      <Card className="mt-6 border-2 border-primary/30 rounded-none">
+        <CardHeader className="border-b-2 border-primary/20 pb-3">
+          <CardTitle className="font-mono text-sm text-primary">SNORG AWARDS</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
           <p className="font-mono text-sm text-muted-foreground mb-4">
             Total Play Time:{" "}
             <span className="font-mono text-base text-yellow-500">
@@ -155,8 +258,79 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
               )
             })}
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Greater Species card */}
+      {greaterSpeciesGoals.length > 0 && (
+        <Card className="mt-6 border-2 border-primary/30 rounded-none">
+          <CardHeader className="border-b-2 border-primary/20 pb-3">
+            <CardTitle className="font-mono text-sm text-primary">GREATER SPECIES</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="grid gap-6 md:grid-cols-4">
+              {greaterSpeciesGoals.map((goal) => {
+                const percentage = (goal.current / goal.max) * 100
+                return (
+                  <div key={goal.name} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-sm text-foreground">
+                        {goal.name}
+                      </span>
+                      <span className="font-mono text-sm text-primary">
+                        {goal.current}/{goal.max}
+                      </span>
+                    </div>
+                    <Progress
+                      value={percentage}
+                      className="h-3 rounded-none bg-secondary border border-primary/30"
+                    />
+                    <p className="text-xs text-muted-foreground whitespace-pre-line">
+                      {goal.description}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Devoted Species card */}
+      {devotedSpeciesGoals.length > 0 && (
+        <Card className="mt-6 border-2 border-primary/30 rounded-none">
+          <CardHeader className="border-b-2 border-primary/20 pb-3">
+            <CardTitle className="font-mono text-sm text-primary">DEVOTED SPECIES</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="grid gap-6 md:grid-cols-4">
+              {devotedSpeciesGoals.map((goal) => {
+                const percentage = (goal.current / goal.max) * 100
+                return (
+                  <div key={goal.name} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-sm text-foreground">
+                        {goal.name}
+                      </span>
+                      <span className="font-mono text-sm text-primary">
+                        {goal.current}/{goal.max}
+                      </span>
+                    </div>
+                    <Progress
+                      value={percentage}
+                      className="h-3 rounded-none bg-secondary border border-primary/30"
+                    />
+                    <p className="text-xs text-muted-foreground whitespace-pre-line">
+                      {goal.description}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+    </>
   )
 }

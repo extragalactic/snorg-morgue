@@ -87,7 +87,7 @@ export default function LoginPage() {
       </header>
 
       {/* Login Form */}
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
+      <main className="flex-1 flex items-center justify-center px-4 py-12 -mt-20">
         {isLoading ? (
           <div className="flex items-center justify-center min-h-[200px]">
             <p className="text-muted-foreground font-mono">Loading…</p>
@@ -111,6 +111,9 @@ export default function LoginPage() {
             <CardDescription>
               Sign up to track your DCSS progress
             </CardDescription>
+            <p className="mt-1 text-xs text-green-400 font-mono">
+              Updated for v0.34
+            </p>
           </CardHeader>
           <CardContent className="pt-6">
             {error && (

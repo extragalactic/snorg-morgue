@@ -257,7 +257,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, fillHeight }: Morg
                   key={id}
                   variant="outline"
                   size="sm"
-                  className="rounded-none border border-primary/50 font-mono text-xs py-1 h-auto hover:bg-primary/10 hover:text-primary"
+                  className="rounded-none border border-primary/40 bg-transparent font-mono text-xs text-muted-foreground py-1 h-auto hover:border-primary hover:bg-primary/10 hover:text-primary"
                   onClick={() => scrollToSection(id)}
                 >
                   {title}

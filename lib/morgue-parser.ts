@@ -302,6 +302,7 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     "depths": "Depths",
     "vaults": "Vaults",
     "a sewer": "Sewer",
+    "the sewer": "Sewer",
     "sewer": "Sewer",
     "the dungeon": "D",
     "dungeon": "D",
@@ -310,6 +311,14 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     "realm of zot": "Zot",
     "the abyss": "Abyss",
     "abyss": "Abyss",
+    "necropolis": "Necropolis",
+    "the necropolis": "Necropolis",
+    "gauntlet": "Gauntlet",
+    "a gauntlet": "Gauntlet",
+    "the gauntlet": "Gauntlet",
+    "volcano": "Volcano",
+    "a volcano": "Volcano",
+    "the volcano": "Volcano",
   }
   function normalizePlaceBranch(raw: string): string {
     const key = raw.trim().toLowerCase()
@@ -325,6 +334,19 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     const branchRaw = placeMatch[2].replace(/\s+on\s+\w{3}\s+\d{1,2},\s+\d{4}$/i, "").trim()
     const branch = normalizePlaceBranch(branchRaw)
     place = `${branch}:${placeMatch[1]}`
+  }
+  // Places without explicit level designations, e.g. "You are in a sewer.", "You were in the Necropolis."
+  if (!place) {
+    // Match anything after "You are in" / "You were in" and then strip articles to feed through PLACE_BRANCH_MAP
+    const portalMatch = text.match(/You (?:are|were) in\s+(.+?)\./i)
+    if (portalMatch) {
+      const portalBranchRaw = portalMatch[1].trim().replace(/^(an?|the)\s+/i, "")
+      // Reuse branch normalization so things like "sewer" become "Sewer", "pits of slime" -> "Slime", etc.
+      const normalizedPortal = normalizePlaceBranch(portalBranchRaw)
+      if (normalizedPortal) {
+        place = normalizedPortal
+      }
+    }
   }
   if (!place && runesCount >= 3) {
     // Won in Zot; common pattern

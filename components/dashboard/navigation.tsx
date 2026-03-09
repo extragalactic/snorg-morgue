@@ -94,7 +94,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
           {/* User Info, Theme Selector & Sign Out */}
           <div className="hidden md:flex items-center gap-3">
             {user && (
-              <span className="text-xs text-muted-foreground">
+              <span className="font-mono text-sm text-muted-foreground">
                 {user.name}
               </span>
             )}

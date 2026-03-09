@@ -128,10 +128,17 @@ function CategoryCard({ category }: { category: LinkCategory }) {
   return (
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <CardTitle className="flex items-center gap-2 font-mono text-sm text-primary">
-          <Icon className="h-4 w-4" />
-          {category.title.toUpperCase()}
-        </CardTitle>
+        <div className="flex items-baseline justify-between gap-2">
+          <CardTitle className="flex items-center gap-2 font-mono text-sm text-primary">
+            <Icon className="h-4 w-4" />
+            {category.title.toUpperCase()}
+          </CardTitle>
+          {category.title === "Active YouTube Channels" && (
+            <span className="font-mono text-[10px] text-muted-foreground">
+              Last updated March 9th, 2026
+            </span>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="pt-4">
         <ul className="space-y-3">
