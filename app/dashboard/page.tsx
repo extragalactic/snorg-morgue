@@ -20,6 +20,7 @@ import { PerformanceGraph } from "@/components/dashboard/performance-graph"
 import { GoalProgress } from "@/components/dashboard/goal-progress"
 import { LevelAtDeathChart } from "@/components/dashboard/level-at-death-chart"
 import { Top10Killers } from "@/components/dashboard/top-10-killers"
+import { SpeciesBackgroundComboGrid } from "@/components/dashboard/species-background-combo-grid"
 import { UploadDialog } from "@/components/dashboard/upload-dialog"
 import { UploadsTable } from "@/components/dashboard/uploads-table"
 import { Extras } from "@/components/dashboard/extras"
@@ -34,6 +35,7 @@ import {
   deleteAllMorgues,
   type GameRecord,
 } from "@/lib/morgue-api"
+import { GOD_SHORT_FORMS } from "@/lib/dcss-constants"
 
 export default function DashboardPage() {
   const { userId } = useAuth()
@@ -84,6 +86,18 @@ export default function DashboardPage() {
         fastestWin: formatFastestWin(stats.fastest_win_seconds),
       }
     : null
+
+  const fastestWinGame =
+    stats?.fastest_win_seconds != null && morgues.length > 0
+      ? morgues.find(
+          (m) => m.result === "win" && m.durationSeconds === stats.fastest_win_seconds
+        )
+      : undefined
+  const fastestWinSubtitle = fastestWinGame
+    ? `${fastestWinGame.species} ${fastestWinGame.background}${
+        fastestWinGame.god ? ` ^${GOD_SHORT_FORMS[fastestWinGame.god] ?? fastestWinGame.god}` : ""
+      }`
+    : undefined
 
   return (
     <div className="min-h-screen bg-background">
@@ -158,16 +172,17 @@ export default function DashboardPage() {
         </AlertDialog>
 
         {activeTab === "analysis" && (
-          <div className="space-y-6">
-            <GoalProgress stats={statsData} morgues={morgues} loading={statsLoading} />
-            <LevelAtDeathChart morgues={morgues} loading={statsLoading} />
-            {isEmpty ? (
-              <AnalysisEmptyState />
-            ) : statsLoading ? (
-              <AnalysisLoadingState />
-            ) : (
-              <>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <>
+            <div className="space-y-6">
+              <GoalProgress stats={statsData} morgues={morgues} loading={statsLoading} />
+              <LevelAtDeathChart morgues={morgues} loading={statsLoading} />
+              {isEmpty ? (
+                <AnalysisEmptyState />
+              ) : statsLoading ? (
+                <AnalysisLoadingState />
+              ) : (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <StatCard
                     title="Total Wins"
                     value={statsData?.totalWins ?? 0}
@@ -209,21 +224,23 @@ export default function DashboardPage() {
                   <StatCard
                     title="Fastest Win"
                     value={statsData?.fastestWin ?? "—"}
-                    subtitle="Speed record"
+                    subtitle={fastestWinSubtitle}
                     icon={Zap}
                   />
-                </div>
-                <PlayerStatsChart
-                  speciesStats={stats?.species_stats}
-                  backgroundStats={stats?.background_stats}
-                  godStats={stats?.god_stats}
-                >
-                  <Top10Killers morgues={morgues} loading={statsLoading} />
-                  <PerformanceGraph morgues={morgues} />
-                </PlayerStatsChart>
-              </>
-            )}
-          </div>
+                  </div>
+                  <PlayerStatsChart
+                    speciesStats={stats?.species_stats}
+                    backgroundStats={stats?.background_stats}
+                    godStats={stats?.god_stats}
+                  >
+                    <Top10Killers morgues={morgues} loading={statsLoading} />
+                    <PerformanceGraph morgues={morgues} />
+                  </PlayerStatsChart>
+                </>
+              )}
+            </div>
+            <SpeciesBackgroundComboGrid morgues={morgues} />
+          </>
         )}
 
         {activeTab === "morgues" && (

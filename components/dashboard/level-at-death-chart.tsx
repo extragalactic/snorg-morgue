@@ -81,7 +81,7 @@ export function LevelAtDeathChart({ morgues = [], loading }: { morgues?: GameRec
             const deaths = morgues.filter((m) => m.result === "death").length
             return (
               <span className="font-mono text-xs font-normal text-muted-foreground">
-                Out of {deaths} YASD{deaths === 1 ? "" : "s"}
+                Total YASDs: {deaths}
               </span>
             )
           })()}

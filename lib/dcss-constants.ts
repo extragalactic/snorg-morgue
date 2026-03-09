@@ -33,6 +33,37 @@ export const ALL_GOD_NAMES = [
 /** Gods that count for Polytheist (excludes "no god"). */
 export const GOD_NAMES_FOR_CHART = ALL_GOD_NAMES.filter((n) => n !== "(no god)")
 
+/** God short forms for display (e.g. Fastest Win subtitle). */
+export const GOD_SHORT_FORMS: Record<string, string> = {
+  "Ashenzari": "Ash",
+  "Beogh": "Beo",
+  "Cheibriados": "Chei",
+  "Dithmenos": "Dith",
+  "Elyvilon": "Ely",
+  "Fedhas Madash": "Fed",
+  "Gozag": "Goz",
+  "Hepliaklqana": "Hep",
+  "Ignis": "Ign",
+  "Jiyva": "Jiy",
+  "Kikubaaqudgha": "Kiku",
+  "Lugonu": "Lug",
+  "Makhleb": "Mak",
+  "Nemelex Xobeh": "Nem",
+  "Okawaru": "Oka",
+  "Qazlal": "Qaz",
+  "Ru": "Ru",
+  "Sif Muna": "Sif",
+  "Trog": "Trog",
+  "Uskayaw": "Usk",
+  "Vehumet": "Veh",
+  "Wu Jian": "Wu",
+  "Xom": "Xom",
+  "Yredelemnul": "Yred",
+  "Zin": "Zin",
+  "The Shining One": "TSO",
+  "(no god)": "—",
+}
+
 /** Total species for Great Player goal. */
 export const TOTAL_SPECIES = ALL_SPECIES_NAMES.length
 

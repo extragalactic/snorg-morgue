@@ -25,6 +25,8 @@ export interface GameRecord {
   place: string
   turns: number
   duration: string
+  /** Duration in seconds (for fastest-win lookup). */
+  durationSeconds?: number
   date: string
   result: "win" | "death"
   runes: number
@@ -321,7 +323,7 @@ export async function fetchMorgues(
 ): Promise<GameRecord[]> {
   const { data, error } = await supabase
     .from("parsed_morgues")
-    .select("id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, created_at, is_win, runes_count, killer, god, game_completion_date")
+    .select("id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
 
@@ -339,6 +341,7 @@ export async function fetchMorgues(
       place: r.place,
       turns: r.turns,
       duration: r.duration_formatted,
+      durationSeconds: (r as { duration_seconds?: number }).duration_seconds,
       date: row.game_completion_date?.trim() ? row.game_completion_date : row.created_at.slice(0, 10),
       result: r.is_win ? ("win" as const) : ("death" as const),
       runes: r.runes_count,

@@ -64,7 +64,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
     return (
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">ACHIEVEMENT PROGRESS</CardTitle>
+          <CardTitle className="font-mono text-sm text-primary">ACHIEVEMENTS</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="h-20 flex items-center justify-center text-muted-foreground text-sm">Loading…</div>
@@ -76,7 +76,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
         <CardTitle className="font-mono text-sm text-primary">
-          ACHIEVEMENT PROGRESS
+          ACHIEVEMENTS
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4">

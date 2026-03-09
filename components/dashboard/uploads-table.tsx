@@ -69,6 +69,10 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
     const speciesPart =
       species === "Octopode"
         ? "Op"
+        : species === "Merfolk"
+          ? "Mf"
+        : species === "Deep Elf"
+          ? "DE"
         : species === "Draconian" || DRACONIAN_COLOUR_NAMES.includes(species)
           ? "Dr"
           : species === "Mountain Dwarf"
