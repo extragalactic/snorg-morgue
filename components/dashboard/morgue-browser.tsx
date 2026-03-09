@@ -282,10 +282,15 @@ export function MorgueBrowser({ game, onBack, hideBackButton, fillHeight }: Morg
             {rawText && !loading && segments.length > 0 && (
               <div className="font-mono text-sm leading-relaxed">
                 {segments.map((seg) => (
-                  <div key={seg.id} id={seg.id} className="p-4 whitespace-pre-wrap break-words">
-                    <pre className="m-0 p-0 font-inherit text-inherit leading-inherit whitespace-pre-wrap break-words">
-                      {seg.text}
-                    </pre>
+                  <div key={seg.id} id={seg.id} className="p-4">
+                    {seg.text.split(/\n/).map((line, i) => (
+                      <div
+                        key={`${seg.id}-${i}`}
+                        className="whitespace-pre-wrap break-words hover:bg-primary/10 transition-colors -mx-4 px-4"
+                      >
+                        {line || "\u00A0"}
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>

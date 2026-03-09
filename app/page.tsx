@@ -32,7 +32,8 @@ export default function LoginPage() {
     setIsSubmitting(true)
     try {
       await signIn(signInEmail, signInPassword)
-    } finally {
+      // On success, auth context redirects; keep spinner until page unmounts
+    } catch {
       setIsSubmitting(false)
     }
   }
@@ -181,9 +182,16 @@ export default function LoginPage() {
                   <Button 
                     type="submit" 
                     disabled={isSubmitting || isLoading}
-                    className="w-full rounded-none border-2 border-green-500 bg-green-500/20 text-green-400 hover:bg-green-500/30 font-mono"
+                    className="w-full rounded-none border-2 border-green-500 bg-green-500/20 text-green-400 hover:bg-green-500/30 font-mono gap-2"
                   >
-                    {isSubmitting ? "…" : "ENTER"}
+                    {isSubmitting ? (
+                      <>
+                        <span className="h-4 w-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin shrink-0" aria-hidden />
+                        <span>Signing in…</span>
+                      </>
+                    ) : (
+                      "ENTER"
+                    )}
                   </Button>
                 </form>
               </TabsContent>
@@ -212,7 +220,7 @@ export default function LoginPage() {
                       <Input
                         id="signup-email"
                         type="email"
-                        placeholder="adventurer@dcss.com"
+                        placeholder="snorgbane@noyasd.com"
                         value={signUpEmail}
                         onChange={(e) => setSignUpEmail(e.target.value)}
                         className="pl-10 rounded-none border-2 border-green-500/30 bg-background focus:border-green-500"
