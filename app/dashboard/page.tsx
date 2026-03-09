@@ -98,7 +98,7 @@ export default function DashboardPage() {
               {activeTab === "extras" && "RESOURCES"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {activeTab === "analysis" && "Track and analyze your dungeon crawling progress"}
+              {activeTab === "analysis" && "Track and analyze your DCSS progress"}
               {activeTab === "morgues" && "Upload and browse your morgue files"}
               {activeTab === "extras" && "Helpful links and community resources"}
             </p>

@@ -345,8 +345,10 @@ export function PlayerStatsChart({ children, speciesStats = [], backgroundStats 
     ? Math.min(chartType === "gods" ? 850 : 900, Math.max(200, currentChartData.length * 36))
     : 400
   const xDomainMax = currentChartData.length
-    ? Math.max(7, ...currentChartData.map((d) => d.attempts))
-    : 7
+    ? showMode === "wins"
+      ? Math.max(3, ...currentChartData.map((d) => d.wins))
+      : Math.max(3, ...currentChartData.map((d) => d.attempts))
+    : 3
   const hasData = currentChartData.length > 0
 
   return (
@@ -438,7 +440,8 @@ export function PlayerStatsChart({ children, speciesStats = [], backgroundStats 
                   type="number" 
                   stroke="var(--muted-foreground)" 
                   fontSize={14}
-                  domain={[0, xDomainMax]}
+                  domain={[3, xDomainMax]}
+                  allowDecimals={false}
                 />
                 <YAxis
                   type="category"

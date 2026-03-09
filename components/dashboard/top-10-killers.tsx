@@ -4,14 +4,21 @@ import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { GameRecord } from "@/lib/morgue-api"
 
+/** Combine all N-headed hydra variants into a single bucket for counting. */
+function normalizeKillerForGrouping(killer: string): string {
+  if (/headed hydra$/i.test(killer.trim())) return "hydra (all sizes)"
+  return killer
+}
+
 function buildTop10Killers(morgues: GameRecord[]): { name: string; count: number }[] {
   const deaths = morgues.filter((m) => m.result === "death" && m.killer?.trim())
   const byKiller: Record<string, { count: number; maxXl: number }> = {}
   deaths.forEach((m) => {
     const k = m.killer!.trim()
-    if (!byKiller[k]) byKiller[k] = { count: 0, maxXl: 0 }
-    byKiller[k].count += 1
-    byKiller[k].maxXl = Math.max(byKiller[k].maxXl, m.xl)
+    const key = normalizeKillerForGrouping(k)
+    if (!byKiller[key]) byKiller[key] = { count: 0, maxXl: 0 }
+    byKiller[key].count += 1
+    byKiller[key].maxXl = Math.max(byKiller[key].maxXl, m.xl)
   })
   return Object.entries(byKiller)
     .map(([name, { count, maxXl }]) => ({ name, count, maxXl }))

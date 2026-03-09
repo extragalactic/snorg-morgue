@@ -35,6 +35,7 @@ import { MorgueBrowser } from "./morgue-browser"
 import { supabase } from "@/lib/supabase"
 import { deleteMorgue } from "@/lib/morgue-api"
 import { useAuth } from "@/contexts/auth-context"
+import { useTheme } from "@/contexts/theme-context"
 import { toast } from "@/hooks/use-toast"
 import { DRACONIAN_COLOUR_NAMES } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
@@ -51,6 +52,7 @@ interface UploadsTableProps {
 
 export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps) {
   const { userId } = useAuth()
+  const { themeStyle } = useTheme()
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [viewingMorgue, setViewingMorgue] = useState<GameRecord | null>(null)
@@ -59,7 +61,7 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
   const [resultFilter, setResultFilter] = useState<ResultFilter>("all")
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
-  const itemsPerPage = 20
+  const itemsPerPage = 15
 
   const getCombo = (game: GameRecord) => {
     const species = (game.species ?? "").trim()
@@ -73,7 +75,9 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
             ? "MD"
             : species === "Demonspawn"
               ? "Ds"
-              : species.substring(0, 2)
+              : species === "Gargoyle"
+                ? "Gr"
+                : species.substring(0, 2)
     const backgroundCodes: Record<string, string> = {
       "Fire Elementalist": "FE",
       "Ice Elementalist": "IE",
@@ -300,7 +304,7 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
                   onClick={() => setViewingMorgue(game)}
                 >
                   <TableCell className="font-medium">{game.character}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className={`text-sm ${themeStyle === "ascii" ? "text-green-300" : "text-white"}`}>
                     {getCombo(game)}
                   </TableCell>
                   <TableCell>{game.xl}</TableCell>
@@ -395,23 +399,23 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-none border-2 border-primary/50"
+              className="group h-9 w-9 rounded-none border-2 border-primary/50"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => p - 1)}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className={`h-5 w-5 ${themeStyle === "ascii" ? "group-hover:text-green-400" : "group-hover:text-yellow-400"}`} />
             </Button>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {currentPage} / {totalPages}
             </span>
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-none border-2 border-primary/50"
+              className="group h-9 w-9 rounded-none border-2 border-primary/50"
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage((p) => p + 1)}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className={`h-5 w-5 ${themeStyle === "ascii" ? "group-hover:text-green-400" : "group-hover:text-yellow-400"}`} />
             </Button>
           </div>
         </div>

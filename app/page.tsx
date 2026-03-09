@@ -109,7 +109,7 @@ export default function LoginPage() {
               {"Welcome to Snorg's Morgue"}
             </CardTitle>
             <CardDescription>
-              Sign in to track your DCSS progress
+              Sign up to track your DCSS progress
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
@@ -189,13 +189,13 @@ export default function LoginPage() {
               <TabsContent value="signup" className="mt-6">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name" className="text-sm">Adventurer Name</Label>
+                    <Label htmlFor="signup-name" className="text-sm">Username</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="signup-name"
                         type="text"
-                        placeholder="Your adventurer name"
+                        placeholder="Your username"
                         value={signUpName}
                         onChange={(e) => setSignUpName(e.target.value)}
                         className="pl-10 rounded-none border-2 border-green-500/30 bg-background focus:border-green-500"
@@ -242,7 +242,7 @@ export default function LoginPage() {
                     disabled={isSubmitting || isLoading}
                     className="w-full rounded-none border-2 border-green-500 bg-green-500/20 text-green-400 hover:bg-green-500/30 font-mono"
                   >
-                    {isSubmitting ? "…" : "CREATE ADVENTURER"}
+                    {isSubmitting ? "…" : "Create Account"}
                   </Button>
                 </form>
               </TabsContent>

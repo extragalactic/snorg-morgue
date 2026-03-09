@@ -65,8 +65,8 @@ export function isAbandonedCharacterMorgue(rawText: string): boolean {
 
 function parseTimeToSeconds(timeStr: string): number {
   const s = timeStr.trim()
-  // "1 day 08:49:03" or "2 days 12:30:00" -> convert days to hours and parse the time
-  const dayMatch = s.match(/^(\d+)\s+days?\s+(\d{1,2}):(\d{2}):(\d{2})$/i)
+  // "1 day 08:49:03" or "2 days 12:30:00" -> convert days to hours and parse the time (allow flexible spacing)
+  const dayMatch = s.match(/^(\d+)\s+days?\s*[,]?\s*(\d{1,2}):(\d{2}):(\d{2})\s*$/i)
   if (dayMatch) {
     const days = parseInt(dayMatch[1], 10)
     const h = parseInt(dayMatch[2], 10)
@@ -206,8 +206,14 @@ export function parseMorgue(rawText: string): ParsedMorgue {
   const characterName = titleLine[1].trim()
   const speciesBackground = titleLine[2].trim()
   const turns = parseInt(titleLine[3], 10)
-  const timeStr = titleLine[4].trim()
+  let timeStr = titleLine[4].trim()
   if (Number.isNaN(turns)) fail("Could not read turn count.")
+  // Prefer "The game lasted 1 day 03:02:26 (N turns)." when present so we get correct duration including days
+  const gameLastedMatch = text.match(/The game lasted\s+([^(]+?)\s*\(\d+\s*turns?\)/i)
+  if (gameLastedMatch && gameLastedMatch[1]) {
+    const lastedTime = gameLastedMatch[1].trim()
+    if (lastedTime.length > 0) timeStr = lastedTime
+  }
   const durationSeconds = parseTimeToSeconds(timeStr)
   // Always format as total hours (e.g. 32:49:03), never "1 day 08:49:03"
   const durationFormatted = formatDuration(durationSeconds)
@@ -218,7 +224,7 @@ export function parseMorgue(rawText: string): ParsedMorgue {
   let background = ""
   const looksLikeLevelStats = /^level\s+\d+/i.test(speciesBackground)
   if (looksLikeLevelStats) {
-    const beganMatch = text.match(/Began as\s+(?:a|an)\s+(.+?)\s+on\s+\w{3}\s+\d{1,2},\s+\d{4}\./i)
+    const beganMatch = text.match(/Began as\s+(?:a|an)\s+(.+?)\s+on\s+\w{3}\s+\d{1,2},\s+\d{4}\.?/i)
     if (beganMatch && beganMatch[1]) {
       const { species: s, background: b } = parseSpeciesBackground(beganMatch[1].trim())
       species = s.trim()
@@ -270,7 +276,7 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     gameCompletionDate = parseMorgueDate(runesDateMatch[1].trim())
   }
   if (!gameCompletionDate) {
-    const beganMatch = text.match(/Began as\s+.+?\s+on\s+(\w{3}\s+\d{1,2},\s+\d{4})\./i)
+    const beganMatch = text.match(/Began as\s+.+?\s+on\s+(\w{3}\s+\d{1,2},\s+\d{4})\.?/i)
     if (beganMatch) gameCompletionDate = parseMorgueDate(beganMatch[1].trim())
   }
 
@@ -331,9 +337,8 @@ export function parseMorgue(rawText: string): ParsedMorgue {
       : 0
 
   // Killer: for deaths only. Line is directly under the God line. Format e.g.:
-  // "Slain by a four-headed hydra (10 damage)", "Shot with an arrow by an orc warrior (10 damage)"
-  // "Hit by a bolt of cold from an orc sorcerer (15 damage)". Creature name is before " (N damage)".
-  // Or: "Succumbed to a gnoll's poison" -> creature is before "'s".
+  // "Slain by a four-headed hydra (10 damage)", "Mangled by a wight", "Killed by psychic fangs"
+  // Damage "(N damage)" at the end is optional. Or: "Succumbed to a gnoll's poison" -> creature before "'s".
   let killer: string | null = null
   if (!isWin) {
     const lines = text.split(/\n/)
@@ -343,28 +348,42 @@ export function parseMorgue(rawText: string): ParsedMorgue {
         ? lines[godLineIndex + 1].trim()
         : ""
 
-    const damagePattern = /.+(?:by|from) (?:a|an) (.+?)\s*\(\d+\s+damage\)\s*$/i
+    // Optional " (N damage)" at end; match "by a X" / "from an X" or "by X" (no article)
+    const damagePatternWithArticle = /.+(?:by|from) (?:a|an) (.+?)(?:\s*\(\d+\s+damage\))?\s*$/i
+    const damagePatternNoArticle = /.+\s+by\s+(.+?)(?:\s*\(\d+\s+damage\))?\s*$/i
     const succumbedPattern = /succumbed to (?:a|an) (.+?)'s/i
 
-    const matchDamage = candidateLine.match(damagePattern)
+    const matchWithArticle = candidateLine.match(damagePatternWithArticle)
+    const matchNoArticle = candidateLine.match(damagePatternNoArticle)
     const matchSuccumbed = candidateLine.match(succumbedPattern)
-    if (matchDamage) {
-      killer = matchDamage[1].trim()
+    if (matchWithArticle) {
+      killer = matchWithArticle[1].trim()
     } else if (matchSuccumbed) {
       killer = matchSuccumbed[1].trim()
-    } else {
-      // Fallback: search any line for either pattern
+    } else if (matchNoArticle) {
+      const name = matchNoArticle[1].trim()
+      if (name.length > 0 && !/^(?:a|an)\s+/i.test(name)) killer = name
+    }
+    if (!killer) {
       for (const line of lines) {
         const trimmed = line.trim()
-        const mDamage = trimmed.match(damagePattern)
+        const mWith = trimmed.match(damagePatternWithArticle)
         const mSuccumbed = trimmed.match(succumbedPattern)
-        if (mDamage) {
-          killer = mDamage[1].trim()
+        const mNoArticle = trimmed.match(damagePatternNoArticle)
+        if (mWith) {
+          killer = mWith[1].trim()
           break
         }
         if (mSuccumbed) {
           killer = mSuccumbed[1].trim()
           break
+        }
+        if (mNoArticle) {
+          const name = mNoArticle[1].trim()
+          if (name.length > 0 && !/^(?:a|an)\s+/i.test(name)) {
+            killer = name
+            break
+          }
         }
       }
     }

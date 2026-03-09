@@ -157,6 +157,10 @@
 }
 
 /* ASCII theme specific overrides */
+.theme-ascii .text-green-300 {
+  color: oklch(0.75 0.2 145) !important;
+}
+
 .theme-ascii .text-green-400,
 .theme-ascii .text-green-500 {
   color: oklch(0.65 0.2 145) !important;
