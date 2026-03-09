@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import type { User as SupabaseUser, Session } from "@supabase/supabase-js"
 import { toast } from "@/hooks/use-toast"
+import { slugifyUsername } from "@/lib/slug"
 
 interface User {
   email: string
@@ -74,15 +75,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Redirect: if logged in and on login page → dashboard; if not logged in and on dashboard → login
+  // Redirect: if logged in and on login page → /username/analytics; if not logged in on app route → login
   useEffect(() => {
     if (isLoading) return
+    const slug = user ? slugifyUsername(user.name) : ""
     if (user && pathname === "/") {
-      router.replace("/dashboard")
+      if (slug) router.replace(`/${slug}/analytics`)
       return
     }
-    if (!user && pathname?.startsWith("/dashboard")) {
-      router.replace("/")
+    if (!user && pathname && pathname !== "/" && !pathname.startsWith("/auth")) {
+      const segments = pathname.split("/").filter(Boolean)
+      if (segments.length >= 2) router.replace("/")
     }
   }, [user, isLoading, pathname, router])
 
@@ -104,7 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
     setSession(data.session)
-    router.push("/dashboard")
+    const s = slugifyUsername(data.session?.user?.user_metadata?.full_name || data.session?.user?.user_metadata?.name || data.session?.user?.email?.split("@")[0] || "user")
+    router.push(s ? `/${s}/analytics` : "/")
   }
 
   const signInWithGoogle = async () => {
@@ -143,7 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
     setSession(data.session)
-    router.push("/dashboard")
+    const s = slugifyUsername(data.session?.user?.user_metadata?.full_name || data.session?.user?.user_metadata?.name || data.session?.user?.email?.split("@")[0] || "user")
+    router.push(s ? `/${s}/analytics` : "/")
   }
 
   const signOut = async () => {

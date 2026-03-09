@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { Trophy, Skull, Target, Flame, Zap, Timer, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -36,6 +37,7 @@ import {
   type GameRecord,
 } from "@/lib/morgue-api"
 import { GOD_SHORT_FORMS } from "@/lib/dcss-constants"
+import { slugifyUsername } from "@/lib/slug"
 
 function speciesCode(species: string): string {
   const s = (species ?? "").trim()
@@ -74,10 +76,27 @@ function formatComboSubtitle(species: string, background: string, god?: string):
   return `${line1}\n${line2}`
 }
 
-export default function DashboardPage() {
-  const { userId } = useAuth()
-  const [activeTab, setActiveTab] = useState("analysis")
+export default function DashboardPage({
+  activeTab: activeTabProp,
+  onTabChange: onTabChangeProp,
+}: {
+  activeTab?: string
+  onTabChange?: (tab: string) => void
+} = {}) {
+  const { userId, user } = useAuth()
+  const router = useRouter()
+  const [internalTab, setInternalTab] = useState("analysis")
+  const activeTab = activeTabProp ?? internalTab
+  const setActiveTab = onTabChangeProp ?? setInternalTab
   const [morgues, setMorgues] = useState<GameRecord[]>([])
+
+  // Redirect /dashboard to /username/analytics when not using URL-driven tabs
+  useEffect(() => {
+    if (activeTabProp != null || onTabChangeProp != null) return
+    if (!user?.name) return
+    const slug = slugifyUsername(user.name)
+    if (slug) router.replace(`/${slug}/analytics`)
+  }, [user?.name, activeTabProp, onTabChangeProp, router])
   const [stats, setStats] = useState<Awaited<ReturnType<typeof fetchUserStats>>>(null)
   const [statsLoading, setStatsLoading] = useState(true)
   const [morguesLoading, setMorguesLoading] = useState(true)
