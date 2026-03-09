@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { TOTAL_SPECIES, TOTAL_BACKGROUNDS, TOTAL_GODS } from "@/lib/dcss-constants"
+import { TOTAL_SPECIES, TOTAL_BACKGROUNDS, TOTAL_GODS, DRACONIAN_COLOUR_NAMES, TOTAL_DRACONIAN_COLOURS } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 
 /** Play time achievements: hours + min wins -> { title, thresholdSeconds, minWins } */
@@ -38,10 +38,16 @@ function computeGoals(morgues: GameRecord[]): Goal[] {
   const species = new Set(wins.map((m) => m.species))
   const backgrounds = new Set(wins.map((m) => m.background))
   const gods = new Set(wins.map((m) => m.god).filter(Boolean) as string[])
+  const dracColours = new Set(
+    wins
+      .map((m) => m.species)
+      .filter((s): s is string => !!s && DRACONIAN_COLOUR_NAMES.includes(s))
+  )
   return [
     { name: "Great Player", description: `Win with all ${TOTAL_SPECIES} species`, current: species.size, max: TOTAL_SPECIES },
     { name: "Greater Player", description: `Achieve Great Player +\nWin with all ${TOTAL_BACKGROUNDS} backgrounds`, current: backgrounds.size, max: TOTAL_BACKGROUNDS },
     { name: "Polytheist", description: `Win with all ${TOTAL_GODS} gods`, current: gods.size, max: TOTAL_GODS },
+    { name: "Tiamat", description: `Win with all ${TOTAL_DRACONIAN_COLOURS} colours of Draconian`, current: dracColours.size, max: TOTAL_DRACONIAN_COLOURS },
   ]
 }
 
@@ -49,6 +55,7 @@ const defaultGoals: Goal[] = [
   { name: "Great Player", description: `Win with all ${TOTAL_SPECIES} species`, current: 0, max: TOTAL_SPECIES },
   { name: "Greater Player", description: `Achieve Great Player +\nWin with all ${TOTAL_BACKGROUNDS} backgrounds`, current: 0, max: TOTAL_BACKGROUNDS },
   { name: "Polytheist", description: `Win with all ${TOTAL_GODS} gods`, current: 0, max: TOTAL_GODS },
+  { name: "Tiamat", description: `Win with all ${TOTAL_DRACONIAN_COLOURS} colours of Draconian`, current: 0, max: TOTAL_DRACONIAN_COLOURS },
 ]
 
 export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps) {
@@ -73,7 +80,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-4">
           {goals.map((goal) => {
             const percentage = (goal.current / goal.max) * 100
             return (

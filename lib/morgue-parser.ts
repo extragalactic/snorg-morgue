@@ -224,7 +224,7 @@ export function parseMorgue(rawText: string): ParsedMorgue {
   let background = ""
   const looksLikeLevelStats = /^level\s+\d+/i.test(speciesBackground)
   if (looksLikeLevelStats) {
-    const beganMatch = text.match(/Began as\s+(?:a|an)\s+(.+?)\s+on\s+\w{3}\s+\d{1,2},\s+\d{4}\.?/i)
+    const beganMatch = text.match(/Began as\s+(?:a|an)\s+(.+?)\s+on\s+/i)
     if (beganMatch && beganMatch[1]) {
       const { species: s, background: b } = parseSpeciesBackground(beganMatch[1].trim())
       species = s.trim()
@@ -235,6 +235,17 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     const { species: rawSpecies, background: rawBackground } = parseSpeciesBackground(speciesBackground)
     species = rawSpecies.trim()
     background = rawBackground.trim()
+  }
+
+  // Fallback: if background is still empty (e.g. title line used an abbreviation like "DsNe"),
+  // try to derive species/background from the explicit "Began as a X Y on ..." line.
+  if (!background) {
+    const beganLineMatch = text.match(/Began as\s+(?:a|an)\s+(.+?)\s+on\s+/i)
+    if (beganLineMatch && beganLineMatch[1]) {
+      const { species: s2, background: b2 } = parseSpeciesBackground(beganLineMatch[1].trim())
+      if (s2.trim()) species = s2.trim()
+      if (b2.trim()) background = b2.trim()
+    }
   }
 
   // XL: from stats line "XL:     25"

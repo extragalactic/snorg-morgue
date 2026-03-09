@@ -41,3 +41,6 @@ export const TOTAL_BACKGROUNDS = ALL_BACKGROUND_NAMES.length
 
 /** Total gods for Polytheist goal. */
 export const TOTAL_GODS = GOD_NAMES_FOR_CHART.length
+
+/** Total draconian colours for Tiamat goal. */
+export const TOTAL_DRACONIAN_COLOURS = DRACONIAN_COLOUR_NAMES.length

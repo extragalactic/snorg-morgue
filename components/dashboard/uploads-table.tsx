@@ -86,6 +86,8 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
       "Hedge Wizard": "HW",
       "Warper": "Wr",
       "Wanderer": "Wn",
+      "Necromancer": "Ne",
+      "Conjurer": "Co",
     }
     const bgPart = background
       ? (backgroundCodes[background] ?? background.substring(0, 2))
