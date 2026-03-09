@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { BarChart3, ScrollText, Menu, X, LogOut, ExternalLink, Monitor, Terminal } from "lucide-react"
+import { BarChart3, ScrollText, Menu, X, LogOut, ExternalLink, Monitor, Terminal, Trophy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -20,9 +20,10 @@ interface NavigationProps {
 }
 
 const navItems = [
-  { id: "analysis", label: "Analysis", icon: BarChart3 },
+  { id: "analysis", label: "Analytics", icon: BarChart3 },
+  { id: "achievements", label: "Achievements", icon: Trophy },
   { id: "morgues", label: "Morgues", icon: ScrollText },
-  { id: "extras", label: "Extras", icon: ExternalLink },
+  { id: "extras", label: "Resources", icon: ExternalLink },
 ]
 
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
@@ -93,7 +94,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
           {/* User Info, Theme Selector & Sign Out */}
           <div className="hidden md:flex items-center gap-3">
             {user && (
-              <span className="text-xs text-muted-foreground">
+              <span className="font-mono text-sm text-muted-foreground">
                 {user.name}
               </span>
             )}

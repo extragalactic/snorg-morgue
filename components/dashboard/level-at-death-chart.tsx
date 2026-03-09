@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useTheme } from "@/contexts/theme-context"
+import type { GameRecord } from "@/lib/morgue-api"
 import {
   LineChart,
   Line,
@@ -12,37 +13,22 @@ import {
   CartesianGrid,
 } from "recharts"
 
-// Generate sample death data for levels 1-27
-// Most deaths occur in early-mid game with a spike around XL 14-15
-const levelDeathData = [
-  { level: 1, deaths: 12 },
-  { level: 2, deaths: 18 },
-  { level: 3, deaths: 25 },
-  { level: 4, deaths: 22 },
-  { level: 5, deaths: 28 },
-  { level: 6, deaths: 20 },
-  { level: 7, deaths: 15 },
-  { level: 8, deaths: 18 },
-  { level: 9, deaths: 14 },
-  { level: 10, deaths: 16 },
-  { level: 11, deaths: 19 },
-  { level: 12, deaths: 22 },
-  { level: 13, deaths: 25 },
-  { level: 14, deaths: 30 },
-  { level: 15, deaths: 28 },
-  { level: 16, deaths: 20 },
-  { level: 17, deaths: 15 },
-  { level: 18, deaths: 12 },
-  { level: 19, deaths: 10 },
-  { level: 20, deaths: 8 },
-  { level: 21, deaths: 6 },
-  { level: 22, deaths: 5 },
-  { level: 23, deaths: 4 },
-  { level: 24, deaths: 3 },
-  { level: 25, deaths: 2 },
-  { level: 26, deaths: 1 },
-  { level: 27, deaths: 1 },
-]
+function buildLevelDeathData(morgues: GameRecord[]): { level: number; deaths: number }[] {
+  const deaths = morgues.filter((m) => m.result === "death")
+  const byLevel: Record<number, number> = {}
+  for (let i = 1; i <= 27; i++) byLevel[i] = 0
+  deaths.forEach((m) => {
+    const xl = Math.min(27, Math.max(1, m.xl))
+    byLevel[xl] = (byLevel[xl] ?? 0) + 1
+  })
+  return Object.entries(byLevel).map(([level, deaths]) => ({
+    level: parseInt(level, 10),
+    deaths,
+  }))
+}
+
+// Fallback when no data
+const emptyLevelData = Array.from({ length: 27 }, (_, i) => ({ level: i + 1, deaths: 0 }))
 
 interface LevelDeathTooltipProps {
   active?: boolean
@@ -65,18 +51,40 @@ function LevelDeathTooltip({ active, payload }: LevelDeathTooltipProps) {
   return null
 }
 
-export function LevelAtDeathChart() {
+export function LevelAtDeathChart({ morgues = [], loading }: { morgues?: GameRecord[]; loading?: boolean }) {
   const { themeStyle } = useTheme()
+  const levelDeathData = morgues.length > 0 ? buildLevelDeathData(morgues) : emptyLevelData
   
   // Line color based on theme
   const lineColor = themeStyle === "ascii" ? "#22c55e" : "#d4a574"
   const gridColor = themeStyle === "ascii" ? "rgba(34,197,94,0.2)" : "rgba(212,165,116,0.2)"
 
+  if (loading) {
+    return (
+      <Card className="border-2 border-primary/30 rounded-none">
+        <CardHeader className="border-b-2 border-primary/20 pb-3">
+          <CardTitle className="font-mono text-sm text-primary">LEVEL AT DEATH</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm">Loading…</div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <CardTitle className="font-mono text-sm text-primary">
-          LEVEL AT DEATH
+        <CardTitle className="font-mono text-sm text-primary flex items-center justify-between gap-2">
+          <span>LEVEL AT DEATH</span>
+          {morgues.length > 0 && (() => {
+            const deaths = morgues.filter((m) => m.result === "death").length
+            return (
+              <span className="font-mono text-xs font-normal text-muted-foreground">
+                Total YASDs: {deaths}
+              </span>
+            )
+          })()}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4">

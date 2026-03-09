@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Search, Eye, ChevronLeft, ChevronRight, Skull, Trophy, ChevronUp, ChevronDown } from "lucide-react"
+import { Search, Eye, ChevronLeft, ChevronRight, Skull, Trophy, ChevronUp, ChevronDown, Trash2, X, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -14,154 +15,104 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { MorgueBrowser } from "./morgue-browser"
+import { supabase } from "@/lib/supabase"
+import { deleteMorgue } from "@/lib/morgue-api"
+import { useAuth } from "@/contexts/auth-context"
+import { useTheme } from "@/contexts/theme-context"
+import { toast } from "@/hooks/use-toast"
+import { DRACONIAN_COLOUR_NAMES } from "@/lib/dcss-constants"
+import type { GameRecord } from "@/lib/morgue-api"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 type ResultFilter = "all" | "win" | "death"
-type SortField = "character" | "combo" | "xl" | "place" | "duration" | "result"
+type SpeciesFilter = "all" | string
+type BackgroundFilter = "all" | string
+type SortField = "character" | "combo" | "xl" | "place" | "duration" | "date" | "result"
 type SortDirection = "asc" | "desc"
 
-interface GameRecord {
-  id: string
-  character: string
-  species: string
-  background: string
-  xl: number
-  place: string
-  turns: number
-  duration: string
-  date: string
-  result: "win" | "death"
-  runes: number
-  killer?: string
+interface UploadsTableProps {
+  morgues: GameRecord[]
+  loading?: boolean
+  onRefresh?: () => void
 }
 
-const mockData: GameRecord[] = [
-  {
-    id: "1",
-    character: "Grindor",
-    species: "Minotaur",
-    background: "Berserker",
-    xl: 27,
-    place: "Zot:5",
-    turns: 98234,
-    duration: "4:32:15",
-    date: "2024-01-15",
-    result: "win",
-    runes: 15,
-  },
-  {
-    id: "2",
-    character: "Stonefist",
-    species: "Gargoyle",
-    background: "Fighter",
-    xl: 18,
-    place: "Vaults:4",
-    turns: 45678,
-    duration: "2:15:42",
-    date: "2024-01-14",
-    result: "death",
-    runes: 3,
-    killer: "vault sentinel",
-  },
-  {
-    id: "3",
-    character: "Splash",
-    species: "Merfolk",
-    background: "Gladiator",
-    xl: 22,
-    place: "Depths:3",
-    turns: 67890,
-    duration: "3:05:20",
-    date: "2024-01-13",
-    result: "death",
-    runes: 5,
-    killer: "caustic shrike",
-  },
-  {
-    id: "4",
-    character: "Crusher",
-    species: "Troll",
-    background: "Monk",
-    xl: 27,
-    place: "Zot:5",
-    turns: 112345,
-    duration: "5:18:33",
-    date: "2024-01-12",
-    result: "win",
-    runes: 6,
-  },
-  {
-    id: "5",
-    character: "Firebreath",
-    species: "Draconian",
-    background: "Conjurer",
-    xl: 14,
-    place: "Lair:4",
-    turns: 23456,
-    duration: "1:12:08",
-    date: "2024-01-11",
-    result: "death",
-    runes: 0,
-    killer: "hydra",
-  },
-  {
-    id: "6",
-    character: "Axemaster",
-    species: "Minotaur",
-    background: "Fighter",
-    xl: 27,
-    place: "Zot:5",
-    turns: 87654,
-    duration: "4:05:17",
-    date: "2024-01-10",
-    result: "win",
-    runes: 15,
-  },
-  {
-    id: "7",
-    character: "Rockwall",
-    species: "Gargoyle",
-    background: "Earth Elementalist",
-    xl: 20,
-    place: "Slime:5",
-    turns: 54321,
-    duration: "2:45:30",
-    date: "2024-01-09",
-    result: "death",
-    runes: 4,
-    killer: "the Royal Jelly",
-  },
-  {
-    id: "8",
-    character: "Venom",
-    species: "Naga",
-    background: "Venom Mage",
-    xl: 16,
-    place: "Spider:3",
-    turns: 34567,
-    duration: "1:38:22",
-    date: "2024-01-08",
-    result: "death",
-    runes: 2,
-    killer: "ghost moth",
-  },
-]
-
-export function UploadsTable() {
+export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps) {
+  const { userId } = useAuth()
+  const { themeStyle } = useTheme()
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [viewingMorgue, setViewingMorgue] = useState<GameRecord | null>(null)
+  const [deleteConfirmGame, setDeleteConfirmGame] = useState<GameRecord | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [resultFilter, setResultFilter] = useState<ResultFilter>("all")
+  const [speciesFilter, setSpeciesFilter] = useState<SpeciesFilter>("all")
+  const [backgroundFilter, setBackgroundFilter] = useState<BackgroundFilter>("all")
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
-  const itemsPerPage = 5
+  const itemsPerPage = 15
 
-  const getCombo = (game: GameRecord) => 
-    `${game.species.substring(0, 2)}${game.background.substring(0, 2)}`
+  const getCombo = (game: GameRecord) => {
+    const species = (game.species ?? "").trim()
+    const background = (game.background ?? "").trim()
+    const speciesPart =
+      species === "Octopode"
+        ? "Op"
+        : species === "Merfolk"
+          ? "Mf"
+        : species === "Deep Elf"
+          ? "DE"
+        : species === "Draconian" || DRACONIAN_COLOUR_NAMES.includes(species)
+          ? "Dr"
+          : species === "Mountain Dwarf"
+            ? "MD"
+            : species === "Demonspawn"
+              ? "Ds"
+              : species === "Gargoyle"
+                ? "Gr"
+                : species.substring(0, 2)
+    const backgroundCodes: Record<string, string> = {
+      "Fire Elementalist": "FE",
+      "Ice Elementalist": "IE",
+      "Air Elementalist": "AE",
+      "Earth Elementalist": "EE",
+      "Hedge Wizard": "HW",
+      "Warper": "Wr",
+      "Wanderer": "Wn",
+      "Necromancer": "Ne",
+      "Conjurer": "Co",
+    }
+    const bgPart = background
+      ? (backgroundCodes[background] ?? background.substring(0, 2))
+      : ""
+    return `${speciesPart}${bgPart}`
+  }
 
   const filteredAndSortedData = useMemo(() => {
     // First filter by search query (including combo)
-    let data = mockData.filter((game) => {
+    let data = morgues.filter((game) => {
       const combo = getCombo(game).toLowerCase()
       const query = searchQuery.toLowerCase()
       return (
@@ -175,6 +126,16 @@ export function UploadsTable() {
     // Then filter by result
     if (resultFilter !== "all") {
       data = data.filter((game) => game.result === resultFilter)
+    }
+
+    // Then filter by species
+    if (speciesFilter !== "all") {
+      data = data.filter((game) => (game.species ?? "") === speciesFilter)
+    }
+
+    // Then filter by background
+    if (backgroundFilter !== "all") {
+      data = data.filter((game) => (game.background ?? "") === backgroundFilter)
     }
 
     // Then sort if a sort field is selected
@@ -197,6 +158,9 @@ export function UploadsTable() {
           case "duration":
             comparison = a.duration.localeCompare(b.duration)
             break
+          case "date":
+            comparison = a.date.localeCompare(b.date)
+            break
           case "result":
             comparison = a.result.localeCompare(b.result)
             break
@@ -206,11 +170,17 @@ export function UploadsTable() {
     }
 
     return data
-  }, [searchQuery, resultFilter, sortField, sortDirection])
+  }, [morgues, searchQuery, resultFilter, speciesFilter, backgroundFilter, sortField, sortDirection])
 
   const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedData = filteredAndSortedData.slice(startIndex, startIndex + itemsPerPage)
+  const totalCount = morgues.length
+  const filteredCount = filteredAndSortedData.length
+  const titleText =
+    filteredCount === totalCount
+      ? `${totalCount} Morgue Files`
+      : `${filteredCount} of ${totalCount} Morgue Files`
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -236,44 +206,148 @@ export function UploadsTable() {
     </TableHead>
   )
 
-  // If viewing a morgue, show the Morgue Browser
-  if (viewingMorgue) {
+  // Distinct species/background lists for filters
+  const allSpecies = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          morgues
+            .map((m) => (m.species ?? "").trim())
+            .filter((s) => s.length > 0)
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [morgues]
+  )
+  const allBackgrounds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          morgues
+            .map((m) => (m.background ?? "").trim())
+            .filter((b) => b.length > 0)
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [morgues]
+  )
+
+  const handleDeleteConfirm = async () => {
+    const game = deleteConfirmGame
+    if (!game || !userId) return
+    setIsDeleting(true)
+    const { error } = await deleteMorgue(supabase, userId, game.morgueFileId)
+    setIsDeleting(false)
+    setDeleteConfirmGame(null)
+    if (error) {
+      toast({ title: "Delete failed", description: error, variant: "destructive" })
+      return
+    }
+    toast({ title: "Morgue removed", description: "Stats have been updated." })
+    onRefresh?.()
+  }
+
+  if (loading) {
     return (
-      <MorgueBrowser 
-        game={viewingMorgue} 
-        onBack={() => setViewingMorgue(null)} 
-      />
+      <Card className="border-2 border-primary/30 rounded-none">
+        <CardHeader className="border-b-2 border-primary/20 pb-3">
+          <CardTitle className="font-mono text-sm text-primary">Morgue Files</CardTitle>
+        </CardHeader>
+        <CardContent className="p-8">
+          <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
+            <div className="h-4 w-4 animate-spin border-2 border-primary border-t-transparent rounded-full" />
+            Loading morgues…
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (morgues.length === 0) {
+    return (
+      <Card className="border-2 border-primary/30 rounded-none">
+        <CardHeader className="border-b-2 border-primary/20 pb-3">
+          <CardTitle className="font-mono text-sm text-primary">0 Morgue Files</CardTitle>
+        </CardHeader>
+        <CardContent className="p-8 text-center">
+          <p className="font-mono text-primary mb-2">No morgue files yet</p>
+          <p className="text-sm text-muted-foreground">
+            Upload morgue files using the &quot;Upload Morgue&quot; button above to list them here.
+          </p>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
+    <>
     <Card className="border-2 border-primary/30 rounded-none">
-      <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="font-mono text-sm text-primary">
-            MORGUE FILES
-          </CardTitle>
+        <CardHeader className="border-b-2 border-primary/20 pb-3">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="font-mono text-sm text-primary">
+              {titleText}
+            </CardTitle>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             {/* Result Filter */}
             <div className="flex gap-1">
               {(["all", "win", "death"] as const).map((filter) => (
-                <Button
+                <FilterToggleButton
                   key={filter}
-                  variant={resultFilter === filter ? "default" : "outline"}
-                  size="sm"
-                  className="rounded-none border-2 font-mono text-xs capitalize"
+                  selected={resultFilter === filter}
                   onClick={() => {
                     setResultFilter(filter)
                     setCurrentPage(1)
                   }}
                 >
                   {filter === "all" ? "All" : filter === "win" ? "Wins" : "Deaths"}
-                </Button>
+                </FilterToggleButton>
               ))}
             </div>
+            {/* Species filter */}
+            <Select
+              value={speciesFilter}
+              onValueChange={(value) => {
+                setSpeciesFilter(value as SpeciesFilter)
+                setCurrentPage(1)
+              }}
+            >
+              <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-xs h-8 bg-background">
+                <SelectValue placeholder="Species" />
+              </SelectTrigger>
+              <SelectContent className="rounded-none border-2 border-primary/50 bg-background">
+                <SelectItem value="all" className="font-mono text-xs cursor-pointer">
+                  All species
+                </SelectItem>
+                {allSpecies.map((s) => (
+                  <SelectItem key={s} value={s} className="font-mono text-xs cursor-pointer">
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* Background filter */}
+            <Select
+              value={backgroundFilter}
+              onValueChange={(value) => {
+                setBackgroundFilter(value as BackgroundFilter)
+                setCurrentPage(1)
+              }}
+            >
+              <SelectTrigger className="w-[160px] rounded-none border-2 border-primary/50 font-mono text-xs h-8 bg-background">
+                <SelectValue placeholder="Background" />
+              </SelectTrigger>
+              <SelectContent className="rounded-none border-2 border-primary/50 bg-background">
+                <SelectItem value="all" className="font-mono text-xs cursor-pointer">
+                  All backgrounds
+                </SelectItem>
+                {allBackgrounds.map((b) => (
+                  <SelectItem key={b} value={b} className="font-mono text-xs cursor-pointer">
+                    {b}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {/* Search */}
             <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Search morgues..."
                 value={searchQuery}
@@ -281,8 +355,23 @@ export function UploadsTable() {
                   setSearchQuery(e.target.value)
                   setCurrentPage(1)
                 }}
-                className="rounded-none border-2 border-primary/50 bg-input pl-9 text-sm focus:border-primary"
+                className="rounded-none border-2 border-primary/50 bg-input pl-9 pr-9 text-sm focus:border-primary"
               />
+              {searchQuery.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-none text-muted-foreground hover:text-foreground hover:bg-primary/10"
+                  onClick={() => {
+                    setSearchQuery("")
+                    setCurrentPage(1)
+                  }}
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -297,8 +386,9 @@ export function UploadsTable() {
                 <SortableHeader field="xl">XL</SortableHeader>
                 <SortableHeader field="place" className="hidden sm:table-cell">Place</SortableHeader>
                 <SortableHeader field="duration" className="hidden md:table-cell">Duration</SortableHeader>
+                <SortableHeader field="date">Date</SortableHeader>
                 <SortableHeader field="result">Result</SortableHeader>
-                <TableHead className="font-mono text-xs text-primary w-12"></TableHead>
+                <TableHead className="font-mono text-xs text-primary w-24 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -309,16 +399,19 @@ export function UploadsTable() {
                   onClick={() => setViewingMorgue(game)}
                 >
                   <TableCell className="font-medium">{game.character}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className={`text-sm ${themeStyle === "ascii" ? "text-green-300" : "text-white"}`}>
                     {getCombo(game)}
                   </TableCell>
                   <TableCell>{game.xl}</TableCell>
                   <TableCell className="hidden sm:table-cell text-muted-foreground">
-                    {game.place}
+                    {game.place?.startsWith("Orcish Mines")
+                      ? game.place.replace("Orcish Mines", "Orc")
+                      : game.place}
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-muted-foreground">
                     {game.duration}
                   </TableCell>
+                  <TableCell className="text-muted-foreground">{game.date}</TableCell>
                   <TableCell>
                     {game.result === "win" ? (
                       <Badge className="rounded-none bg-green-500/20 text-green-500 border border-green-500/50 hover:bg-green-500/30">
@@ -332,24 +425,66 @@ export function UploadsTable() {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-none hover:bg-primary/20"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setViewingMorgue(game)
-                      }}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-none hover:bg-primary/20"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setViewingMorgue(game)
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-none hover:bg-red-500/20 text-red-500"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteConfirmGame(game)
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
+
+        <AlertDialog open={!!deleteConfirmGame} onOpenChange={(open) => !open && setDeleteConfirmGame(null)}>
+          <AlertDialogContent className="rounded-none border-2 border-primary/30">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-mono">Delete morgue?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently remove this morgue file and update your stats. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                className="rounded-none border-2 font-mono text-xs"
+                disabled={isDeleting}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="rounded-none border-2 bg-red-600 text-white hover:bg-red-700 font-mono text-xs"
+                onClick={(e) => {
+                  e.preventDefault()
+                  handleDeleteConfirm()
+                }}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting…" : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Pagination */}
         <div className="flex items-center justify-between border-t-2 border-primary/20 p-4">
@@ -361,27 +496,57 @@ export function UploadsTable() {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-none border-2 border-primary/50"
+              className="group h-9 w-9 rounded-none border-2 border-primary/50"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => p - 1)}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className={`h-5 w-5 ${themeStyle === "ascii" ? "group-hover:text-green-400" : "group-hover:text-yellow-400"}`} />
             </Button>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {currentPage} / {totalPages}
             </span>
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-none border-2 border-primary/50"
+              className="group h-9 w-9 rounded-none border-2 border-primary/50"
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage((p) => p + 1)}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className={`h-5 w-5 ${themeStyle === "ascii" ? "group-hover:text-green-400" : "group-hover:text-yellow-400"}`} />
             </Button>
           </div>
         </div>
       </CardContent>
     </Card>
+    {viewingMorgue && (
+      <Dialog open={!!viewingMorgue} onOpenChange={(open) => !open && setViewingMorgue(null)}>
+        <DialogContent
+          showCloseButton={false}
+          className="morgue-detail-modal fixed left-1/2 top-5 bottom-5 m-0 flex h-[calc(100vh-40px)] w-[min(2400px,calc(100vw-100px))] max-w-none sm:max-w-none -translate-x-1/2 translate-y-0 flex-col gap-0 rounded-none border-2 border-primary/30 p-0"
+        >
+          <DialogHeader className="flex shrink-0 flex-row items-center gap-2 border-b-2 border-primary/20 px-4 py-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 rounded-none border-2 border-primary/50 hover:border-primary hover:bg-primary/10"
+              onClick={() => setViewingMorgue(null)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Morgue list
+            </Button>
+            <DialogTitle className="sr-only">Morgue details</DialogTitle>
+          </DialogHeader>
+          <div className="morgue-modal-scroll flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+            <MorgueBrowser
+              game={viewingMorgue}
+              onBack={() => setViewingMorgue(null)}
+              hideBackButton
+              fillHeight
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    )}
+    </>
   )
 }

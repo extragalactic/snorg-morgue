@@ -6,6 +6,8 @@ interface StatCardProps {
   title: string
   value: string | number
   subtitle?: string
+  /** Optional line under the value (e.g. hours count), shown in smaller yellow */
+  valueSubtext?: string
   icon: LucideIcon
   trend?: "up" | "down" | "neutral"
   trendValue?: string
@@ -16,6 +18,7 @@ export function StatCard({
   title,
   value,
   subtitle,
+  valueSubtext,
   icon: Icon,
   trend,
   trendValue,
@@ -28,7 +31,10 @@ export function StatCard({
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">{title}</p>
             <p className="font-mono text-2xl text-primary">{value}</p>
-            {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+            {valueSubtext && (
+              <p className="text-sm text-yellow-500 font-mono">{valueSubtext}</p>
+            )}
+            {subtitle && <p className="text-sm text-muted-foreground whitespace-pre-line">{subtitle}</p>}
             {trend && trendValue && (
               <p
                 className={cn(

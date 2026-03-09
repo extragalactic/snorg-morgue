@@ -3,6 +3,7 @@ import { Creepster, Space_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '@/contexts/auth-context'
 import { ThemeProvider } from '@/contexts/theme-context'
+import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
 
 const creepster = Creepster({ 
@@ -73,6 +74,7 @@ export default function RootLayout({
             {children}
           </AuthProvider>
         </ThemeProvider>
+        <Toaster />
         <Analytics />
       </body>
     </html>
