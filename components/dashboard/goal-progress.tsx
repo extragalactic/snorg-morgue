@@ -77,6 +77,20 @@ function computeGoals(morgues: GameRecord[]): Goal[] {
     }
   }
 
+  // For each species, track how many distinct backgrounds have *attempts* (win or loss)
+  const speciesBackgroundAttempts = new Map<string, Set<string>>()
+  for (const m of morgues) {
+    const sp = m.species
+    const bg = m.background
+    if (!sp || !bg) continue
+    let set = speciesBackgroundAttempts.get(sp)
+    if (!set) {
+      set = new Set<string>()
+      speciesBackgroundAttempts.set(sp, set)
+    }
+    set.add(bg)
+  }
+
   const goals: Goal[] = [
     {
       name: "Great Player",
@@ -130,6 +144,18 @@ function computeGoals(morgues: GameRecord[]): Goal[] {
     })
   }
 
+  // Enthusiastic Species achievements: one per species, showing backgrounds *attempted* with that species
+  for (const speciesName of ALL_SPECIES_NAMES) {
+    const bgAttemptSet = speciesBackgroundAttempts.get(speciesName) ?? new Set<string>()
+    if (bgAttemptSet.size === 0) continue
+    goals.push({
+      name: `Enthusiastic ${speciesName}`,
+      description: `Attempt all ${TOTAL_BACKGROUNDS} backgrounds as a ${speciesName}`,
+      current: bgAttemptSet.size,
+      max: TOTAL_BACKGROUNDS,
+    })
+  }
+
   return goals
 }
 
@@ -152,7 +178,12 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
   const greaterSpeciesGoals = goals.filter(
     (g) => g.name.startsWith("Greater ") && g.name !== "Greater Player"
   )
+  const hasGreaterSpeciesProgress = greaterSpeciesGoals.some((g) => g.current >= 3)
   const devotedSpeciesGoals = goals.filter((g) => g.name.startsWith("Devoted "))
+  const hasDevotedSpeciesProgress = devotedSpeciesGoals.some((g) => g.current >= 3)
+  const enthusiasticSpeciesGoals = goals.filter((g) => g.name.startsWith("Enthusiastic "))
+  const enthusiasticSpeciesWithProgress = enthusiasticSpeciesGoals.filter((g) => g.current >= 3)
+  const hasEnthusiasticSpeciesProgress = enthusiasticSpeciesWithProgress.length > 0
   if (loading) {
     return (
       <Card className="border-2 border-primary/30 rounded-none">
@@ -268,30 +299,82 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
             <CardTitle className="font-mono text-sm text-primary">GREATER SPECIES</CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            <div className="grid gap-6 md:grid-cols-4">
-              {greaterSpeciesGoals.map((goal) => {
-                const percentage = (goal.current / goal.max) * 100
-                return (
-                  <div key={goal.name} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-sm text-foreground">
-                        {goal.name}
-                      </span>
-                      <span className="font-mono text-sm text-primary">
-                        {goal.current}/{goal.max}
-                      </span>
+            {hasGreaterSpeciesProgress ? (
+              <div className="grid gap-6 md:grid-cols-4">
+                {greaterSpeciesGoals.map((goal) => {
+                  const percentage = (goal.current / goal.max) * 100
+                  return (
+                    <div key={goal.name} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-sm text-foreground">
+                          {goal.name}
+                        </span>
+                        <span className="font-mono text-sm text-primary">
+                          {goal.current}/{goal.max}
+                        </span>
+                      </div>
+                      <Progress
+                        value={percentage}
+                        className="h-3 rounded-none bg-secondary border border-primary/30"
+                      />
+                      <p className="text-xs text-muted-foreground whitespace-pre-line">
+                        {goal.description}
+                      </p>
                     </div>
-                    <Progress
-                      value={percentage}
-                      className="h-3 rounded-none bg-secondary border border-primary/30"
-                    />
-                    <p className="text-xs text-muted-foreground whitespace-pre-line">
-                      {goal.description}
-                    </p>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground font-mono">
+                Before you see the Greater Species tracking you must win with a species with a minimum of 3 different backgrounds.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Enthusiastic Species card */}
+      {enthusiasticSpeciesGoals.length > 0 && (
+        <Card className="mt-6 border-2 border-primary/30 rounded-none">
+          <CardHeader className="border-b-2 border-primary/20 pb-3">
+            <CardTitle className="font-mono text-sm text-primary flex items-baseline gap-2">
+              <span>ENTHUSIASTIC SPECIES</span>
+              <span className="text-xs text-muted-foreground">
+                …on the path to Greater Species
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {hasEnthusiasticSpeciesProgress ? (
+              <div className="grid gap-6 md:grid-cols-4">
+                {enthusiasticSpeciesWithProgress.map((goal) => {
+                  const percentage = (goal.current / goal.max) * 100
+                  return (
+                    <div key={goal.name} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-sm text-foreground">
+                          {goal.name}
+                        </span>
+                        <span className="font-mono text-sm text-primary">
+                          {goal.current}/{goal.max}
+                        </span>
+                      </div>
+                      <Progress
+                        value={percentage}
+                        className="h-3 rounded-none bg-secondary border border-primary/30"
+                      />
+                      <p className="text-xs text-muted-foreground whitespace-pre-line">
+                        {goal.description}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground font-mono">
+                Before you see the Enthusiastic Species tracking you must attempt a win with a species with a minimum of 3 different backgrounds.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
@@ -303,30 +386,36 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
             <CardTitle className="font-mono text-sm text-primary">DEVOTED SPECIES</CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            <div className="grid gap-6 md:grid-cols-4">
-              {devotedSpeciesGoals.map((goal) => {
-                const percentage = (goal.current / goal.max) * 100
-                return (
-                  <div key={goal.name} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-sm text-foreground">
-                        {goal.name}
-                      </span>
-                      <span className="font-mono text-sm text-primary">
-                        {goal.current}/{goal.max}
-                      </span>
+            {hasDevotedSpeciesProgress ? (
+              <div className="grid gap-6 md:grid-cols-4">
+                {devotedSpeciesGoals.map((goal) => {
+                  const percentage = (goal.current / goal.max) * 100
+                  return (
+                    <div key={goal.name} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-sm text-foreground">
+                          {goal.name}
+                        </span>
+                        <span className="font-mono text-sm text-primary">
+                          {goal.current}/{goal.max}
+                        </span>
+                      </div>
+                      <Progress
+                        value={percentage}
+                        className="h-3 rounded-none bg-secondary border border-primary/30"
+                      />
+                      <p className="text-xs text-muted-foreground whitespace-pre-line">
+                        {goal.description}
+                      </p>
                     </div>
-                    <Progress
-                      value={percentage}
-                      className="h-3 rounded-none bg-secondary border border-primary/30"
-                    />
-                    <p className="text-xs text-muted-foreground whitespace-pre-line">
-                      {goal.description}
-                    </p>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground font-mono">
+                Before you see the Devoted Species tracking you must win with a species with a minimum of 3 different gods.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}

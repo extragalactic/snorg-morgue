@@ -163,7 +163,10 @@ export function SpeciesBackgroundComboGrid({
                                   aria-label={`${sp} ${bg} ${mode}`}
                                 />
                               </TooltipTrigger>
-                              <TooltipContent side="top" className="text-center">
+                              <TooltipContent
+                                side="top"
+                                className="text-center rounded-none border border-primary/40 bg-black/90 text-neutral-100 shadow-lg"
+                              >
                                 <div className="font-mono">
                                   <div className="text-lg font-semibold">
                                     {sp} {bg}

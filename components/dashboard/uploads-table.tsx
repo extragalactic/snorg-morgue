@@ -39,8 +39,17 @@ import { useTheme } from "@/contexts/theme-context"
 import { toast } from "@/hooks/use-toast"
 import { DRACONIAN_COLOUR_NAMES } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 type ResultFilter = "all" | "win" | "death"
+type SpeciesFilter = "all" | string
+type BackgroundFilter = "all" | string
 type SortField = "character" | "combo" | "xl" | "place" | "duration" | "date" | "result"
 type SortDirection = "asc" | "desc"
 
@@ -59,6 +68,8 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
   const [deleteConfirmGame, setDeleteConfirmGame] = useState<GameRecord | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [resultFilter, setResultFilter] = useState<ResultFilter>("all")
+  const [speciesFilter, setSpeciesFilter] = useState<SpeciesFilter>("all")
+  const [backgroundFilter, setBackgroundFilter] = useState<BackgroundFilter>("all")
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
   const itemsPerPage = 15
@@ -117,6 +128,16 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
       data = data.filter((game) => game.result === resultFilter)
     }
 
+    // Then filter by species
+    if (speciesFilter !== "all") {
+      data = data.filter((game) => (game.species ?? "") === speciesFilter)
+    }
+
+    // Then filter by background
+    if (backgroundFilter !== "all") {
+      data = data.filter((game) => (game.background ?? "") === backgroundFilter)
+    }
+
     // Then sort if a sort field is selected
     if (sortField) {
       data = [...data].sort((a, b) => {
@@ -149,7 +170,7 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
     }
 
     return data
-  }, [morgues, searchQuery, resultFilter, sortField, sortDirection])
+  }, [morgues, searchQuery, resultFilter, speciesFilter, backgroundFilter, sortField, sortDirection])
 
   const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
@@ -183,6 +204,30 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
         )}
       </div>
     </TableHead>
+  )
+
+  // Distinct species/background lists for filters
+  const allSpecies = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          morgues
+            .map((m) => (m.species ?? "").trim())
+            .filter((s) => s.length > 0)
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [morgues]
+  )
+  const allBackgrounds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          morgues
+            .map((m) => (m.background ?? "").trim())
+            .filter((b) => b.length > 0)
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [morgues]
   )
 
   const handleDeleteConfirm = async () => {
@@ -256,6 +301,50 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
                 </FilterToggleButton>
               ))}
             </div>
+            {/* Species filter */}
+            <Select
+              value={speciesFilter}
+              onValueChange={(value) => {
+                setSpeciesFilter(value as SpeciesFilter)
+                setCurrentPage(1)
+              }}
+            >
+              <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-xs h-8 bg-background">
+                <SelectValue placeholder="Species" />
+              </SelectTrigger>
+              <SelectContent className="rounded-none border-2 border-primary/50 bg-background">
+                <SelectItem value="all" className="font-mono text-xs cursor-pointer">
+                  All species
+                </SelectItem>
+                {allSpecies.map((s) => (
+                  <SelectItem key={s} value={s} className="font-mono text-xs cursor-pointer">
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* Background filter */}
+            <Select
+              value={backgroundFilter}
+              onValueChange={(value) => {
+                setBackgroundFilter(value as BackgroundFilter)
+                setCurrentPage(1)
+              }}
+            >
+              <SelectTrigger className="w-[160px] rounded-none border-2 border-primary/50 font-mono text-xs h-8 bg-background">
+                <SelectValue placeholder="Background" />
+              </SelectTrigger>
+              <SelectContent className="rounded-none border-2 border-primary/50 bg-background">
+                <SelectItem value="all" className="font-mono text-xs cursor-pointer">
+                  All backgrounds
+                </SelectItem>
+                {allBackgrounds.map((b) => (
+                  <SelectItem key={b} value={b} className="font-mono text-xs cursor-pointer">
+                    {b}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {/* Search */}
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
