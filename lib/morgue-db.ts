@@ -39,6 +39,8 @@ export interface ParsedMorgueRow {
   created_at: string
   /** Game completion date from morgue file (YYYY-MM-DD). */
   game_completion_date?: string
+  /** True if player reached Lair:5 (Branches shows Lair (5/5)). */
+  reached_lair_5?: boolean
 }
 
 /** One entry in species_stats, background_stats, or god_stats on user_stats. */
@@ -93,6 +95,7 @@ export function parsedToRow(
     is_win: p.isWin,
     killer: p.killer,
     game_completion_date: p.gameCompletionDate || "",
+    reached_lair_5: p.reachedLair5,
   }
 }
 

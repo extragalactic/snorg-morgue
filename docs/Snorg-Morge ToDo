@@ -15,4 +15,15 @@ Make a custom Achievements section
 New section: Top Killers (scrape the monster graphics)
 
 
+Remove Win requirement from Snorg Awards, then relocate the total hours stats to sit above the awards (single line of text)
+
+Add conditional Greater Species achievement bars. A bar will appear once you get at least 3 wins with a species, like Greater Minotaur or Greater Merfolk, etc.
+
+Boost font size of species-background grid's axis text
+
+Should make a new set of achievements called Devoted Species, such as Devoted Naga. This tracks if you do an attempt with every background for a particular species.
+
+Then have another called Divine Species, such as Divine Dwarf. This tracks if you play every god for a particular species. Maybe use a different identifier for demonic/undead species, but means the same thing.
+
+Consider putting Achievements on a separate page.
 

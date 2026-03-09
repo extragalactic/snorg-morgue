@@ -32,6 +32,8 @@ export interface GameRecord {
   runes: number
   killer?: string
   god?: string
+  /** True if player reached Lair:5 in this game. */
+  reachedLair5?: boolean
 }
 
 export interface UploadResult {
@@ -323,7 +325,7 @@ export async function fetchMorgues(
 ): Promise<GameRecord[]> {
   const { data, error } = await supabase
     .from("parsed_morgues")
-    .select("id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date")
+    .select("id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date, reached_lair_5")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
 
@@ -347,6 +349,7 @@ export async function fetchMorgues(
       runes: r.runes_count,
       killer: r.killer ?? undefined,
       god: r.god ?? undefined,
+      reachedLair5: (r as { reached_lair_5?: boolean }).reached_lair_5 ?? false,
     }
   })
 }

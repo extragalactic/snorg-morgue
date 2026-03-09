@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Trophy, Skull, Target, Flame, Zap, Award } from "lucide-react"
+import { Trophy, Skull, Target, Flame, Zap, Timer, MapPin, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   AlertDialog,
@@ -36,6 +36,43 @@ import {
   type GameRecord,
 } from "@/lib/morgue-api"
 import { GOD_SHORT_FORMS } from "@/lib/dcss-constants"
+
+function speciesCode(species: string): string {
+  const s = (species ?? "").trim()
+  if (!s) return ""
+  if (s === "Octopode") return "Op"
+  if (s === "Merfolk") return "Mf"
+  if (s === "Deep Elf") return "DE"
+  if (s === "Draconian") return "Dr"
+  if (s === "Mountain Dwarf") return "MD"
+  if (s === "Demonspawn") return "Ds"
+  if (s === "Gargoyle") return "Gr"
+  if (s.endsWith(" Draconian")) return "Dr"
+  return s.slice(0, 2)
+}
+
+function backgroundCode(background: string): string {
+  const b = (background ?? "").trim()
+  if (!b) return ""
+  const map: Record<string, string> = {
+    "Fire Elementalist": "FE",
+    "Ice Elementalist": "IE",
+    "Air Elementalist": "AE",
+    "Earth Elementalist": "EE",
+    "Hedge Wizard": "HW",
+    "Warper": "Wr",
+    "Wanderer": "Wn",
+    "Necromancer": "Ne",
+    "Conjurer": "Co",
+  }
+  return map[b] ?? b.slice(0, 2)
+}
+
+function formatComboSubtitle(species: string, background: string, god?: string): string {
+  const line1 = `${species} ${background}${god ? ` of ${god}` : ""}`
+  const line2 = `(${speciesCode(species)}${backgroundCode(background)}${god ? `^${GOD_SHORT_FORMS[god] ?? god}` : ""})`
+  return `${line1}\n${line2}`
+}
 
 export default function DashboardPage() {
   const { userId } = useAuth()
@@ -94,10 +131,35 @@ export default function DashboardPage() {
         )
       : undefined
   const fastestWinSubtitle = fastestWinGame
-    ? `${fastestWinGame.species} ${fastestWinGame.background}${
-        fastestWinGame.god ? ` ^${GOD_SHORT_FORMS[fastestWinGame.god] ?? fastestWinGame.god}` : ""
-      }`
+    ? formatComboSubtitle(
+        fastestWinGame.species,
+        fastestWinGame.background,
+        fastestWinGame.god
+      )
     : undefined
+
+  const smallestTurncountWin =
+    morgues.length > 0
+      ? morgues
+          .filter((m) => m.result === "win")
+          .reduce<GameRecord | undefined>((best, m) => {
+            if (best == null) return m
+            return m.turns < best.turns ? m : best
+          }, undefined)
+      : undefined
+  const smallestTurncountValue = smallestTurncountWin != null ? smallestTurncountWin.turns : "—"
+  const smallestTurncountSubtitle = smallestTurncountWin
+    ? formatComboSubtitle(
+        smallestTurncountWin.species,
+        smallestTurncountWin.background,
+        smallestTurncountWin.god
+      )
+    : undefined
+
+  const reachedLair5Count = morgues.filter((m) => m.reachedLair5 === true).length
+  const totalGames = morgues.length
+  const lair5Pct = totalGames > 0 ? Math.round((reachedLair5Count / totalGames) * 100) : 0
+  const gamesReachedLair5Value = `${lair5Pct}%`
 
   return (
     <div className="min-h-screen bg-background">
@@ -210,22 +272,34 @@ export default function DashboardPage() {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <StatCard
+                    title="Play Time"
+                    value={statsData?.totalPlayTime ?? "0m"}
+                    subtitle={statsData?.totalPlayTimeSeconds != null ? `${(statsData.totalPlayTimeSeconds / 3600).toFixed(1)} hours` : undefined}
+                    icon={Clock}
+                  />
+                  <StatCard
                     title="Avg XL at Death"
                     value={statsData ? statsData.avgXlAtDeath.toFixed(1) : "—"}
                     subtitle="Experience level"
                     icon={Skull}
                   />
                   <StatCard
-                    title="Runes Collected"
-                    value={statsData?.totalRunes ?? 0}
-                    subtitle="Lifetime total"
-                    icon={Award}
+                    title="Games that reached Lair:5"
+                    value={gamesReachedLair5Value}
+                    subtitle="Ratio of games that reached Lair level 5"
+                    icon={MapPin}
                   />
                   <StatCard
                     title="Fastest Win"
                     value={statsData?.fastestWin ?? "—"}
                     subtitle={fastestWinSubtitle}
                     icon={Zap}
+                  />
+                  <StatCard
+                    title="Smallest Turncount"
+                    value={smallestTurncountValue}
+                    subtitle={smallestTurncountSubtitle}
+                    icon={Timer}
                   />
                   </div>
                   <PlayerStatsChart

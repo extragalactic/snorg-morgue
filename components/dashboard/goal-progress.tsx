@@ -101,20 +101,10 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           })}
         </div>
 
-        {/* Play Time row: left-aligned play time, achievement boxes fill remaining width */}
-        <div className="mt-6 pt-6 border-t-2 border-primary/20 flex flex-col sm:flex-row sm:items-stretch gap-4">
-          <div className="flex-shrink-0">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Play Time</p>
-            <p className="font-mono text-xl text-primary">
-              {stats?.totalPlayTime ?? "0m"}
-            </p>
-            {stats?.totalPlayTimeSeconds != null && (
-              <p className="font-mono text-sm text-yellow-500">
-                {(stats.totalPlayTimeSeconds / 3600).toFixed(1)} hours
-              </p>
-            )}
-          </div>
-          <div className="flex flex-1 flex-wrap gap-2 min-w-0">
+        {/* Snorg Awards: play time + wins achievement boxes */}
+        <div className="mt-6 pt-6 border-t-2 border-primary/20">
+          <h3 className="font-mono text-sm text-primary mb-4">Snorg Awards</h3>
+          <div className="flex flex-wrap gap-2 min-w-0">
             {PLAY_TIME_ACHIEVEMENTS.map((a) => {
               const totalWins = stats?.totalWins ?? 0
               const unlocked =
@@ -135,8 +125,15 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                     }`}
                     aria-hidden
                   >
-                    {/* Placeholder icon - replace with graphic later */}
-                    <span className="font-mono text-lg">★</span>
+                    {a.title === "Zot Special Ops" ? (
+                      <img
+                        src="/images/monster-golden-dragon.png"
+                        alt=""
+                        className="h-10 w-10 object-contain"
+                      />
+                    ) : (
+                      <span className="font-mono text-lg">★</span>
+                    )}
                   </div>
                   <span
                     className={`font-mono text-sm leading-tight text-center ${

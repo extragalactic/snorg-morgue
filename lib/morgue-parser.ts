@@ -27,6 +27,8 @@ export interface ParsedMorgue {
   killer: string | null
   /** Game completion date (YYYY-MM-DD) from morgue file. */
   gameCompletionDate: string
+  /** True if the Branches section shows Lair (5/5), i.e. player reached Lair:5. */
+  reachedLair5: boolean
 }
 
 const ERR_PREFIX = "This doesn’t look like a valid DCSS morgue file."
@@ -421,6 +423,7 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     isWin,
     killer,
     gameCompletionDate: gameCompletionDate || "",
+    reachedLair5: /Lair\s*\(\s*5\s*\/\s*5\s*\)/.test(text),
   }
 }
 
