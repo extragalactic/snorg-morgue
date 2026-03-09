@@ -64,7 +64,7 @@ const linkCategories: LinkCategory[] = [
     links: [
       {
         title: "DCSS Wiki",
-        url: "https://crawl.chaosforge.org/",
+        url: "http://crawl.chaosforge.org/",
         description: "Comprehensive wiki with game mechanics, species, and strategies",
       },
     ],

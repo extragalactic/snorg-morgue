@@ -122,7 +122,7 @@ export function SpeciesBackgroundComboGrid({
                   {ALL_BACKGROUND_NAMES.map((bg) => (
                     <div
                       key={bg}
-                      className="aspect-square w-full flex items-end justify-center text-[10px] font-mono text-muted-foreground rotate-[-60deg] origin-bottom"
+                      className="aspect-square w-full flex items-end justify-center text-sm font-mono text-muted-foreground rotate-[-60deg] origin-bottom mb-2"
                     >
                       {backgroundCode(bg)}
                     </div>
@@ -133,7 +133,7 @@ export function SpeciesBackgroundComboGrid({
                     const spCode = speciesCode(sp)
                     return (
                       <Fragment key={sp}>
-                        <div className="flex items-center justify-end pr-2 font-mono text-xs text-muted-foreground h-full">
+                        <div className="flex items-center justify-end pr-2 font-mono text-sm text-muted-foreground h-full">
                           {spCode}
                         </div>
                         {ALL_BACKGROUND_NAMES.map((bg) => {

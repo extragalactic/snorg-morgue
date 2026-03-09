@@ -5,13 +5,13 @@ import { Progress } from "@/components/ui/progress"
 import { TOTAL_SPECIES, TOTAL_BACKGROUNDS, TOTAL_GODS, DRACONIAN_COLOUR_NAMES, TOTAL_DRACONIAN_COLOURS } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 
-/** Play time achievements: hours + min wins -> { title, thresholdSeconds, minWins } */
+/** Play time achievements: hours played -> { title, thresholdSeconds } */
 const PLAY_TIME_ACHIEVEMENTS = [
-  { title: "D1 Padawan", hours: 100, minWins: 1 },
-  { title: "S-Branch Assassin", hours: 250, minWins: 5 },
-  { title: "Vault Mercenary", hours: 500, minWins: 10 },
-  { title: "Zot Special Ops", hours: 1000, minWins: 25 },
-  { title: "Nerd God-King of the Realm", hours: 2000, minWins: 100 },
+  { title: "D1 Padawan", hours: 100 },
+  { title: "S-Branch Assassin", hours: 250 },
+  { title: "Vault Mercenary", hours: 500 },
+  { title: "Zot Special Ops", hours: 1000 },
+  { title: "Nerd God-King of the Realm", hours: 2000 },
 ].map((a) => ({ ...a, thresholdSeconds: a.hours * 3600 }))
 
 interface Goal {
@@ -101,15 +101,21 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           })}
         </div>
 
-        {/* Snorg Awards: play time + wins achievement boxes */}
+        {/* Snorg Awards: play time achievements */}
         <div className="mt-6 pt-6 border-t-2 border-primary/20">
-          <h3 className="font-mono text-sm text-primary mb-4">Snorg Awards</h3>
+          <h3 className="font-mono text-sm text-primary mb-1">Snorg Awards</h3>
+          <p className="font-mono text-sm text-muted-foreground mb-4">
+            Total Play Time:{" "}
+            <span className="font-mono text-base text-yellow-500">
+              {stats?.totalPlayTime ?? "0m"}
+              {stats?.totalPlayTimeSeconds != null &&
+                ` (${(stats.totalPlayTimeSeconds / 3600).toFixed(1)} hours)`}
+            </span>
+          </p>
           <div className="flex flex-wrap gap-2 min-w-0">
             {PLAY_TIME_ACHIEVEMENTS.map((a) => {
-              const totalWins = stats?.totalWins ?? 0
               const unlocked =
-                (stats?.totalPlayTimeSeconds ?? 0) >= a.thresholdSeconds &&
-                totalWins >= a.minWins
+                (stats?.totalPlayTimeSeconds ?? 0) >= a.thresholdSeconds
               return (
                 <div
                   key={a.title}
@@ -143,7 +149,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                     {a.title}
                   </span>
                   <span className="font-mono text-base text-yellow-500">
-                    {a.hours}h + {a.minWins} {a.minWins === 1 ? "win" : "wins"}
+                    {a.hours}h+
                   </span>
                 </div>
               )

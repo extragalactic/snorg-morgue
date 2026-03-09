@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { BarChart3, ScrollText, Menu, X, LogOut, ExternalLink, Monitor, Terminal } from "lucide-react"
+import { BarChart3, ScrollText, Menu, X, LogOut, ExternalLink, Monitor, Terminal, Trophy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ interface NavigationProps {
 
 const navItems = [
   { id: "analysis", label: "Analytics", icon: BarChart3 },
+  { id: "achievements", label: "Achievements", icon: Trophy },
   { id: "morgues", label: "Morgues", icon: ScrollText },
   { id: "extras", label: "Resources", icon: ExternalLink },
 ]

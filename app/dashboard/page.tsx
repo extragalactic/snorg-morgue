@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Trophy, Skull, Target, Flame, Zap, Timer, MapPin, Clock } from "lucide-react"
+import { Trophy, Skull, Target, Flame, Zap, Timer, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   AlertDialog,
@@ -170,11 +170,13 @@ export default function DashboardPage() {
           <div>
             <h1 className="font-mono text-lg text-primary">
               {activeTab === "analysis" && "PERFORMANCE ANALYTICS"}
+              {activeTab === "achievements" && "ACHIEVEMENTS"}
               {activeTab === "morgues" && "MORGUE FILES"}
               {activeTab === "extras" && "RESOURCES"}
             </h1>
             <p className="text-sm text-muted-foreground">
               {activeTab === "analysis" && "Track and analyze your DCSS progress"}
+              {activeTab === "achievements" && "Long-term DCSS goals and Snorg Awards"}
               {activeTab === "morgues" && "Upload and browse your morgue files"}
               {activeTab === "extras" && "Helpful links and community resources"}
             </p>
@@ -236,7 +238,6 @@ export default function DashboardPage() {
         {activeTab === "analysis" && (
           <>
             <div className="space-y-6">
-              <GoalProgress stats={statsData} morgues={morgues} loading={statsLoading} />
               <LevelAtDeathChart morgues={morgues} loading={statsLoading} />
               {isEmpty ? (
                 <AnalysisEmptyState />
@@ -271,12 +272,6 @@ export default function DashboardPage() {
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <StatCard
-                    title="Play Time"
-                    value={statsData?.totalPlayTime ?? "0m"}
-                    subtitle={statsData?.totalPlayTimeSeconds != null ? `${(statsData.totalPlayTimeSeconds / 3600).toFixed(1)} hours` : undefined}
-                    icon={Clock}
-                  />
                   <StatCard
                     title="Avg XL at Death"
                     value={statsData ? statsData.avgXlAtDeath.toFixed(1) : "—"}
@@ -315,6 +310,12 @@ export default function DashboardPage() {
             </div>
             <SpeciesBackgroundComboGrid morgues={morgues} />
           </>
+        )}
+
+        {activeTab === "achievements" && (
+          <div className="space-y-6">
+            <GoalProgress stats={statsData} morgues={morgues} loading={statsLoading} />
+          </div>
         )}
 
         {activeTab === "morgues" && (
