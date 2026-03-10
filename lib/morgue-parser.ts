@@ -288,6 +288,14 @@ export function parseMorgue(rawText: string): ParsedMorgue {
   if (runesDateMatch) {
     gameCompletionDate = parseMorgueDate(runesDateMatch[1].trim())
   }
+  // Fallback: use the *last* date in the morgue (end-of-game), not the start date.
+  if (!gameCompletionDate) {
+    const allDates = text.match(/\b\w{3}\s+\d{1,2},\s+\d{4}\b/g)
+    if (allDates && allDates.length > 0) {
+      gameCompletionDate = parseMorgueDate(allDates[allDates.length - 1].trim())
+    }
+  }
+  // Last resort: if we only have the "Began as ..." line, use that.
   if (!gameCompletionDate) {
     const beganMatch = text.match(/Began as\s+.+?\s+on\s+(\w{3}\s+\d{1,2},\s+\d{4})\.?/i)
     if (beganMatch) gameCompletionDate = parseMorgueDate(beganMatch[1].trim())

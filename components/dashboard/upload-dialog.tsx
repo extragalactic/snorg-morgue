@@ -31,6 +31,13 @@ interface UploadDialogProps {
   onUploadComplete?: () => void
 }
 
+const LOADER_MESSAGES = [
+  "Sending documents to the Hall of Records...",
+  "Parsing tales of bravery and tactical prowess...",
+  "Compiling YASD and estimating emotional response...",
+  "Analyzing with Orb of Knowledge...",
+] as const
+
 export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
   const { userId } = useAuth()
   const [open, setOpen] = useState(false)
@@ -246,7 +253,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
                 Processing {processingCurrent} of {processingTotal} files…
               </p>
               <p className="text-xs text-muted-foreground">
-                Parsing your tales of bravery.
+                {LOADER_MESSAGES[Math.floor((processingCurrent - 1) / 5) % LOADER_MESSAGES.length]}
               </p>
             </div>
           ) : (
@@ -270,8 +277,10 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
             <p className="mb-1 text-sm text-foreground">
               Drag and drop morgue files here
             </p>
-            <p className="mb-3 text-xs text-muted-foreground">
-              or click to browse (.txt only)
+            <p className="mb-3 text-xs text-muted-foreground text-center">
+              or click to browse
+              <br />
+              (.txt only; will ignore .lst files)
             </p>
             <input
               type="file"
@@ -291,6 +300,10 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
           )}
 
           {files.length > 0 && (
+            <>
+            <p className="text-xs text-muted-foreground font-mono">
+              {files.length} file{files.length === 1 ? "" : "s"} selected
+            </p>
             <div className="max-h-48 space-y-2 overflow-y-auto">
               {files.map((file) => (
                 <div
@@ -338,6 +351,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
                 </div>
               ))}
             </div>
+            </>
           )}
 
           <div className="flex justify-end gap-2 border-t-2 border-primary/30 pt-4">
@@ -377,6 +391,9 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
           <DialogDescription className="text-muted-foreground">
             The following file(s) could not be imported. Successful files were still added.
           </DialogDescription>
+          <p className="mt-1 font-mono text-xs text-muted-foreground">
+            {failureItems.length} file{failureItems.length === 1 ? "" : "s"} skipped
+          </p>
         </DialogHeader>
         <ul className="max-h-64 space-y-3 overflow-y-auto py-4 font-mono text-sm">
           {failureItems.map((item, i) => (

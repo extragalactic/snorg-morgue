@@ -12,13 +12,24 @@ import {
 } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 
+/** Snorg Award display titles – single source of truth for conditional checks and list data */
+const SNORG_TITLES = {
+  D1_PADAWAN: "D1 Padawan",
+  LAIR: "Lair Initiate",
+  S_BRANCH_ASSASSIN: "S-Branch Assassin",
+  VAULT_MERCENARY: "Vault Mercenary",
+  ZOT_SPECIAL_OPS: "Zot Special Ops",
+  NERD_GOD_KING: "Nerd God-King of the Realm",
+} as const
+
 /** Play time achievements: hours played -> { title, thresholdSeconds } */
 const PLAY_TIME_ACHIEVEMENTS = [
-  { title: "D1 Padawan", hours: 100 },
-  { title: "S-Branch Assassin", hours: 250 },
-  { title: "Vault Mercenary", hours: 500 },
-  { title: "Zot Special Ops", hours: 1000 },
-  { title: "Nerd God-King of the Realm", hours: 2000 },
+  { title: SNORG_TITLES.D1_PADAWAN, hours: 100 },
+  { title: SNORG_TITLES.LAIR, hours: 250 },
+  { title: SNORG_TITLES.S_BRANCH_ASSASSIN, hours: 500 },
+  { title: SNORG_TITLES.VAULT_MERCENARY, hours: 1000 },
+  { title: SNORG_TITLES.ZOT_SPECIAL_OPS, hours: 2000 },
+  { title: SNORG_TITLES.NERD_GOD_KING, hours: 4000 },
 ].map((a) => ({ ...a, thresholdSeconds: a.hours * 3600 }))
 
 interface Goal {
@@ -232,6 +243,47 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
         </CardContent>
       </Card>
 
+      {/* Greater Species card */}
+      {greaterSpeciesGoals.length > 0 && (
+        <Card className="mt-6 border-2 border-primary/30 rounded-none">
+          <CardHeader className="border-b-2 border-primary/20 pb-3">
+            <CardTitle className="font-mono text-sm text-primary">GREATER SPECIES</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {hasGreaterSpeciesProgress ? (
+              <div className="grid gap-6 md:grid-cols-4">
+                {greaterSpeciesGoals.map((goal) => {
+                  const percentage = (goal.current / goal.max) * 100
+                  return (
+                    <div key={goal.name} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-sm text-foreground">
+                          {goal.name}
+                        </span>
+                        <span className="font-mono text-sm text-primary">
+                          {goal.current}/{goal.max}
+                        </span>
+                      </div>
+                      <Progress
+                        value={percentage}
+                        className="h-3 rounded-none bg-secondary border border-primary/30"
+                      />
+                      <p className="text-xs text-muted-foreground whitespace-pre-line">
+                        {goal.description}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground font-mono">
+                Before you see the Greater Species tracking you must win with a species with a minimum of 3 different backgrounds.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Snorg Awards card */}
       <Card className="mt-6 border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
@@ -252,17 +304,19 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                 (stats?.totalPlayTimeSeconds ?? 0) >= a.thresholdSeconds
 
               const iconSrc =
-                a.title === "D1 Padawan"
+                a.title === SNORG_TITLES.D1_PADAWAN
                   ? "/images/monster-orc-priest.png"
-                  : a.title === "S-Branch Assassin"
+                  : a.title === SNORG_TITLES.LAIR
                     ? "/images/monster-hydra.png"
-                    : a.title === "Vault Mercenary"
-                      ? "/images/monster-guardian-sphinx.png"
-                      : a.title === "Zot Special Ops"
-                        ? "/images/monster-golden-dragon.png"
-                        : a.title === "Nerd God-King of the Realm"
-                          ? "/images/monster-orb-of-fire.png"
-                          : null
+                    : a.title === SNORG_TITLES.S_BRANCH_ASSASSIN
+                      ? "/images/monster-fire-salamander.png"
+                      : a.title === SNORG_TITLES.VAULT_MERCENARY
+                        ? "/images/monster-guardian-sphinx.png"
+                        : a.title === SNORG_TITLES.ZOT_SPECIAL_OPS
+                          ? "/images/monster-golden-dragon.png"
+                          : a.title === SNORG_TITLES.NERD_GOD_KING
+                            ? "/images/monster-orb-of-fire.png"
+                            : null
 
               return (
                 <div
@@ -309,47 +363,6 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           </div>
         </CardContent>
       </Card>
-
-      {/* Greater Species card */}
-      {greaterSpeciesGoals.length > 0 && (
-        <Card className="mt-6 border-2 border-primary/30 rounded-none">
-          <CardHeader className="border-b-2 border-primary/20 pb-3">
-            <CardTitle className="font-mono text-sm text-primary">GREATER SPECIES</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            {hasGreaterSpeciesProgress ? (
-              <div className="grid gap-6 md:grid-cols-4">
-                {greaterSpeciesGoals.map((goal) => {
-                  const percentage = (goal.current / goal.max) * 100
-                  return (
-                    <div key={goal.name} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-sm text-foreground">
-                          {goal.name}
-                        </span>
-                        <span className="font-mono text-sm text-primary">
-                          {goal.current}/{goal.max}
-                        </span>
-                      </div>
-                      <Progress
-                        value={percentage}
-                        className="h-3 rounded-none bg-secondary border border-primary/30"
-                      />
-                      <p className="text-xs text-muted-foreground whitespace-pre-line">
-                        {goal.description}
-                      </p>
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground font-mono">
-                Before you see the Greater Species tracking you must win with a species with a minimum of 3 different backgrounds.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Enthusiastic Species card */}
       {enthusiasticSpeciesGoals.length > 0 && (
