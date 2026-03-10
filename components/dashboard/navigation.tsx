@@ -121,7 +121,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationP
                   ) : (
                     <Terminal className="h-4 w-4" />
                   )}
-                  {themeStyle === "tiles" ? "Tiles" : "ASCII"}
+                  {themeStyle === "tiles" ? "Monitor" : "Terminal"}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="rounded-none border-2 border-primary">
@@ -130,7 +130,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationP
                   className="gap-2 font-mono text-xs cursor-pointer hover:text-yellow-400"
                 >
                   <Monitor className="h-4 w-4" />
-                  Tiles
+                  Monitor
                   {themeStyle === "tiles" && <span className="ml-auto text-primary">*</span>}
                 </DropdownMenuItem>
                 <DropdownMenuItem 
@@ -138,7 +138,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationP
                   className="gap-2 font-mono text-xs cursor-pointer hover:text-yellow-400"
                 >
                   <Terminal className="h-4 w-4" />
-                  ASCII
+                  Terminal
                   {themeStyle === "ascii" && <span className="ml-auto text-primary">*</span>}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -187,7 +187,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationP
                   onClick={() => setThemeStyle("tiles")}
                 >
                   <Monitor className="h-4 w-4" />
-                  Tiles
+                  Monitor
                 </Button>
                 <Button
                   variant={themeStyle === "ascii" ? "default" : "outline"}
@@ -196,7 +196,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationP
                   onClick={() => setThemeStyle("ascii")}
                 >
                   <Terminal className="h-4 w-4" />
-                  ASCII
+                  Terminal
                 </Button>
               </div>
               <Button

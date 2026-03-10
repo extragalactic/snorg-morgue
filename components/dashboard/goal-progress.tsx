@@ -243,6 +243,47 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
         </CardContent>
       </Card>
 
+      {/* Greater Species card */}
+      {greaterSpeciesGoals.length > 0 && (
+        <Card className="mt-6 border-2 border-primary/30 rounded-none">
+          <CardHeader className="border-b-2 border-primary/20 pb-3">
+            <CardTitle className="font-mono text-sm text-primary">GREATER SPECIES</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {hasGreaterSpeciesProgress ? (
+              <div className="grid gap-6 md:grid-cols-4">
+                {greaterSpeciesGoals.map((goal) => {
+                  const percentage = (goal.current / goal.max) * 100
+                  return (
+                    <div key={goal.name} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-sm text-foreground">
+                          {goal.name}
+                        </span>
+                        <span className="font-mono text-sm text-primary">
+                          {goal.current}/{goal.max}
+                        </span>
+                      </div>
+                      <Progress
+                        value={percentage}
+                        className="h-3 rounded-none bg-secondary border border-primary/30"
+                      />
+                      <p className="text-xs text-muted-foreground whitespace-pre-line">
+                        {goal.description}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground font-mono">
+                Before you see the Greater Species tracking you must win with a species with a minimum of 3 different backgrounds.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Snorg Awards card */}
       <Card className="mt-6 border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
@@ -322,47 +363,6 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           </div>
         </CardContent>
       </Card>
-
-      {/* Greater Species card */}
-      {greaterSpeciesGoals.length > 0 && (
-        <Card className="mt-6 border-2 border-primary/30 rounded-none">
-          <CardHeader className="border-b-2 border-primary/20 pb-3">
-            <CardTitle className="font-mono text-sm text-primary">GREATER SPECIES</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            {hasGreaterSpeciesProgress ? (
-              <div className="grid gap-6 md:grid-cols-4">
-                {greaterSpeciesGoals.map((goal) => {
-                  const percentage = (goal.current / goal.max) * 100
-                  return (
-                    <div key={goal.name} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-sm text-foreground">
-                          {goal.name}
-                        </span>
-                        <span className="font-mono text-sm text-primary">
-                          {goal.current}/{goal.max}
-                        </span>
-                      </div>
-                      <Progress
-                        value={percentage}
-                        className="h-3 rounded-none bg-secondary border border-primary/30"
-                      />
-                      <p className="text-xs text-muted-foreground whitespace-pre-line">
-                        {goal.description}
-                      </p>
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground font-mono">
-                Before you see the Greater Species tracking you must win with a species with a minimum of 3 different backgrounds.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Enthusiastic Species card */}
       {enthusiasticSpeciesGoals.length > 0 && (

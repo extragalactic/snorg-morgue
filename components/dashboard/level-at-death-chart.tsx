@@ -34,7 +34,9 @@ interface LevelDeathTooltipProps {
   active?: boolean
   payload?: Array<{
     value: number
-    payload: { level: number; deaths: number }
+    name: string
+    color: string
+    payload: { level: number; deaths: number; avgDeaths?: number }
   }>
 }
 
@@ -44,19 +46,42 @@ function LevelDeathTooltip({ active, payload }: LevelDeathTooltipProps) {
     return (
       <div className="border-2 border-primary bg-card p-2">
         <p className="font-mono text-xs text-primary">Level {data.level}</p>
-        <p className="text-sm">{data.deaths} deaths</p>
+        {payload.map((p) => (
+          <p key={p.name} className="text-sm" style={{ color: p.color }}>
+            {p.name}: {p.value.toFixed ? p.value.toFixed(2) : p.value}
+          </p>
+        ))}
       </div>
     )
   }
   return null
 }
 
-export function LevelAtDeathChart({ morgues = [], loading }: { morgues?: GameRecord[]; loading?: boolean }) {
+export function LevelAtDeathChart({
+  morgues = [],
+  loading,
+  globalAverageDeathsPerLevel,
+}: {
+  morgues?: GameRecord[]
+  loading?: boolean
+  /** Optional global average deaths per level (same length/order as chart data). */
+  globalAverageDeathsPerLevel?: number[]
+}) {
   const { themeStyle } = useTheme()
-  const levelDeathData = morgues.length > 0 ? buildLevelDeathData(morgues) : emptyLevelData
+  const baseData = morgues.length > 0 ? buildLevelDeathData(morgues) : emptyLevelData
+  const hasGlobal =
+    globalAverageDeathsPerLevel &&
+    globalAverageDeathsPerLevel.length === baseData.length
+  const levelDeathData = hasGlobal
+    ? baseData.map((d, idx) => ({
+        ...d,
+        avgDeaths: globalAverageDeathsPerLevel[idx],
+      }))
+    : baseData
   
   // Line color based on theme
   const lineColor = themeStyle === "ascii" ? "#22c55e" : "#d4a574"
+  const globalLineColor = themeStyle === "ascii" ? "#38bdf8" : "#60a5fa"
   const gridColor = themeStyle === "ascii" ? "rgba(34,197,94,0.2)" : "rgba(212,165,116,0.2)"
 
   if (loading) {
@@ -123,6 +148,16 @@ export function LevelAtDeathChart({ morgues = [], loading }: { morgues?: GameRec
               dot={{ fill: lineColor, strokeWidth: 0, r: 3 }}
               activeDot={{ fill: lineColor, strokeWidth: 0, r: 5 }}
             />
+            {hasGlobal && (
+              <Line
+                type="monotone"
+                dataKey="avgDeaths"
+                stroke={globalLineColor}
+                strokeWidth={2}
+                dot={false}
+                name="Global avg"
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
       </CardContent>

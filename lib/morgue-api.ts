@@ -492,5 +492,107 @@ export async function deleteAllMorgues(
   return { error: null }
 }
 
+/**
+ * Re-parse all stored morgue_files for the user into parsed_morgues and rebuild stats.
+ * Does not touch the raw morgue_files, only clears/recreates parsed data + user_stats.
+ */
+export async function refreshMorguesFromRaw(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<{ error: string | null }> {
+  // Clear existing parsed data and stats for this user.
+  const { error: deleteParsedErr } = await supabase
+    .from("parsed_morgues")
+    .delete()
+    .eq("user_id", userId)
+  if (deleteParsedErr) return { error: deleteParsedErr.message }
+
+  const { error: deleteStatsErr } = await supabase
+    .from("user_stats")
+    .delete()
+    .eq("user_id", userId)
+  if (deleteStatsErr) return { error: deleteStatsErr.message }
+
+  // Fetch all raw morgue files for the user.
+  const { data: files, error: filesErr } = await supabase
+    .from("morgue_files")
+    .select("id, filename, raw_text")
+    .eq("user_id", userId)
+
+  if (filesErr) return { error: filesErr.message }
+  if (!files || files.length === 0) {
+    // Nothing to reparse; leave stats empty.
+    return { error: null }
+  }
+
+  const failed: { filename: string; error: string }[] = []
+  let success = 0
+
+  for (const file of files as { id: string; filename: string; raw_text: string }[]) {
+    try {
+      if (isAbandonedCharacterMorgue(file.raw_text)) {
+        const msg = "Skipped: file appears to be an abandoned character."
+        failed.push({ filename: file.filename, error: msg })
+        logImportFailure(file.filename, msg, { phase: "parse" })
+        continue
+      }
+
+      const parsed = parseMorgue(file.raw_text)
+      const signature = getMessageHistorySignature(file.raw_text)
+      const row = parsedToRow(file.id, userId, parsed)
+      const insertPayload = { ...row, message_history_signature: signature, short_id: nanoid(6) }
+
+      let insertParsedErr: { message: string; code?: string; details?: unknown } | null = null
+      let res = await supabase.from("parsed_morgues").insert(insertPayload)
+      insertParsedErr = res.error
+
+      // If short_id column doesn't exist (migration not run), retry without it so refresh still works.
+      if (insertParsedErr && /short_id.*schema cache/i.test(insertParsedErr.message)) {
+        const { message_history_signature: _sig, short_id: _sid, ...rowWithoutShort } =
+          insertPayload as typeof insertPayload & { short_id?: string }
+        res = await supabase.from("parsed_morgues").insert(rowWithoutShort)
+        insertParsedErr = res.error
+      }
+
+      if (insertParsedErr) {
+        failed.push({ filename: file.filename, error: insertParsedErr.message })
+        logImportFailure(file.filename, insertParsedErr.message, {
+          phase: "insert_parsed",
+          errorMessage: insertParsedErr.message,
+          dbCode: insertParsedErr.code,
+          dbDetails: insertParsedErr.details as string | undefined,
+        })
+        continue
+      }
+
+      success++
+    } catch (e) {
+      const userMessage = e instanceof Error ? e.message : "Parse failed."
+      failed.push({ filename: file.filename, error: userMessage })
+      const snippet =
+        file.raw_text.length > 0
+          ? file.raw_text.slice(0, 300).replace(/\n/g, " ")
+          : "(empty file)"
+      logImportFailure(file.filename, userMessage, {
+        phase: "parse",
+        errorMessage: e instanceof Error ? e.message : String(e),
+        stack: e instanceof Error ? e.stack : undefined,
+        snippet,
+      })
+    }
+  }
+
+  if (success > 0) {
+    await recalcUserStats(supabase, userId)
+  }
+
+  // If everything failed, surface a generic error; otherwise succeed silently.
+  if (success === 0 && failed.length > 0) {
+    return { error: "Failed to re-parse all morgue files. See console for details." }
+  }
+
+  return { error: null }
+}
+
 // Re-export for UI formatting
 export { formatPlayTime, formatFastestWin }

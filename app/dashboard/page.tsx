@@ -34,6 +34,7 @@ import {
   formatPlayTime,
   formatFastestWin,
   deleteAllMorgues,
+  refreshMorguesFromRaw,
   type GameRecord,
 } from "@/lib/morgue-api"
 import { GOD_SHORT_FORMS } from "@/lib/dcss-constants"
@@ -104,6 +105,8 @@ export default function DashboardPage({
   const [morguesLoading, setMorguesLoading] = useState(true)
   const [nukeConfirmOpen, setNukeConfirmOpen] = useState(false)
   const [isNuking, setIsNuking] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [refreshConfirmOpen, setRefreshConfirmOpen] = useState(false)
 
   const loadData = useCallback(async () => {
     if (!userId) {
@@ -205,17 +208,74 @@ export default function DashboardPage({
           <div className="flex items-center gap-2">
             <UploadDialog onUploadComplete={loadData} />
             {activeTab === "morgues" && (
+              <>
+              <Button
+                variant="destructive"
+                className="rounded-none border-2 bg-red-600 text-white hover:bg-red-700 font-mono text-xs"
+                onClick={() => setRefreshConfirmOpen(true)}
+                disabled={isRefreshing || isNuking}
+              >
+                {isRefreshing ? "Refreshing…" : "Refresh Morgues"}
+              </Button>
               <Button
                 variant="destructive"
                 className="rounded-none border-2 font-mono text-xs"
                 onClick={() => setNukeConfirmOpen(true)}
-                disabled={isNuking}
+                disabled={isNuking || isRefreshing}
               >
                 {isNuking ? "Nuking…" : "Nuke Morgue"}
               </Button>
+              </>
             )}
           </div>
         </div>
+
+        <AlertDialog open={refreshConfirmOpen} onOpenChange={setRefreshConfirmOpen}>
+          <AlertDialogContent className="rounded-none border-2 border-primary/30">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-mono">Refresh Morgues</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will clear all parsed morgue data and stats for this user, then re-parse everything from the saved morgue files.
+                Raw morgue files will be kept.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                className="rounded-none border-2 font-mono text-xs"
+                disabled={isRefreshing}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="rounded-none border-2 bg-red-600 text-white hover:bg-red-700 font-mono text-xs"
+                onClick={async (e) => {
+                  e.preventDefault()
+                  if (!userId) return
+                  setIsRefreshing(true)
+                  setRefreshConfirmOpen(false)
+                  const { error } = await refreshMorguesFromRaw(supabase, userId)
+                  setIsRefreshing(false)
+                  if (error) {
+                    toast({
+                      title: "Refresh failed",
+                      description: error,
+                      variant: "destructive",
+                    })
+                    return
+                  }
+                  toast({
+                    title: "Morgues refreshed",
+                    description: "All morgue data and stats were regenerated from saved files.",
+                  })
+                  loadData()
+                }}
+                disabled={isRefreshing}
+              >
+                Yes, refresh
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <AlertDialog open={nukeConfirmOpen} onOpenChange={setNukeConfirmOpen}>
           <AlertDialogContent className="rounded-none border-2 border-primary/30">
@@ -259,7 +319,7 @@ export default function DashboardPage({
         {activeTab === "analysis" && (
           <>
             <div className="space-y-6">
-              <LevelAtDeathChart morgues={morgues} loading={statsLoading} />
+                <LevelAtDeathChart morgues={morgues} loading={statsLoading} />
               {isEmpty ? (
                 <AnalysisEmptyState />
               ) : statsLoading ? (

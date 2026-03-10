@@ -277,8 +277,10 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
             <p className="mb-1 text-sm text-foreground">
               Drag and drop morgue files here
             </p>
-            <p className="mb-3 text-xs text-muted-foreground">
-              or click to browse (.txt only)
+            <p className="mb-3 text-xs text-muted-foreground text-center">
+              or click to browse
+              <br />
+              (.txt only; will ignore .lst files)
             </p>
             <input
               type="file"
