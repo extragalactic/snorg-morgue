@@ -40,7 +40,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationP
       "rounded-none border-2 font-mono text-xs",
       isActive
         ? "border-primary bg-primary text-primary-foreground"
-        : "border-transparent hover:border-primary/50 hover:bg-primary/10",
+        : "border-transparent hover:border-primary/50 hover:bg-primary/10 hover:text-yellow-400",
       mobile && "w-full justify-start mb-1"
     )
     return (

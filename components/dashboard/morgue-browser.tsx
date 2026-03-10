@@ -235,7 +235,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
             <Button
               variant="ghost"
               size="sm"
-              className="gap-2 rounded-none border-2 border-primary/50 hover:border-primary hover:bg-primary/10"
+              className="gap-2 rounded-none border-2 border-primary/50 hover:border-primary hover:bg-primary/10 hover:text-yellow-400 font-mono text-xs"
               onClick={onBack}
             >
               <ArrowLeft className="h-4 w-4" />
@@ -260,26 +260,26 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
             {game.result === "win" ? "Victory" : "Death"} — XL {game.xl}
           </Badge>
           {canShare && (
-            <div className="flex flex-col items-center gap-0.5">
+            <div className="relative">
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 rounded-none border-2 border-primary/50"
+                className="gap-2 rounded-none border-2 border-primary/50 font-mono text-xs hover:text-yellow-400"
                 onClick={handleShare}
               >
                 <Share2 className="h-4 w-4" />
                 Share
               </Button>
-              {shareCopied && (
-                <span className="text-xs text-muted-foreground font-mono">URL copied</span>
-              )}
+              <span className={`absolute left-1/2 top-full -translate-x-1/2 mt-0.5 text-xs font-mono whitespace-nowrap ${shareCopied ? "text-muted-foreground" : "invisible"}`}>
+                {shareCopied ? "URL copied" : "\u00A0"}
+              </span>
             </div>
           )}
           {showDownloadButton && (
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 rounded-none border-2 border-primary/50"
+            className="gap-2 rounded-none border-2 border-primary/50 font-mono text-xs hover:text-yellow-400"
             onClick={handleDownload}
             disabled={!rawText}
           >

@@ -38,7 +38,7 @@ import { deleteMorgue } from "@/lib/morgue-api"
 import { useAuth } from "@/contexts/auth-context"
 import { useTheme } from "@/contexts/theme-context"
 import { toast } from "@/hooks/use-toast"
-import { DRACONIAN_COLOUR_NAMES } from "@/lib/dcss-constants"
+import { DRACONIAN_COLOUR_NAMES, GOD_SHORT_FORMS } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 import {
   Select,
@@ -51,7 +51,8 @@ import {
 type ResultFilter = "all" | "win" | "death"
 type SpeciesFilter = "all" | string
 type BackgroundFilter = "all" | string
-type SortField = "character" | "combo" | "xl" | "place" | "duration" | "date" | "result"
+type GodFilter = "all" | string
+type SortField = "character" | "combo" | "god" | "xl" | "place" | "duration" | "date" | "result"
 type SortDirection = "asc" | "desc"
 
 interface UploadsTableProps {
@@ -83,6 +84,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
   const [resultFilter, setResultFilter] = useState<ResultFilter>("all")
   const [speciesFilter, setSpeciesFilter] = useState<SpeciesFilter>("all")
   const [backgroundFilter, setBackgroundFilter] = useState<BackgroundFilter>("all")
+  const [godFilter, setGodFilter] = useState<GodFilter>("all")
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
   const itemsPerPage = 15
@@ -151,6 +153,15 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
       data = data.filter((game) => (game.background ?? "") === backgroundFilter)
     }
 
+    // Then filter by god
+    if (godFilter !== "all") {
+      if (godFilter === "(no god)") {
+        data = data.filter((game) => !(game.god ?? "").trim())
+      } else {
+        data = data.filter((game) => (game.god ?? "").trim() === godFilter)
+      }
+    }
+
     // Then sort if a sort field is selected
     if (sortField) {
       data = [...data].sort((a, b) => {
@@ -162,6 +173,12 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
           case "combo":
             comparison = getCombo(a).localeCompare(getCombo(b))
             break
+          case "god": {
+            const godA = (a.god ?? "").trim() || "(no god)"
+            const godB = (b.god ?? "").trim() || "(no god)"
+            comparison = godA.localeCompare(godB)
+            break
+          }
           case "xl":
             comparison = a.xl - b.xl
             break
@@ -183,7 +200,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
     }
 
     return data
-  }, [morgues, searchQuery, resultFilter, speciesFilter, backgroundFilter, sortField, sortDirection])
+  }, [morgues, searchQuery, resultFilter, speciesFilter, backgroundFilter, godFilter, sortField, sortDirection])
 
   const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
@@ -242,6 +259,27 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
       ).sort((a, b) => a.localeCompare(b)),
     [morgues]
   )
+  const allGods = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          morgues.map((m) => (m.god ?? "").trim() || "(no god)")
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [morgues]
+  )
+
+  const getGodShort = (game: GameRecord) => {
+    const god = (game.god ?? "").trim()
+    if (!god) return "—"
+    if (god.toLowerCase().includes("shining one")) return "TSO"
+    return GOD_SHORT_FORMS[god] ?? god
+  }
+  const getGodShortFromName = (godName: string) => {
+    if (!godName || godName === "(no god)") return "no god"
+    if (godName.toLowerCase().includes("shining one")) return "TSO"
+    return GOD_SHORT_FORMS[godName] ?? godName
+  }
 
   const handleDeleteConfirm = async () => {
     const game = deleteConfirmGame
@@ -358,6 +396,28 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                 ))}
               </SelectContent>
             </Select>
+            {/* God filter */}
+            <Select
+              value={godFilter}
+              onValueChange={(value) => {
+                setGodFilter(value as GodFilter)
+                setCurrentPage(1)
+              }}
+            >
+              <SelectTrigger className="w-[130px] rounded-none border-2 border-primary/50 font-mono text-xs h-8 bg-background">
+                <SelectValue placeholder="God" />
+              </SelectTrigger>
+              <SelectContent className="rounded-none border-2 border-primary/50 bg-background">
+                <SelectItem value="all" className="font-mono text-xs cursor-pointer">
+                  All gods
+                </SelectItem>
+                {allGods.map((g) => (
+                  <SelectItem key={g} value={g} className="font-mono text-xs cursor-pointer">
+                    {getGodShortFromName(g)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {/* Search */}
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -396,6 +456,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
               <TableRow className="border-b-2 border-primary/20 hover:bg-transparent">
                 <SortableHeader field="character">Character</SortableHeader>
                 <SortableHeader field="combo">Combo</SortableHeader>
+                <SortableHeader field="god">God</SortableHeader>
                 <SortableHeader field="xl">XL</SortableHeader>
                 <SortableHeader field="place" className="hidden sm:table-cell">Place</SortableHeader>
                 <SortableHeader field="duration" className="hidden md:table-cell">Duration</SortableHeader>
@@ -414,6 +475,9 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                   <TableCell className="font-medium">{game.character}</TableCell>
                   <TableCell className={`text-sm ${themeStyle === "ascii" ? "text-green-300" : "text-white"}`}>
                     {getCombo(game)}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {getGodShort(game)}
                   </TableCell>
                   <TableCell>{game.xl}</TableCell>
                   <TableCell className="hidden sm:table-cell text-muted-foreground">
@@ -549,7 +613,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
             <Button
               variant="ghost"
               size="sm"
-              className="gap-2 rounded-none border-2 border-primary/50 hover:border-primary hover:bg-primary/10"
+              className="gap-2 rounded-none border-2 border-primary/50 hover:border-primary hover:bg-primary/10 hover:text-yellow-400 font-mono text-xs"
               onClick={() => {
                 setViewingMorgue(null)
                 if (usernameSlug) router.replace(`/${usernameSlug}/morgues`)

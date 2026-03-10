@@ -251,6 +251,21 @@
   background-color: oklch(0.5 0.18 145) !important;
 }
 
+/* ASCII theme: Snorg Awards unlocked border slightly brighter green */
+.theme-ascii .border-\[3px\].border-primary\/60 {
+  border-color: oklch(0.8 0.2 145) !important;
+}
+
+/* Default (Tiles): locked Snorg Awards → muted grey */
+.snorg-award-locked img {
+  filter: grayscale(1) brightness(0.6) contrast(0.85);
+}
+
+/* ASCII theme: locked Snorg Awards → monotone dark green */
+.theme-ascii .snorg-award-locked img {
+  filter: grayscale(1) sepia(1) hue-rotate(90deg) saturate(2.2) brightness(0.6);
+}
+
 /* Morgue details modal: scrollbar styled to match page (primary/muted) */
 .morgue-modal-scroll {
   color-scheme: dark;
