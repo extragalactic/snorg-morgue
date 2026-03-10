@@ -41,6 +41,7 @@ export const GOD_SHORT_FORMS: Record<string, string> = {
   "Dithmenos": "Dith",
   "Elyvilon": "Ely",
   "Fedhas Madash": "Fed",
+  "Fedhas": "Fed",
   "Gozag": "Goz",
   "Hepliaklqana": "Hep",
   "Ignis": "Ign",
@@ -61,6 +62,7 @@ export const GOD_SHORT_FORMS: Record<string, string> = {
   "Yredelemnul": "Yred",
   "Zin": "Zin",
   "The Shining One": "TSO",
+  "Shining One": "TSO",
   "(no god)": "—",
 }
 

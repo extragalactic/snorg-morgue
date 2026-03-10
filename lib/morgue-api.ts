@@ -4,6 +4,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { nanoid } from "nanoid"
 import { parseMorgue, getMessageHistorySignature, parseSpeciesBackground, isAbandonedCharacterMorgue } from "./morgue-parser"
 import {
   parsedToRow,
@@ -17,6 +18,8 @@ import {
 
 export interface GameRecord {
   id: string
+  /** Short unique id for public URL (e.g. /username/morgues/abc12XYz90). */
+  shortId: string
   morgueFileId: string
   character: string
   species: string
@@ -155,7 +158,7 @@ export async function uploadMorgues(
       const row = parsedToRow(morgueFile.id, userId, parsed)
       const { error: insertParsedErr } = await supabase
         .from("parsed_morgues")
-        .insert({ ...row, message_history_signature: signature })
+        .insert({ ...row, message_history_signature: signature, short_id: nanoid(6) })
 
       if (insertParsedErr) {
         await supabase.from("morgue_files").delete().eq("id", morgueFile.id)
@@ -318,23 +321,38 @@ export async function recalcUserStats(
 
 /**
  * Fetch parsed morgues for the current user as GameRecord[].
+ * Tries to include short_id if the column exists; if the column is missing (migration not run), retries without it.
  */
 export async function fetchMorgues(
   supabase: SupabaseClient,
   userId: string
 ): Promise<GameRecord[]> {
-  const { data, error } = await supabase
+  const withShortId =
+    "id, short_id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date, reached_lair_5"
+  const withoutShortId =
+    "id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date, reached_lair_5"
+
+  let { data, error } = await supabase
     .from("parsed_morgues")
-    .select("id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date, reached_lair_5")
+    .select(withShortId)
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
 
-  if (error) return []
+  if (error) {
+    const fallback = await supabase
+      .from("parsed_morgues")
+      .select(withoutShortId)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+    if (fallback.error) return []
+    data = fallback.data
+  }
 
   return (data ?? []).map((r) => {
-    const row = r as { game_completion_date?: string | null; created_at: string; [k: string]: unknown }
+    const row = r as { game_completion_date?: string | null; created_at: string; short_id?: string; [k: string]: unknown }
     return {
       id: r.id,
+      shortId: row.short_id ?? "",
       morgueFileId: r.morgue_file_id,
       character: r.character_name,
       species: r.species,
@@ -386,6 +404,46 @@ export async function fetchRawMorgue(
 
   if (error || !data) return null
   return { raw_text: data.raw_text, filename: data.filename }
+}
+
+const PARSED_COLUMNS_NO_SHORT =
+  "id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date, reached_lair_5"
+
+/**
+ * Fetch a single morgue by id for the current user (RLS). Returns null if not found or not allowed.
+ * Use when the viewer is the owner so no service-role API is needed.
+ */
+export async function fetchMorgueById(
+  supabase: SupabaseClient,
+  morgueId: string
+): Promise<GameRecord | null> {
+  const { data: r, error } = await supabase
+    .from("parsed_morgues")
+    .select(PARSED_COLUMNS_NO_SHORT)
+    .eq("id", morgueId.trim())
+    .maybeSingle()
+
+  if (error || !r) return null
+  const row = r as { game_completion_date?: string | null; created_at: string; reached_lair_5?: boolean }
+  return {
+    id: r.id,
+    shortId: (r as { short_id?: string }).short_id ?? "",
+    morgueFileId: r.morgue_file_id,
+    character: r.character_name,
+    species: r.species,
+    background: r.background,
+    xl: r.xl,
+    place: r.place,
+    turns: r.turns,
+    duration: r.duration_formatted,
+    durationSeconds: (r as { duration_seconds?: number }).duration_seconds,
+    date: row.game_completion_date?.trim() ? row.game_completion_date : row.created_at.slice(0, 10),
+    result: r.is_win ? ("win" as const) : ("death" as const),
+    runes: r.runes_count,
+    killer: r.killer ?? undefined,
+    god: r.god ?? undefined,
+    reachedLair5: row.reached_lair_5 ?? false,
+  }
 }
 
 /**

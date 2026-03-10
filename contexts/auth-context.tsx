@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import type { User as SupabaseUser, Session } from "@supabase/supabase-js"
 import { toast } from "@/hooks/use-toast"
+import { slugifyUsername } from "@/lib/slug"
 
 interface User {
   email: string
@@ -74,15 +75,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Redirect: if logged in and on login page → dashboard; if not logged in and on dashboard → login
+  // Redirect: if logged in and on login page → /username/analytics; if not logged in on app route → login or permission-denied
   useEffect(() => {
     if (isLoading) return
+    const slug = user ? slugifyUsername(user.name) : ""
     if (user && pathname === "/") {
-      router.replace("/dashboard")
+      if (slug) router.replace(`/${slug}/analytics`)
       return
     }
-    if (!user && pathname?.startsWith("/dashboard")) {
-      router.replace("/")
+    // Allow public morgue URL without auth: /username/morgues/shortId
+    if (!user && pathname && pathname !== "/" && !pathname.startsWith("/auth")) {
+      const segments = pathname.split("/").filter(Boolean)
+      if (segments.length >= 2) {
+        if (segments.length === 3 && segments[1] === "morgues") return
+        router.replace("/")
+      }
     }
   }, [user, isLoading, pathname, router])
 
@@ -101,10 +108,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : err.message
       setError(message)
       toast({ title: "Sign in failed", description: message, variant: "destructive" })
-      return
+      throw new Error(message)
     }
     setSession(data.session)
-    router.push("/dashboard")
+    const s = slugifyUsername(
+      data.session?.user?.user_metadata?.full_name ||
+      data.session?.user?.user_metadata?.name ||
+      data.session?.user?.email?.split("@")[0] ||
+      "user"
+    )
+    router.push(s ? `/${s}/analytics` : "/")
   }
 
   const signInWithGoogle = async () => {
@@ -143,7 +156,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
     setSession(data.session)
-    router.push("/dashboard")
+    const s = slugifyUsername(data.session?.user?.user_metadata?.full_name || data.session?.user?.user_metadata?.name || data.session?.user?.email?.split("@")[0] || "user")
+    router.push(s ? `/${s}/analytics` : "/")
   }
 
   const signOut = async () => {

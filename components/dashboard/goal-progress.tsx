@@ -250,24 +250,38 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
             {PLAY_TIME_ACHIEVEMENTS.map((a) => {
               const unlocked =
                 (stats?.totalPlayTimeSeconds ?? 0) >= a.thresholdSeconds
+
+              const iconSrc =
+                a.title === "D1 Padawan"
+                  ? "/images/monster-orc-priest.png"
+                  : a.title === "S-Branch Assassin"
+                    ? "/images/monster-hydra.png"
+                    : a.title === "Vault Mercenary"
+                      ? "/images/monster-guardian-sphinx.png"
+                      : a.title === "Zot Special Ops"
+                        ? "/images/monster-golden-dragon.png"
+                        : a.title === "Nerd God-King of the Realm"
+                          ? "/images/monster-orb-of-fire.png"
+                          : null
+
               return (
                 <div
                   key={a.title}
                   className={`flex flex-1 flex-col items-center justify-center gap-1 min-w-[150px] p-2 rounded-none border-2 transition-colors ${
                     unlocked
-                      ? "border-primary/50 bg-primary/10"
+                      ? "border-[3px] border-primary/60 bg-transparent"
                       : "border-primary/20 bg-muted/30 opacity-70"
                   }`}
                 >
                   <div
-                    className={`h-10 w-10 flex flex-shrink-0 items-center justify-center rounded ${
-                      unlocked ? "text-primary" : "grayscale"
+                    className={`snorg-award-icon h-10 w-10 flex flex-shrink-0 items-center justify-center rounded ${
+                      unlocked ? "text-primary" : "opacity-70 snorg-award-locked"
                     }`}
                     aria-hidden
                   >
-                    {a.title === "Zot Special Ops" ? (
+                    {iconSrc ? (
                       <img
-                        src="/images/monster-golden-dragon.png"
+                        src={iconSrc}
                         alt=""
                         className="h-10 w-10 object-contain"
                       />
@@ -282,7 +296,11 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                   >
                     {a.title}
                   </span>
-                  <span className="font-mono text-base text-yellow-500">
+                  <span
+                    className={`font-mono text-base ${
+                      unlocked ? "text-yellow-500" : "text-muted-foreground"
+                    }`}
+                  >
                     {a.hours}h+
                   </span>
                 </div>

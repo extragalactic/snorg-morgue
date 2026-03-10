@@ -91,3 +91,11 @@ You do **not** need to create these in the Table Editor by hand; the SQL file se
 **Species/background/god stats:** To store per-species, per-background, and per-god win/attempt counts on `user_stats`, run **`supabase/add_user_stats_arrays.sql`** in the SQL Editor once. This adds `species_stats`, `background_stats`, and `god_stats` (JSONB arrays). If you skip this, the app still works; those fields will be undefined until the migration is run and stats are recalculated (e.g. by re-uploading a morgue or deleting one).
 
 **Duplicate detection (summary):** If you already had the morgue tables before `message_history_signature` was added, run **`supabase/add_message_history_signature.sql`** in the SQL Editor. New setups from **`supabase/schema.sql`** should include this column (see that migration for the definition).
+
+**Shareable morgue URLs:** To enable direct links to individual morgue files (e.g. `/username/morgues/abc12XYz90`), run **`supabase/add_short_id.sql`** in the SQL Editor once. This adds a unique `short_id` column to `parsed_morgues`. For public (non-logged-in) access to those links, add the **service role key** to `.env.local`:
+
+```bash
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+Get it from **Project Settings → API** (service_role key; keep it secret). Without it, the public morgue API returns 500 and shareable links will not work for visitors who are not logged in.
