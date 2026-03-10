@@ -103,7 +103,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
   return (
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <CardTitle className="font-mono text-sm text-primary">RUNE COLLECTION</CardTitle>
+        <CardTitle className="font-mono text-sm text-primary">RUNES COLLECTED</CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
         <ResponsiveContainer width="100%" height={260}>
@@ -125,6 +125,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
               stroke="var(--muted-foreground)"
               fontSize={12}
               tickLine={false}
+              allowDecimals={false}
               label={{
                 value: "Number of games",
                 angle: -90,

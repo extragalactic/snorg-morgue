@@ -32,6 +32,8 @@ import { toast } from "@/hooks/use-toast"
 import {
   fetchMorgues,
   fetchUserStats,
+  fetchGlobalAnalysisStats,
+  type GlobalAnalysisStats,
   formatPlayTime,
   formatFastestWin,
   deleteAllMorgues,
@@ -93,6 +95,9 @@ export default function DashboardPage({
   const activeTab = activeTabProp ?? internalTab
   const setActiveTab = onTabChangeProp ?? setInternalTab
   const [morgues, setMorgues] = useState<GameRecord[]>([])
+  const [globalLevelDeathAverages, setGlobalLevelDeathAverages] = useState<number[] | null>(null)
+  const [globalLevelDeathUserCount, setGlobalLevelDeathUserCount] = useState<number | null>(null)
+  const [globalStats, setGlobalStats] = useState<GlobalAnalysisStats | null>(null)
 
   // Redirect /dashboard to /username/analytics when not using URL-driven tabs
   useEffect(() => {
@@ -110,21 +115,21 @@ export default function DashboardPage({
   const [refreshConfirmOpen, setRefreshConfirmOpen] = useState(false)
 
   const loadData = useCallback(async () => {
-    if (!userId) {
-      setMorgues([])
-      setStats(null)
-      setStatsLoading(false)
-      setMorguesLoading(false)
-      return
-    }
     setMorguesLoading(true)
     setStatsLoading(true)
-    const [morgueList, statsRow] = await Promise.all([
-      fetchMorgues(supabase, userId),
-      fetchUserStats(supabase, userId),
+
+    const [morgueList, statsRow, globalAnalysis] = await Promise.all([
+      userId ? fetchMorgues(supabase, userId) : Promise.resolve([]),
+      userId ? fetchUserStats(supabase, userId) : Promise.resolve(null),
+      fetchGlobalAnalysisStats(supabase),
     ])
+
     setMorgues(morgueList)
     setStats(statsRow)
+    setGlobalStats(globalAnalysis)
+    setGlobalLevelDeathAverages(globalAnalysis?.levelDeath.averages ?? null)
+    setGlobalLevelDeathUserCount(globalAnalysis?.levelDeath.userCount ?? null)
+
     setMorguesLoading(false)
     setStatsLoading(false)
   }, [userId])
@@ -193,12 +198,25 @@ export default function DashboardPage({
       <main className="mx-auto max-w-7xl px-4 py-6">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-mono text-lg text-primary">
-              {activeTab === "analysis" && "PERFORMANCE ANALYTICS"}
-              {activeTab === "achievements" && "ACHIEVEMENTS"}
-              {activeTab === "morgues" && "MORGUE FILES"}
-              {activeTab === "extras" && "RESOURCES"}
-            </h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="font-mono text-lg text-primary">
+                {activeTab === "analysis" && "PERFORMANCE ANALYTICS"}
+                {activeTab === "achievements" && "ACHIEVEMENTS"}
+                {activeTab === "morgues" && "MORGUE FILES"}
+                {activeTab === "extras" && "RESOURCES"}
+              </h1>
+              {activeTab === "analysis" && globalStats && globalStats.userCount > 0 && (
+                <span className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
+                  <span
+                    className="inline-block h-2 w-6 rounded-full"
+                    style={{ backgroundColor: "var(--average-color)" }}
+                  />
+                  <span>
+                    Average values ({globalStats.userCount} total players)
+                  </span>
+                </span>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">
               {activeTab === "analysis" && "Track and analyze your DCSS progress"}
               {activeTab === "achievements" && "Long-term DCSS goals and Snorg Awards"}
@@ -321,7 +339,12 @@ export default function DashboardPage({
           <>
             <div className="space-y-6">
               {!statsLoading && !isEmpty && (
-                <LevelAtDeathChart morgues={morgues} loading={statsLoading} />
+                <LevelAtDeathChart
+                  morgues={morgues}
+                  loading={statsLoading}
+                  globalAverageDeathsPerLevel={globalLevelDeathAverages ?? undefined}
+                  globalAverageUserCount={globalLevelDeathUserCount ?? undefined}
+                />
               )}
               {isEmpty ? (
                 <AnalysisEmptyState />
@@ -333,24 +356,44 @@ export default function DashboardPage({
                   <StatCard
                     title="Total Wins"
                     value={statsData?.totalWins ?? 0}
+                    secondaryValue={
+                      globalStats && globalStats.userCount > 0
+                        ? (globalStats.totals.totalWins / globalStats.userCount).toFixed(1)
+                        : undefined
+                    }
                     subtitle={statsData ? "Escaped with the\nOrb of Zot" : undefined}
                     icon={Trophy}
                   />
                   <StatCard
                     title="Total Deaths"
                     value={statsData?.totalDeaths ?? 0}
+                    secondaryValue={
+                      globalStats && globalStats.userCount > 0
+                        ? (globalStats.totals.totalDeaths / globalStats.userCount).toFixed(1)
+                        : undefined
+                    }
                     subtitle="Brave attempts"
                     icon={Skull}
                   />
                   <StatCard
                     title="Win Rate"
                     value={statsData ? `${statsData.winRate.toFixed(1)}%` : "0%"}
+                    secondaryValue={
+                      globalStats
+                        ? `${globalStats.totals.overallWinRate.toFixed(1)}%`
+                        : undefined
+                    }
                     subtitle="Overall percentage"
                     icon={Target}
                   />
                   <StatCard
                     title="Best Streak"
                     value={statsData?.bestStreak ?? 0}
+                    secondaryValue={
+                      globalStats
+                        ? globalStats.totals.avgBestStreak.toFixed(1)
+                        : undefined
+                    }
                     subtitle="Consecutive wins"
                     icon={Flame}
                   />
@@ -359,24 +402,42 @@ export default function DashboardPage({
                   <StatCard
                     title="Avg XL at Death"
                     value={statsData ? statsData.avgXlAtDeath.toFixed(1) : "—"}
+                    secondaryValue={
+                      globalStats
+                        ? globalStats.totals.avgXlAtDeath.toFixed(1)
+                        : undefined
+                    }
                     subtitle="Experience level"
                     icon={Skull}
                   />
                   <StatCard
                     title="Games that reached Lair:5"
                     value={gamesReachedLair5Value}
+                    secondaryValue={
+                      globalStats
+                        ? `${globalStats.totals.lair5ReachRate.toFixed(1)}%`
+                        : undefined
+                    }
                     subtitle="Ratio of games that reached Lair level 5"
                     icon={MapPin}
                   />
                   <StatCard
                     title="Fastest Win"
                     value={statsData?.fastestWin ?? "—"}
+                    secondaryValue={
+                      globalStats
+                        ? formatFastestWin(globalStats.totals.fastestWinSeconds)
+                        : undefined
+                    }
                     subtitle={fastestWinSubtitle}
                     icon={Zap}
                   />
                   <StatCard
                     title="Smallest Turncount"
                     value={smallestTurncountValue}
+                    secondaryValue={
+                      globalStats?.totals.smallestTurncountWin ?? undefined
+                    }
                     subtitle={smallestTurncountSubtitle}
                     icon={Timer}
                   />
