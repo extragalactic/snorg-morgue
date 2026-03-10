@@ -12,13 +12,24 @@ import {
 } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 
+/** Snorg Award display titles – single source of truth for conditional checks and list data */
+const SNORG_TITLES = {
+  D1_PADAWAN: "D1 Padawan",
+  LAIR: "Lair Initiate",
+  S_BRANCH_ASSASSIN: "S-Branch Assassin",
+  VAULT_MERCENARY: "Vault Mercenary",
+  ZOT_SPECIAL_OPS: "Zot Special Ops",
+  NERD_GOD_KING: "Nerd God-King of the Realm",
+} as const
+
 /** Play time achievements: hours played -> { title, thresholdSeconds } */
 const PLAY_TIME_ACHIEVEMENTS = [
-  { title: "D1 Padawan", hours: 100 },
-  { title: "S-Branch Assassin", hours: 250 },
-  { title: "Vault Mercenary", hours: 500 },
-  { title: "Zot Special Ops", hours: 1000 },
-  { title: "Nerd God-King of the Realm", hours: 2000 },
+  { title: SNORG_TITLES.D1_PADAWAN, hours: 100 },
+  { title: SNORG_TITLES.LAIR, hours: 250 },
+  { title: SNORG_TITLES.S_BRANCH_ASSASSIN, hours: 500 },
+  { title: SNORG_TITLES.VAULT_MERCENARY, hours: 1000 },
+  { title: SNORG_TITLES.ZOT_SPECIAL_OPS, hours: 2000 },
+  { title: SNORG_TITLES.NERD_GOD_KING, hours: 4000 },
 ].map((a) => ({ ...a, thresholdSeconds: a.hours * 3600 }))
 
 interface Goal {
@@ -252,17 +263,19 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                 (stats?.totalPlayTimeSeconds ?? 0) >= a.thresholdSeconds
 
               const iconSrc =
-                a.title === "D1 Padawan"
+                a.title === SNORG_TITLES.D1_PADAWAN
                   ? "/images/monster-orc-priest.png"
-                  : a.title === "S-Branch Assassin"
+                  : a.title === SNORG_TITLES.LAIR
                     ? "/images/monster-hydra.png"
-                    : a.title === "Vault Mercenary"
-                      ? "/images/monster-guardian-sphinx.png"
-                      : a.title === "Zot Special Ops"
-                        ? "/images/monster-golden-dragon.png"
-                        : a.title === "Nerd God-King of the Realm"
-                          ? "/images/monster-orb-of-fire.png"
-                          : null
+                    : a.title === SNORG_TITLES.S_BRANCH_ASSASSIN
+                      ? "/images/monster-fire-salamander.png"
+                      : a.title === SNORG_TITLES.VAULT_MERCENARY
+                        ? "/images/monster-guardian-sphinx.png"
+                        : a.title === SNORG_TITLES.ZOT_SPECIAL_OPS
+                          ? "/images/monster-golden-dragon.png"
+                          : a.title === SNORG_TITLES.NERD_GOD_KING
+                            ? "/images/monster-orb-of-fire.png"
+                            : null
 
               return (
                 <div
