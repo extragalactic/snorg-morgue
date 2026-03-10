@@ -11,7 +11,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  Legend,
 } from "recharts"
 
 function buildLevelDeathData(morgues: GameRecord[]): { level: number; deaths: number }[] {
@@ -142,15 +141,6 @@ export function LevelAtDeathChart({
               }}
             />
             <Tooltip content={<LevelDeathTooltip />} />
-            <Legend
-              verticalAlign="bottom"
-              align="center"
-              wrapperStyle={{
-                fontFamily: "var(--font-body)",
-                fontSize: 11,
-                bottom: 0,
-              }}
-            />
             <Line
               type="monotone"
               dataKey="deaths"

@@ -431,6 +431,91 @@ export async function fetchGlobalLevelDeathAverages(
   return null
 }
 
+// -----------------------------
+// Global Analysis Stats (aggregated for all users)
+// -----------------------------
+
+export interface GlobalAnalysisTotals {
+  totalGames: number
+  totalWins: number
+  totalDeaths: number
+  overallWinRate: number
+  avgXlAtDeath: number
+  avgPlayTimeSeconds: number
+  avgRunesPerGame: number
+  fastestWinSeconds: number | null
+  avgBestStreak: number
+  lair5ReachRate: number
+  smallestTurncountWin: number | null
+}
+
+export interface GlobalLevelDeathStats {
+  averages: number[]
+  userCount: number
+}
+
+export interface GlobalAnalysisStats {
+  userCount: number
+  totals: GlobalAnalysisTotals
+  levelDeath: GlobalLevelDeathStats
+}
+
+/**
+ * Fetch global aggregate stats used on the Analysis page.
+ * Backed by the Supabase RPC: global_analysis_stats().
+ */
+export async function fetchGlobalAnalysisStats(
+  supabase: SupabaseClient
+): Promise<GlobalAnalysisStats | null> {
+  const { data, error } = await supabase.rpc("global_analysis_stats")
+  if (error || !data) return null
+
+  const payload = data as {
+    user_count?: number
+    totals?: {
+      total_games?: number
+      total_wins?: number
+      total_deaths?: number
+      overall_win_rate?: number
+      avg_xl_at_death?: number
+      avg_play_time_seconds?: number
+      avg_runes_per_game?: number
+      fastest_win_seconds?: number | null
+      avg_best_streak?: number
+      lair5_reach_rate?: number
+      smallest_turncount_win?: number | null
+    }
+    level_death?: {
+      averages?: number[]
+      user_count?: number
+    }
+  }
+
+  const totals = payload.totals ?? {}
+  const level = payload.level_death ?? {}
+
+  return {
+    userCount: payload.user_count ?? 0,
+    totals: {
+      totalGames: totals.total_games ?? 0,
+      totalWins: totals.total_wins ?? 0,
+      totalDeaths: totals.total_deaths ?? 0,
+      overallWinRate: totals.overall_win_rate ?? 0,
+      avgXlAtDeath: totals.avg_xl_at_death ?? 0,
+      avgPlayTimeSeconds: totals.avg_play_time_seconds ?? 0,
+      avgRunesPerGame: totals.avg_runes_per_game ?? 0,
+      fastestWinSeconds: totals.fastest_win_seconds ?? null,
+      avgBestStreak: totals.avg_best_streak ?? 0,
+      lair5ReachRate: totals.lair5_reach_rate ?? 0,
+      smallestTurncountWin: totals.smallest_turncount_win ?? null,
+    },
+    levelDeath: {
+      averages: level.averages ?? [],
+      userCount: level.user_count ?? 0,
+    },
+  }
+}
+
 /**
  * Fetch raw morgue text for the MorgueBrowser (by morgue_file_id).
  */

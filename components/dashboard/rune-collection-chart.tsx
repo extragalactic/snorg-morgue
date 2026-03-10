@@ -125,6 +125,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
               stroke="var(--muted-foreground)"
               fontSize={12}
               tickLine={false}
+              allowDecimals={false}
               label={{
                 value: "Number of games",
                 angle: -90,

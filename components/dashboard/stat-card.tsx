@@ -5,6 +5,8 @@ import type { LucideIcon } from "lucide-react"
 interface StatCardProps {
   title: string
   value: string | number
+  /** Optional secondary value shown in brackets next to the main value (e.g. global average). */
+  secondaryValue?: string | number
   subtitle?: string
   /** Optional line under the value (e.g. hours count), shown in smaller yellow */
   valueSubtext?: string
@@ -17,6 +19,7 @@ interface StatCardProps {
 export function StatCard({
   title,
   value,
+  secondaryValue,
   subtitle,
   valueSubtext,
   icon: Icon,
@@ -30,7 +33,17 @@ export function StatCard({
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">{title}</p>
-            <p className="font-mono text-2xl text-primary">{value}</p>
+            <p className="font-mono text-2xl text-primary">
+              {value}
+              {secondaryValue !== undefined && (
+                <span
+                  className="ml-2 text-sm"
+                  style={{ color: "var(--average-color)" }}
+                >
+                  ({secondaryValue})
+                </span>
+              )}
+            </p>
             {valueSubtext && (
               <p className="text-sm text-yellow-500 font-mono">{valueSubtext}</p>
             )}
