@@ -103,7 +103,7 @@ export async function uploadMorgues(
     try {
       if (isAbandonedCharacterMorgue(file.text)) {
         const msg =
-          "Skipped: file appears to be an abandoned character (quit from D:1 with abandon prompt)."
+          "Skipped: file appears to be an abandoned character."
         failed.push({ filename: file.name, error: msg })
         logImportFailure(file.name, msg, { phase: "parse" })
         continue
@@ -126,7 +126,7 @@ export async function uploadMorgues(
         )
         if (isDuplicate) {
           const msg =
-            "Duplicate morgue: a file for this character (same name, species, background and message history) already exists."
+            "Duplicate morgue: a file for this character already exists."
           failed.push({ filename: file.name, error: msg })
           logImportFailure(file.name, msg, { phase: "duplicate" })
           continue
@@ -156,9 +156,19 @@ export async function uploadMorgues(
       }
 
       const row = parsedToRow(morgueFile.id, userId, parsed)
-      const { error: insertParsedErr } = await supabase
+      const insertPayload = { ...row, message_history_signature: signature, short_id: nanoid(6) }
+      let insertParsedErr: { message: string; code?: string; details?: unknown } | null = null
+      let res = await supabase
         .from("parsed_morgues")
-        .insert({ ...row, message_history_signature: signature, short_id: nanoid(6) })
+        .insert(insertPayload)
+
+      insertParsedErr = res.error
+      // If short_id column doesn't exist (migration not run), retry without it so import still works.
+      if (insertParsedErr && /short_id.*schema cache/i.test(insertParsedErr.message)) {
+        const { message_history_signature: _sig, short_id: _sid, ...rowWithoutShort } = insertPayload as typeof insertPayload & { short_id?: string }
+        res = await supabase.from("parsed_morgues").insert(rowWithoutShort)
+        insertParsedErr = res.error
+      }
 
       if (insertParsedErr) {
         await supabase.from("morgue_files").delete().eq("id", morgueFile.id)

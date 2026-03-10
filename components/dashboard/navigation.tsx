@@ -124,7 +124,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationP
                   {themeStyle === "tiles" ? "Tiles" : "ASCII"}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="rounded-none border-2 border-secondary">
+              <DropdownMenuContent align="end" className="rounded-none border-2 border-primary">
                 <DropdownMenuItem 
                   onClick={() => setThemeStyle("tiles")}
                   className="gap-2 font-mono text-xs cursor-pointer hover:text-yellow-400"
