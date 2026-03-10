@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { ArrowLeft, Download } from "lucide-react"
+import { ArrowLeft, Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -147,17 +147,37 @@ interface MorgueBrowserProps {
   onBack: () => void
   /** When true, hide the "Back to Morgues" button (e.g. when used inside a modal that has its own back button). */
   hideBackButton?: boolean
+  /** When false, hide the Download button (e.g. for public non-owner view). Default true. */
+  showDownloadButton?: boolean
+  /** When provided (e.g. from public API), use this instead of fetching raw morgue. */
+  initialRawText?: string | null
+  /** When provided with initialRawText, use as filename for download. */
+  initialFilename?: string
   /** When true, fill available vertical space (e.g. in modal) instead of fixed height. */
   fillHeight?: boolean
+  /** When provided, show Share button that copies this full URL to the clipboard. */
+  shareUrl?: string
+  /** When provided (and shareUrl not set), show Share button that copies origin + this path. Use so the button appears on first paint. */
+  sharePath?: string
 }
 
-export function MorgueBrowser({ game, onBack, hideBackButton, fillHeight }: MorgueBrowserProps) {
-  const [rawText, setRawText] = useState<string | null>(null)
-  const [filename, setFilename] = useState<string>("")
-  const [loading, setLoading] = useState(true)
+export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton = true, initialRawText, initialFilename, fillHeight, shareUrl, sharePath }: MorgueBrowserProps) {
+  const [rawText, setRawText] = useState<string | null>(initialRawText ?? null)
+  const [filename, setFilename] = useState<string>(initialFilename ?? "")
+  const [loading, setLoading] = useState(!initialRawText)
   const [error, setError] = useState<string | null>(null)
+  const [shareCopied, setShareCopied] = useState(false)
+
+  const canShare = !!(shareUrl || sharePath)
+  const getShareUrl = () => shareUrl || (typeof window !== "undefined" && sharePath ? window.location.origin + sharePath : "")
 
   useEffect(() => {
+    if (initialRawText !== undefined) {
+      setRawText(initialRawText)
+      setFilename(initialFilename ?? "")
+      setLoading(false)
+      return
+    }
     let cancelled = false
     async function load() {
       const data = await fetchRawMorgue(supabase, game.morgueFileId)
@@ -172,7 +192,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, fillHeight }: Morg
     }
     load()
     return () => { cancelled = true }
-  }, [game.morgueFileId])
+  }, [game.morgueFileId, initialRawText, initialFilename])
 
   const { segments, sectionTitles } = useMemo(() => {
     if (!rawText) return { segments: [] as MorgueSegment[], sectionTitles: [] as { id: string; title: string }[] }
@@ -193,6 +213,18 @@ export function MorgueBrowser({ game, onBack, hideBackButton, fillHeight }: Morg
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id)
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  const handleShare = async () => {
+    const url = getShareUrl()
+    if (!url) return
+    try {
+      await navigator.clipboard.writeText(url)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    } catch {
+      setShareCopied(false)
+    }
   }
 
   return (
@@ -227,6 +259,23 @@ export function MorgueBrowser({ game, onBack, hideBackButton, fillHeight }: Morg
           >
             {game.result === "win" ? "Victory" : "Death"} — XL {game.xl}
           </Badge>
+          {canShare && (
+            <div className="flex flex-col items-center gap-0.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 rounded-none border-2 border-primary/50"
+                onClick={handleShare}
+              >
+                <Share2 className="h-4 w-4" />
+                Share
+              </Button>
+              {shareCopied && (
+                <span className="text-xs text-muted-foreground font-mono">URL copied</span>
+              )}
+            </div>
+          )}
+          {showDownloadButton && (
           <Button
             variant="outline"
             size="sm"
@@ -237,10 +286,11 @@ export function MorgueBrowser({ game, onBack, hideBackButton, fillHeight }: Morg
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Download</span>
           </Button>
+          )}
         </div>
       </div>
 
-      <Card className={fillHeight ? "flex min-h-0 flex-1 flex-col border-2 border-primary/30 rounded-none" : "border-2 border-primary/30 rounded-none"}>
+      <Card className={fillHeight ? "flex min-h-0 flex-1 flex-col overflow-hidden border-2 border-primary/30 rounded-none" : "border-2 border-primary/30 rounded-none"}>
         <CardHeader className="flex-shrink-0 border-b-2 border-primary/20 py-3">
           <div className="flex items-center justify-between">
             <p className="font-mono text-sm text-primary">

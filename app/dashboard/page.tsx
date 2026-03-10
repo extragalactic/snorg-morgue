@@ -79,9 +79,11 @@ function formatComboSubtitle(species: string, background: string, god?: string):
 export default function DashboardPage({
   activeTab: activeTabProp,
   onTabChange: onTabChangeProp,
+  usernameSlug,
 }: {
   activeTab?: string
   onTabChange?: (tab: string) => void
+  usernameSlug?: string
 } = {}) {
   const { userId, user } = useAuth()
   const router = useRouter()
@@ -182,7 +184,7 @@ export default function DashboardPage({
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navigation activeTab={activeTab} onTabChange={setActiveTab} usernameSlug={usernameSlug} />
 
       <main className="mx-auto max-w-7xl px-4 py-6">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -343,6 +345,7 @@ export default function DashboardPage({
               morgues={morgues}
               loading={morguesLoading}
               onRefresh={loadData}
+              usernameSlug={usernameSlug}
             />
           </div>
         )}

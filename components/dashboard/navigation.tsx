@@ -17,6 +17,8 @@ import { useTheme } from "@/contexts/theme-context"
 interface NavigationProps {
   activeTab: string
   onTabChange: (tab: string) => void
+  /** When set, tab clicks only update client state + URL (replaceState); no Next.js navigation to avoid full refresh. */
+  usernameSlug?: string
 }
 
 const navItems = [
@@ -26,10 +28,37 @@ const navItems = [
   { id: "extras", label: "Resources", icon: ExternalLink },
 ]
 
-export function Navigation({ activeTab, onTabChange }: NavigationProps) {
+export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { user, signOut } = useAuth()
   const { themeStyle, setThemeStyle } = useTheme()
+
+  const renderNavItem = (item: (typeof navItems)[0], mobile = false) => {
+    const Icon = item.icon
+    const isActive = activeTab === item.id
+    const buttonClass = cn(
+      "rounded-none border-2 font-mono text-xs",
+      isActive
+        ? "border-primary bg-primary text-primary-foreground"
+        : "border-transparent hover:border-primary/50 hover:bg-primary/10",
+      mobile && "w-full justify-start mb-1"
+    )
+    return (
+      <Button
+        key={item.id}
+        variant={isActive ? "default" : "ghost"}
+        size="default"
+        className={cn(buttonClass, mobile && "w-full justify-start")}
+        onClick={() => {
+          onTabChange(item.id)
+          if (mobile) setMobileMenuOpen(false)
+        }}
+      >
+        <Icon className="h-4 w-4" />
+        {item.label}
+      </Button>
+    )
+  }
 
   return (
     <nav className="border-b-4 border-green-500 bg-card">
@@ -70,25 +99,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <Button
-                  key={item.id}
-                  variant={activeTab === item.id ? "default" : "ghost"}
-                  className={cn(
-                    "gap-2 rounded-none border-2 font-mono text-xs",
-                    activeTab === item.id
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-transparent hover:border-primary/50 hover:bg-primary/10"
-                  )}
-                  onClick={() => onTabChange(item.id)}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Button>
-              )
-            })}
+            {navItems.map((item) => renderNavItem(item))}
           </div>
 
           {/* User Info, Theme Selector & Sign Out */}
@@ -157,28 +168,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t-2 border-primary/30 py-2">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <Button
-                  key={item.id}
-                  variant={activeTab === item.id ? "default" : "ghost"}
-                  className={cn(
-                    "w-full justify-start gap-2 rounded-none border-2 font-mono text-xs mb-1",
-                    activeTab === item.id
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-transparent hover:border-primary/50"
-                  )}
-                  onClick={() => {
-                    onTabChange(item.id)
-                    setMobileMenuOpen(false)
-                  }}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Button>
-              )
-            })}
+            {navItems.map((item) => renderNavItem(item, true))}
             {/* Mobile Theme Selector & Sign Out */}
             <div className="mt-2 pt-2 border-t border-primary/30">
               {user && (

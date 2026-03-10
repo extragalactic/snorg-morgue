@@ -18,7 +18,7 @@ export const PAGE_TO_TAB: Record<string, string> = {
   analytics: "analysis",
   achievements: "achievements",
   morgues: "morgues",
-  extras: "extras",
+  resources: "extras",
 }
 
 /** Map dashboard tab id -> URL segment */
@@ -26,7 +26,7 @@ export const TAB_TO_PAGE: Record<string, string> = {
   analysis: "analytics",
   achievements: "achievements",
   morgues: "morgues",
-  extras: "extras",
+  extras: "resources",
 }
 
 export const VALID_PAGES = Object.keys(PAGE_TO_TAB)

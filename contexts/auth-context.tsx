@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Redirect: if logged in and on login page → /username/analytics; if not logged in on app route → login
+  // Redirect: if logged in and on login page → /username/analytics; if not logged in on app route → login or permission-denied
   useEffect(() => {
     if (isLoading) return
     const slug = user ? slugifyUsername(user.name) : ""
@@ -83,9 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (slug) router.replace(`/${slug}/analytics`)
       return
     }
+    // Allow public morgue URL without auth: /username/morgues/shortId
     if (!user && pathname && pathname !== "/" && !pathname.startsWith("/auth")) {
       const segments = pathname.split("/").filter(Boolean)
-      if (segments.length >= 2) router.replace("/")
+      if (segments.length >= 2) {
+        if (segments.length === 3 && segments[1] === "morgues") return
+        router.replace("/")
+      }
     }
   }, [user, isLoading, pathname, router])
 

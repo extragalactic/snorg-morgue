@@ -41,6 +41,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.12 0.01 260);
   --foreground: oklch(0.9 0.02 90);
   --card: oklch(0.16 0.01 260);
@@ -119,6 +120,7 @@
 
 /* ASCII Terminal Theme - All green monochrome */
 .theme-ascii {
+  color-scheme: dark;
   --background: oklch(0.08 0.02 145);
   --foreground: oklch(0.75 0.18 145);
   --card: oklch(0.1 0.02 145);
@@ -251,23 +253,30 @@
 
 /* Morgue details modal: scrollbar styled to match page (primary/muted) */
 .morgue-modal-scroll {
+  color-scheme: dark;
   scrollbar-width: thin;
   scrollbar-color: var(--primary) var(--muted);
 }
 .morgue-modal-scroll::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 10px !important;
+  height: 10px !important;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .morgue-modal-scroll::-webkit-scrollbar-track {
-  background: var(--muted);
+  background: var(--muted) !important;
   border-radius: 4px;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .morgue-modal-scroll::-webkit-scrollbar-thumb {
-  background: var(--primary);
+  background: var(--primary) !important;
   border-radius: 4px;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .morgue-modal-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--primary);
+  background: var(--primary) !important;
   filter: brightness(1.1);
 }
 

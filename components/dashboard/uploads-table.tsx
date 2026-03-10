@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Search, Eye, ChevronLeft, ChevronRight, Skull, Trophy, ChevronUp, ChevronDown, Trash2, X, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
@@ -57,14 +58,26 @@ interface UploadsTableProps {
   morgues: GameRecord[]
   loading?: boolean
   onRefresh?: () => void
+  /** When set, row click navigates to /usernameSlug/morgues/shortId for shareable URL. */
+  usernameSlug?: string
 }
 
-export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps) {
+export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: UploadsTableProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { userId } = useAuth()
   const { themeStyle } = useTheme()
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [viewingMorgue, setViewingMorgue] = useState<GameRecord | null>(null)
+  const viewId = searchParams.get("view")
+
+  useEffect(() => {
+    if (!viewId || morgues.length === 0) return
+    const game = morgues.find((m) => m.shortId === viewId || m.id === viewId)
+    if (game) setViewingMorgue(game)
+  }, [viewId, morgues])
+
   const [deleteConfirmGame, setDeleteConfirmGame] = useState<GameRecord | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [resultFilter, setResultFilter] = useState<ResultFilter>("all")
@@ -519,7 +532,15 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
       </CardContent>
     </Card>
     {viewingMorgue && (
-      <Dialog open={!!viewingMorgue} onOpenChange={(open) => !open && setViewingMorgue(null)}>
+      <Dialog
+        open={!!viewingMorgue}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingMorgue(null)
+            if (usernameSlug) router.replace(`/${usernameSlug}/morgues`)
+          }
+        }}
+      >
         <DialogContent
           showCloseButton={false}
           className="morgue-detail-modal fixed left-1/2 top-5 bottom-5 m-0 flex h-[calc(100vh-40px)] w-[min(2400px,calc(100vw-100px))] max-w-none sm:max-w-none -translate-x-1/2 translate-y-0 flex-col gap-0 rounded-none border-2 border-primary/30 p-0"
@@ -529,7 +550,10 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
               variant="ghost"
               size="sm"
               className="gap-2 rounded-none border-2 border-primary/50 hover:border-primary hover:bg-primary/10"
-              onClick={() => setViewingMorgue(null)}
+              onClick={() => {
+                setViewingMorgue(null)
+                if (usernameSlug) router.replace(`/${usernameSlug}/morgues`)
+              }}
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Morgue list
@@ -539,9 +563,14 @@ export function UploadsTable({ morgues, loading, onRefresh }: UploadsTableProps)
           <div className="morgue-modal-scroll flex min-h-0 flex-1 flex-col overflow-hidden p-4">
             <MorgueBrowser
               game={viewingMorgue}
-              onBack={() => setViewingMorgue(null)}
+              onBack={() => {
+                setViewingMorgue(null)
+                if (usernameSlug) router.replace(`/${usernameSlug}/morgues`)
+              }}
               hideBackButton
+              showDownloadButton
               fillHeight
+              sharePath={usernameSlug && viewingMorgue ? `/${usernameSlug}/morgues/${viewingMorgue.shortId || viewingMorgue.id}` : undefined}
             />
           </div>
         </DialogContent>
