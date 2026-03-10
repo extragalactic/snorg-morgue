@@ -156,6 +156,9 @@
   /* Yellow utilities (e.g. play time hours) → green in ASCII theme */
   --color-yellow-400: oklch(0.8 0.2 145);
   --color-yellow-500: oklch(0.8 0.2 145);
+  /* Chart-specific tokens for ASCII theme */
+  --chart-wins-bright: oklch(0.8 0.2 145);
+  --chart-attempts-muted: oklch(0.5 0.1 145);
 }
 
 /* ASCII theme specific overrides */

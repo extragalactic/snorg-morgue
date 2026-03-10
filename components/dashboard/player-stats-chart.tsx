@@ -224,13 +224,12 @@ function StripedPattern({ id, color }: { id: string; color: string }) {
 }
 
 export interface PlayerStatsChartProps {
-  children?: React.ReactNode
   speciesStats?: StatEntry[]
   backgroundStats?: StatEntry[]
   godStats?: StatEntry[]
 }
 
-export function PlayerStatsChart({ children, speciesStats = [], backgroundStats = [], godStats = [] }: PlayerStatsChartProps) {
+export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godStats = [] }: PlayerStatsChartProps) {
   const [sortMethod, setSortMethod] = useState<SortMethod>("default")
   const [showMode, setShowMode] = useState<ShowMode>("wins")
   const [chartType, setChartType] = useState<ChartType>("species")
@@ -352,183 +351,173 @@ export function PlayerStatsChart({ children, speciesStats = [], backgroundStats 
   const hasData = currentChartData.length > 0
 
   return (
-    <div className="space-y-4">
-      {/* Chart and Performance Graph side by side */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-2 border-primary/30 rounded-none">
-          <CardHeader className="border-b-2 border-primary/20 pb-3">
-            <CardTitle className="font-mono text-sm text-primary flex items-center gap-2">
-              <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
-                <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 hover:text-yellow-400">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-none border-2 border-primary/50">
-                  <SelectItem value="species" className="font-mono text-sm cursor-pointer hover:text-yellow-400">Species</SelectItem>
-                  <SelectItem value="background" className="font-mono text-sm cursor-pointer hover:text-yellow-400">Background</SelectItem>
-                  <SelectItem value="gods" className="font-mono text-sm cursor-pointer hover:text-yellow-400">Gods</SelectItem>
-                </SelectContent>
-              </Select>
-              <span>PERFORMANCE</span>
-              {chartType === "gods" && (
-                <span className="text-muted-foreground text-sm font-normal" style={{ marginLeft: 20 }}>
-                  {noGodSummary.pct.toFixed(0)}% of games had no god
-                </span>
-              )}
-            </CardTitle>
-            <div className="flex flex-wrap items-center gap-6 pt-3">
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-xs text-primary">SORT BY:</span>
-                <div className="flex gap-2">
-                  <FilterToggleButton
-                    selected={sortMethod === "wins"}
-                    onClick={() => setSortMethod("wins")}
-                  >
-                    Wins
-                  </FilterToggleButton>
-                  <FilterToggleButton
-                    selected={sortMethod === "attempts"}
-                    onClick={() => setSortMethod("attempts")}
-                  >
-                    Attempts
-                  </FilterToggleButton>
-                  <FilterToggleButton
-                    selected={sortMethod === "default"}
-                    onClick={() => setSortMethod("default")}
-                  >
-                    Default
-                  </FilterToggleButton>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-xs text-primary">SHOW:</span>
-                <div className="flex gap-2">
-                  <FilterToggleButton
-                    selected={showMode === "wins"}
-                    onClick={() => setShowMode("wins")}
-                  >
-                    Wins
-                  </FilterToggleButton>
-                  <FilterToggleButton
-                    selected={showMode === "attempts"}
-                    onClick={() => setShowMode("attempts")}
-                  >
-                    Attempts
-                  </FilterToggleButton>
-                  <FilterToggleButton
-                    selected={showMode === "both"}
-                    onClick={() => setShowMode("both")}
-                  >
-                    Both
-                  </FilterToggleButton>
-                </div>
-              </div>
+    <Card className="border-2 border-primary/30 rounded-none">
+      <CardHeader className="border-b-2 border-primary/20 pb-3">
+        <CardTitle className="font-mono text-sm text-primary flex items-center gap-2">
+          <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
+            <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 hover:text-yellow-400">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-none border-2 border-primary/50">
+              <SelectItem value="species" className="font-mono text-sm cursor-pointer hover:text-yellow-400">Species</SelectItem>
+              <SelectItem value="background" className="font-mono text-sm cursor-pointer hover:text-yellow-400">Background</SelectItem>
+              <SelectItem value="gods" className="font-mono text-sm cursor-pointer hover:text-yellow-400">Gods</SelectItem>
+            </SelectContent>
+          </Select>
+          <span>PERFORMANCE</span>
+          {chartType === "gods" && (
+            <span className="text-muted-foreground text-sm font-normal" style={{ marginLeft: 20 }}>
+              {noGodSummary.pct.toFixed(0)}% of games had no god
+            </span>
+          )}
+        </CardTitle>
+        <div className="flex flex-wrap items-center gap-6 pt-3">
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-xs text-primary">SORT BY:</span>
+            <div className="flex gap-2">
+              <FilterToggleButton
+                selected={sortMethod === "wins"}
+                onClick={() => setSortMethod("wins")}
+              >
+                Wins
+              </FilterToggleButton>
+              <FilterToggleButton
+                selected={sortMethod === "attempts"}
+                onClick={() => setSortMethod("attempts")}
+              >
+                Attempts
+              </FilterToggleButton>
+              <FilterToggleButton
+                selected={sortMethod === "default"}
+                onClick={() => setSortMethod("default")}
+              >
+                Default
+              </FilterToggleButton>
             </div>
-          </CardHeader>
-          <CardContent className="pt-4">
-            {hasData ? (
-            <ResponsiveContainer width="100%" height={chartHeight}>
-              <BarChart data={currentChartData} layout="vertical" barGap={0} barCategoryGap="20%">
-                <defs>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-xs text-primary">SHOW:</span>
+            <div className="flex gap-2">
+              <FilterToggleButton
+                selected={showMode === "wins"}
+                onClick={() => setShowMode("wins")}
+              >
+                Wins
+              </FilterToggleButton>
+              <FilterToggleButton
+                selected={showMode === "attempts"}
+                onClick={() => setShowMode("attempts")}
+              >
+                Attempts
+              </FilterToggleButton>
+              <FilterToggleButton
+                selected={showMode === "both"}
+                onClick={() => setShowMode("both")}
+              >
+                Both
+              </FilterToggleButton>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-4">
+        {hasData ? (
+          <ResponsiveContainer width="100%" height={chartHeight}>
+            <BarChart data={currentChartData} layout="vertical" barGap={0} barCategoryGap="20%">
+              <defs>
+                {currentChartData.map((entry, index) => {
+                  const origIndex = currentAllData.findIndex((d: { name: string }) => d.name === entry.name)
+                  return (
+                    <StripedPattern key={`pattern-${index}`} id={`stripe-${index}`} color={currentColors[origIndex]} />
+                  )
+                })}
+              </defs>
+              <XAxis 
+                type="number" 
+                stroke="var(--muted-foreground)" 
+                fontSize={14}
+                domain={[3, xDomainMax]}
+                allowDecimals={false}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                stroke="var(--muted-foreground)"
+                fontSize={14}
+                width={160}
+                tickLine={false}
+                interval={0}
+                tick={chartType === "species" ? (props: { x: number; y: number; payload?: { value?: string } }) => {
+                  const value = props.payload?.value ?? ""
+                  const isGrey = DRACONIAN_COLOUR_NAMES.includes(value)
+                  return (
+                    <text
+                      x={props.x}
+                      y={props.y}
+                      dy={4}
+                      textAnchor="end"
+                      fill={isGrey ? DRACONIAN_LABEL_GREY : "var(--muted-foreground)"}
+                      fontSize={14}
+                      className="font-mono"
+                    >
+                      {speciesDisplayLabel(value)}
+                    </text>
+                  )
+                } : undefined}
+              />
+              <Tooltip content={<CurrentTooltip />} />
+              {(showMode === "both" || showMode === "attempts") && (
+                <Bar dataKey="attempts" stackId="a" radius={0}>
                   {currentChartData.map((entry, index) => {
                     const origIndex = currentAllData.findIndex((d: { name: string }) => d.name === entry.name)
                     return (
-                      <StripedPattern key={`pattern-${index}`} id={`stripe-${index}`} color={currentColors[origIndex]} />
+                      <Cell key={`attempts-${index}`} fill={currentColors[origIndex]} fillOpacity={0.5} />
                     )
                   })}
-                </defs>
-                <XAxis 
-                  type="number" 
-                  stroke="var(--muted-foreground)" 
-                  fontSize={14}
-                  domain={[3, xDomainMax]}
-                  allowDecimals={false}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  stroke="var(--muted-foreground)"
-                  fontSize={14}
-                  width={160}
-                  tickLine={false}
-                  interval={0}
-                  tick={chartType === "species" ? (props: { x: number; y: number; payload?: { value?: string } }) => {
-                    const value = props.payload?.value ?? ""
-                    const isGrey = DRACONIAN_COLOUR_NAMES.includes(value)
-                    return (
-                      <text
-                        x={props.x}
-                        y={props.y}
-                        dy={4}
-                        textAnchor="end"
-                        fill={isGrey ? DRACONIAN_LABEL_GREY : "var(--muted-foreground)"}
-                        fontSize={14}
-                        className="font-mono"
-                      >
-                        {speciesDisplayLabel(value)}
-                      </text>
-                    )
-                  } : undefined}
-                />
-                <Tooltip content={<CurrentTooltip />} />
-                {(showMode === "both" || showMode === "attempts") && (
-                  <Bar dataKey="attempts" stackId="a" radius={0}>
-                    {currentChartData.map((entry, index) => {
-                      const origIndex = currentAllData.findIndex((d: { name: string }) => d.name === entry.name)
-                      return (
-                        <Cell key={`attempts-${index}`} fill={currentColors[origIndex]} fillOpacity={0.5} />
-                      )
-                    })}
-                  </Bar>
-                )}
-                {(showMode === "both" || showMode === "wins") && (
-                  <Bar dataKey="wins" radius={0}>
-                    {currentChartData.map((_, index) => (
-                      <Cell key={`wins-${index}`} fill={`url(#stripe-${index})`} />
-                    ))}
-                  </Bar>
-                )}
-              </BarChart>
-            </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center font-mono text-sm text-muted-foreground" style={{ height: chartHeight }}>
-                {chartType === "species" && "No species data yet"}
-                {chartType === "background" && "No background data yet"}
-                {chartType === "gods" && "No god data yet"}
-              </div>
-            )}
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-4">
+                </Bar>
+              )}
               {(showMode === "both" || showMode === "wins") && (
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="h-3 w-6" 
-                    style={{ 
-                      backgroundSize: '6px 6px', 
-                      backgroundImage: themeStyle === "ascii" 
-                        ? 'repeating-linear-gradient(-45deg, #22c55e, #22c55e 2px, rgba(34,197,94,0.4) 2px, rgba(34,197,94,0.4) 4px)'
-                        : 'repeating-linear-gradient(-45deg, #d4a574, #d4a574 2px, rgba(212,165,116,0.4) 2px, rgba(212,165,116,0.4) 4px)' 
-                    }} 
-                  />
-                  <span className="text-sm text-muted-foreground">Wins</span>
-                </div>
+                <Bar dataKey="wins" radius={0}>
+                  {currentChartData.map((_, index) => (
+                    <Cell key={`wins-${index}`} fill={`url(#stripe-${index})`} />
+                  ))}
+                </Bar>
               )}
-              {(showMode === "both" || showMode === "attempts") && (
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="h-3 w-6" 
-                    style={{ backgroundColor: themeStyle === "ascii" ? "rgba(34,197,94,0.5)" : "rgba(212,165,116,0.5)" }} 
-                  />
-                  <span className="text-sm text-muted-foreground">Attempts</span>
-                </div>
-              )}
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center font-mono text-sm text-muted-foreground" style={{ height: chartHeight }}>
+            {chartType === "species" && "No species data yet"}
+            {chartType === "background" && "No background data yet"}
+            {chartType === "gods" && "No god data yet"}
+          </div>
+        )}
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-4">
+          {(showMode === "both" || showMode === "wins") && (
+            <div className="flex items-center gap-2">
+              <div 
+                className="h-3 w-6" 
+                style={{ 
+                  backgroundSize: '6px 6px', 
+                  backgroundImage: themeStyle === "ascii" 
+                    ? 'repeating-linear-gradient(-45deg, #22c55e, #22c55e 2px, rgba(34,197,94,0.4) 2px, rgba(34,197,94,0.4) 4px)'
+                    : 'repeating-linear-gradient(-45deg, #d4a574, #d4a574 2px, rgba(212,165,116,0.4) 2px, rgba(212,165,116,0.4) 4px)' 
+                }} 
+              />
+              <span className="text-sm text-muted-foreground">Wins</span>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Right side - Performance Graph */}
-        <div className="flex flex-col gap-6">
-          {children}
+          )}
+          {(showMode === "both" || showMode === "attempts") && (
+            <div className="flex items-center gap-2">
+              <div 
+                className="h-3 w-6" 
+                style={{ backgroundColor: themeStyle === "ascii" ? "rgba(34,197,94,0.5)" : "rgba(212,165,116,0.5)" }} 
+              />
+              <span className="text-sm text-muted-foreground">Attempts</span>
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

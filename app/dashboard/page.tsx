@@ -20,6 +20,7 @@ import { PlayerStatsChart } from "@/components/dashboard/player-stats-chart"
 import { PerformanceGraph } from "@/components/dashboard/performance-graph"
 import { GoalProgress } from "@/components/dashboard/goal-progress"
 import { LevelAtDeathChart } from "@/components/dashboard/level-at-death-chart"
+import { RuneCollectionChart } from "@/components/dashboard/rune-collection-chart"
 import { Top10Killers } from "@/components/dashboard/top-10-killers"
 import { SpeciesBackgroundComboGrid } from "@/components/dashboard/species-background-combo-grid"
 import { UploadDialog } from "@/components/dashboard/upload-dialog"
@@ -319,7 +320,9 @@ export default function DashboardPage({
         {activeTab === "analysis" && (
           <>
             <div className="space-y-6">
+              {!statsLoading && !isEmpty && (
                 <LevelAtDeathChart morgues={morgues} loading={statsLoading} />
+              )}
               {isEmpty ? (
                 <AnalysisEmptyState />
               ) : statsLoading ? (
@@ -377,15 +380,23 @@ export default function DashboardPage({
                     subtitle={smallestTurncountSubtitle}
                     icon={Timer}
                   />
+                </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="space-y-4">
+                    <PlayerStatsChart
+                      speciesStats={stats?.species_stats}
+                      backgroundStats={stats?.background_stats}
+                      godStats={stats?.god_stats}
+                    >
+                      {/* Performance Over Time chart temporarily hidden but kept for future use */}
+                      {/* <PerformanceGraph morgues={morgues} /> */}
+                    </PlayerStatsChart>
                   </div>
-                  <PlayerStatsChart
-                    speciesStats={stats?.species_stats}
-                    backgroundStats={stats?.background_stats}
-                    godStats={stats?.god_stats}
-                  >
+                  <div className="space-y-4">
+                    <RuneCollectionChart morgues={morgues} />
                     <Top10Killers morgues={morgues} loading={statsLoading} />
-                    <PerformanceGraph morgues={morgues} />
-                  </PlayerStatsChart>
+                  </div>
+                </div>
                 </>
               )}
             </div>

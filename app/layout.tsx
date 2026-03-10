@@ -1,10 +1,11 @@
-import type { Metadata } from 'next'
-import { Creepster, Space_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import { AuthProvider } from '@/contexts/auth-context'
-import { ThemeProvider } from '@/contexts/theme-context'
-import { Toaster } from '@/components/ui/toaster'
-import './globals.css'
+import type { Metadata } from "next"
+import { Creepster, Space_Mono } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
+import { AuthProvider } from "@/contexts/auth-context"
+import { ThemeProvider } from "@/contexts/theme-context"
+import { Toaster } from "@/components/ui/toaster"
+import { MobileGate } from "@/components/mobile-gate"
+import "./globals.css"
 
 const creepster = Creepster({ 
   weight: '400',
@@ -71,7 +72,7 @@ export default function RootLayout({
       <body className={`${creepster.variable} ${spaceMono.variable} font-sans antialiased`}>
         <ThemeProvider>
           <AuthProvider>
-            {children}
+            <MobileGate>{children}</MobileGate>
           </AuthProvider>
         </ThemeProvider>
         <Toaster />
