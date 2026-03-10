@@ -11,6 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  Legend,
 } from "recharts"
 
 function buildLevelDeathData(morgues: GameRecord[]): { level: number; deaths: number }[] {
@@ -61,21 +62,22 @@ export function LevelAtDeathChart({
   morgues = [],
   loading,
   globalAverageDeathsPerLevel,
+  globalAverageUserCount,
 }: {
   morgues?: GameRecord[]
   loading?: boolean
   /** Optional global average deaths per level (same length/order as chart data). */
   globalAverageDeathsPerLevel?: number[]
+  /** Optional number of users that the global average line is based on. */
+  globalAverageUserCount?: number
 }) {
   const { themeStyle } = useTheme()
   const baseData = morgues.length > 0 ? buildLevelDeathData(morgues) : emptyLevelData
-  const hasGlobal =
-    globalAverageDeathsPerLevel &&
-    globalAverageDeathsPerLevel.length === baseData.length
+  const hasGlobal = Array.isArray(globalAverageDeathsPerLevel) && globalAverageDeathsPerLevel.length > 0
   const levelDeathData = hasGlobal
     ? baseData.map((d, idx) => ({
         ...d,
-        avgDeaths: globalAverageDeathsPerLevel[idx],
+        avgDeaths: globalAverageDeathsPerLevel[idx] ?? 0,
       }))
     : baseData
   
@@ -140,6 +142,15 @@ export function LevelAtDeathChart({
               }}
             />
             <Tooltip content={<LevelDeathTooltip />} />
+            <Legend
+              verticalAlign="bottom"
+              align="center"
+              wrapperStyle={{
+                fontFamily: "var(--font-body)",
+                fontSize: 11,
+                bottom: 0,
+              }}
+            />
             <Line
               type="monotone"
               dataKey="deaths"
@@ -147,6 +158,7 @@ export function LevelAtDeathChart({
               strokeWidth={2}
               dot={{ fill: lineColor, strokeWidth: 0, r: 3 }}
               activeDot={{ fill: lineColor, strokeWidth: 0, r: 5 }}
+              name="You"
             />
             {hasGlobal && (
               <Line
@@ -155,7 +167,11 @@ export function LevelAtDeathChart({
                 stroke={globalLineColor}
                 strokeWidth={2}
                 dot={false}
-                name="Global avg"
+                name={
+                  globalAverageUserCount && globalAverageUserCount > 0
+                    ? `Average (${globalAverageUserCount} users)`
+                    : "Average"
+                }
               />
             )}
           </LineChart>

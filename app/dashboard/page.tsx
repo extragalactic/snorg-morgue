@@ -32,6 +32,7 @@ import { toast } from "@/hooks/use-toast"
 import {
   fetchMorgues,
   fetchUserStats,
+  fetchGlobalLevelDeathAverages,
   formatPlayTime,
   formatFastestWin,
   deleteAllMorgues,
@@ -93,6 +94,8 @@ export default function DashboardPage({
   const activeTab = activeTabProp ?? internalTab
   const setActiveTab = onTabChangeProp ?? setInternalTab
   const [morgues, setMorgues] = useState<GameRecord[]>([])
+  const [globalLevelDeathAverages, setGlobalLevelDeathAverages] = useState<number[] | null>(null)
+  const [globalLevelDeathUserCount, setGlobalLevelDeathUserCount] = useState<number | null>(null)
 
   // Redirect /dashboard to /username/analytics when not using URL-driven tabs
   useEffect(() => {
@@ -110,21 +113,20 @@ export default function DashboardPage({
   const [refreshConfirmOpen, setRefreshConfirmOpen] = useState(false)
 
   const loadData = useCallback(async () => {
-    if (!userId) {
-      setMorgues([])
-      setStats(null)
-      setStatsLoading(false)
-      setMorguesLoading(false)
-      return
-    }
     setMorguesLoading(true)
     setStatsLoading(true)
-    const [morgueList, statsRow] = await Promise.all([
-      fetchMorgues(supabase, userId),
-      fetchUserStats(supabase, userId),
+
+    const [morgueList, statsRow, globalAverages] = await Promise.all([
+      userId ? fetchMorgues(supabase, userId) : Promise.resolve([]),
+      userId ? fetchUserStats(supabase, userId) : Promise.resolve(null),
+      fetchGlobalLevelDeathAverages(supabase),
     ])
+
     setMorgues(morgueList)
     setStats(statsRow)
+    setGlobalLevelDeathAverages(globalAverages?.averages ?? null)
+    setGlobalLevelDeathUserCount(globalAverages?.userCount ?? null)
+
     setMorguesLoading(false)
     setStatsLoading(false)
   }, [userId])
@@ -321,7 +323,12 @@ export default function DashboardPage({
           <>
             <div className="space-y-6">
               {!statsLoading && !isEmpty && (
-                <LevelAtDeathChart morgues={morgues} loading={statsLoading} />
+                <LevelAtDeathChart
+                  morgues={morgues}
+                  loading={statsLoading}
+                  globalAverageDeathsPerLevel={globalLevelDeathAverages ?? undefined}
+                  globalAverageUserCount={globalLevelDeathUserCount ?? undefined}
+                />
               )}
               {isEmpty ? (
                 <AnalysisEmptyState />

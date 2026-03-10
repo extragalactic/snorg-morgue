@@ -400,6 +400,38 @@ export async function fetchUserStats(
 }
 
 /**
+ * Fetch global per-level average deaths for the Level at Death chart.
+ * Returns { averages: number[27], userCount } or null on error.
+ * Backed by the Supabase RPC: level_death_user_averages().
+ */
+export async function fetchGlobalLevelDeathAverages(
+  supabase: SupabaseClient
+): Promise<{ averages: number[]; userCount: number } | null> {
+  const { data, error } = await supabase.rpc("level_death_user_averages")
+  if (error || data == null) return null
+
+  // Support both legacy (numeric[] only) and new JSON shape.
+  if (Array.isArray(data)) {
+    return { averages: data as number[], userCount: 0 }
+  }
+
+  const payload = data as { averages?: number[]; user_count?: number; userCount?: number }
+  if (payload.averages && Array.isArray(payload.averages)) {
+    return {
+      averages: payload.averages,
+      userCount:
+        typeof payload.user_count === "number"
+          ? payload.user_count
+          : typeof payload.userCount === "number"
+          ? payload.userCount
+          : 0,
+    }
+  }
+
+  return null
+}
+
+/**
  * Fetch raw morgue text for the MorgueBrowser (by morgue_file_id).
  */
 export async function fetchRawMorgue(
