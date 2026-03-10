@@ -114,7 +114,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationP
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-2 rounded-none border-2 border-primary/50 font-mono text-xs hover:text-yellow-400"
+                  className="gap-2 rounded-none border-0 font-mono text-xs hover:text-yellow-400"
                 >
                   {themeStyle === "tiles" ? (
                     <Monitor className="h-4 w-4" />
@@ -124,7 +124,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationP
                   {themeStyle === "tiles" ? "Tiles" : "ASCII"}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="rounded-none border-2 border-primary/50">
+              <DropdownMenuContent align="end" className="rounded-none border-2 border-secondary">
                 <DropdownMenuItem 
                   onClick={() => setThemeStyle("tiles")}
                   className="gap-2 font-mono text-xs cursor-pointer hover:text-yellow-400"
@@ -146,7 +146,10 @@ export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationP
             <Button
               variant="ghost"
               size="sm"
-              className="gap-2 rounded-none border-2 border-red-500/50 text-red-400 hover:bg-red-500/10 hover:border-red-500 font-mono text-xs"
+              className={cn(
+                "nav-signout gap-2 rounded-none border-2 text-yellow-400 hover:bg-red-500/10 font-mono text-xs",
+                themeStyle === "tiles" ? "border-primary/50" : "border-red-500/50"
+              )}
               onClick={signOut}
             >
               <LogOut className="h-4 w-4" />
@@ -198,7 +201,10 @@ export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationP
               </div>
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-none border-2 border-red-500/50 text-red-400 hover:bg-red-500/10 font-mono text-xs"
+                className={cn(
+                  "nav-signout w-full justify-start gap-2 rounded-none border-2 text-yellow-400 hover:bg-red-500/10 font-mono text-xs",
+                  themeStyle === "tiles" ? "border-primary/50" : "border-red-500/50"
+                )}
                 onClick={signOut}
               >
                 <LogOut className="h-4 w-4" />

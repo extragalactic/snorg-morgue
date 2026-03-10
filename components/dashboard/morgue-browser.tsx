@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/lib/supabase"
 import { fetchRawMorgue } from "@/lib/morgue-api"
 import type { GameRecord } from "@/lib/morgue-api"
+import { useTheme } from "@/contexts/theme-context"
 
 /** Section titles as they appear in morgue files (order = typical appearance). Match with line.trim().startsWith(title). */
 const MORGUE_SECTION_TITLES = [
@@ -167,9 +168,24 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
   const [loading, setLoading] = useState(!initialRawText)
   const [error, setError] = useState<string | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
+  const { themeStyle } = useTheme()
 
   const canShare = !!(shareUrl || sharePath)
-  const getShareUrl = () => shareUrl || (typeof window !== "undefined" && sharePath ? window.location.origin + sharePath : "")
+  const getShareUrl = () => {
+    const base =
+      shareUrl ||
+      (typeof window !== "undefined" && sharePath ? window.location.origin + sharePath : "")
+    if (!base) return ""
+    const styleParam = themeStyle === "ascii" ? "2" : "1"
+    try {
+      const u = new URL(base)
+      u.searchParams.set("s", styleParam)
+      return u.toString()
+    } catch {
+      const sep = base.includes("?") ? "&" : "?"
+      return `${base}${sep}s=${encodeURIComponent(styleParam)}`
+    }
+  }
 
   useEffect(() => {
     if (initialRawText !== undefined) {

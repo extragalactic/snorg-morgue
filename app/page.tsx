@@ -29,6 +29,10 @@ export default function LoginPage() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!signInEmail.trim() || !signInPassword.trim()) {
+      // Do not submit when fields are empty; let button stay in normal state.
+      return
+    }
     setIsSubmitting(true)
     try {
       await signIn(signInEmail, signInPassword)

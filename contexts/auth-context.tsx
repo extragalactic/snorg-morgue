@@ -108,10 +108,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : err.message
       setError(message)
       toast({ title: "Sign in failed", description: message, variant: "destructive" })
-      return
+      throw new Error(message)
     }
     setSession(data.session)
-    const s = slugifyUsername(data.session?.user?.user_metadata?.full_name || data.session?.user?.user_metadata?.name || data.session?.user?.email?.split("@")[0] || "user")
+    const s = slugifyUsername(
+      data.session?.user?.user_metadata?.full_name ||
+      data.session?.user?.user_metadata?.name ||
+      data.session?.user?.email?.split("@")[0] ||
+      "user"
+    )
     router.push(s ? `/${s}/analytics` : "/")
   }
 

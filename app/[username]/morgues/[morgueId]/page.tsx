@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { MorgueBrowser } from "@/components/dashboard/morgue-browser"
 import { useAuth } from "@/contexts/auth-context"
+import { useTheme } from "@/contexts/theme-context"
 import { slugifyUsername } from "@/lib/slug"
 import { supabase } from "@/lib/supabase"
 import { fetchMorgueById } from "@/lib/morgue-api"
@@ -12,7 +13,9 @@ import type { GameRecord } from "@/lib/morgue-api"
 export default function PublicMorguePage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, userId } = useAuth()
+  const { setThemeStyle } = useTheme()
   const username = params?.username as string
   const morgueId = params?.morgueId as string
 
@@ -23,6 +26,13 @@ export default function PublicMorguePage() {
     ownerSlug: string
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Apply style from ?s=1 (Tiles) / ?s=2 (ASCII) when arriving via shared URL.
+  useEffect(() => {
+    const s = searchParams?.get("s")
+    if (s === "1") setThemeStyle("tiles")
+    else if (s === "2") setThemeStyle("ascii")
+  }, [searchParams, setThemeStyle])
 
   useEffect(() => {
     if (!morgueId?.trim()) return
