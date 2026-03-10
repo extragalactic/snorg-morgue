@@ -13,6 +13,7 @@ import {
   YAxis,
   TooltipProps,
 } from "recharts"
+import { useTheme } from "@/contexts/theme-context"
 
 interface RuneCollectionChartProps {
   morgues?: GameRecord[]
@@ -86,6 +87,14 @@ function RuneTooltip({
 
 export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) {
   const data = buildRuneData(morgues)
+  const { themeStyle } = useTheme()
+
+  // Use explicit colors for SVG fills; CSS variables like var(--foo) don't
+  // consistently work as SVG attribute values across browsers.
+  const winsColor =
+    themeStyle === "ascii" ? "oklch(0.8 0.2 145)" : "rgba(250, 204, 21, 0.9)"
+  const attemptsColor =
+    themeStyle === "ascii" ? "oklch(0.5 0.1 145)" : "rgba(148, 163, 184, 0.6)"
 
   if (data.length === 0) {
     return null
@@ -139,13 +148,13 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
             <Bar
               dataKey="wins"
               stackId="runes"
-              fill="rgba(250, 204, 21, 0.9)"
+              fill={winsColor}
               radius={[2, 2, 0, 0]}
             />
             <Bar
               dataKey="attemptsNonWin"
               stackId="runes"
-              fill="rgba(148, 163, 184, 0.6)"
+              fill={attemptsColor}
               radius={[0, 0, 0, 0]}
             />
           </BarChart>
