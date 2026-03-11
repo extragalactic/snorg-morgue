@@ -203,14 +203,14 @@ export default function DashboardPage({
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="font-mono text-lg text-primary">
                 {activeTab === "analysis" && "PERFORMANCE ANALYTICS"}
-                {activeTab === "achievements" && "ACHIEVEMENTS"}
+                {activeTab === "achievements" && "OFFICIAL ACHIEVEMENTS"}
                 {activeTab === "morgues" && "MORGUE FILES"}
                 {activeTab === "extras" && "RESOURCES"}
               </h1>
             </div>
             <p className="text-sm text-muted-foreground">
               {activeTab === "analysis" && "Track and analyze your DCSS progress"}
-              {activeTab === "achievements" && "Long-term DCSS goals and Snorg Awards"}
+              {activeTab === "achievements" && ""}
               {activeTab === "morgues" && "Upload and browse your morgue files"}
               {activeTab === "extras" && "Helpful links and community resources"}
             </p>
