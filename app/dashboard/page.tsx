@@ -543,7 +543,9 @@ export default function DashboardPage({
                     </PlayerStatsChart>
                   </div>
                   <div className="space-y-4">
-                    <TestPerformanceChart morgues={morgues} />
+                    <TestPerformanceChart
+                      speciesStats={stats?.species_stats ?? []}
+                    />
                     <RuneCollectionChart morgues={morgues} />
                     <Top10Killers morgues={morgues} loading={statsLoading} />
                   </div>

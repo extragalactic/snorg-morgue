@@ -1,90 +1,73 @@
  "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { GameRecord } from "@/lib/morgue-api"
+import type { StatEntry } from "@/lib/morgue-db"
+import type { StatCategoryAverage } from "@/lib/morgue-api"
 import {
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
+  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  TooltipProps,
 } from "recharts"
 import { useTheme } from "@/contexts/theme-context"
 
 interface TestPerformanceChartProps {
-  morgues?: GameRecord[]
+  speciesStats?: StatEntry[]
+  speciesAverages?: StatCategoryAverage[]
 }
 
-const MAX_RUNES = 15
+type SpeciesDatum = {
+  name: string
+  userAttempts: number
+  avgAttempts: number
+  /** First segment length (closest to origin): always the smaller of avg vs you. */
+  firstSeg: number
+  /** Second segment length: the remainder so total bar = max(avg, you). */
+  secondSeg: number
+  /** True when first segment is avg (grey), second is you (yellow). */
+  isAvgFirst: boolean
+  /** True when avg was derived because no average data was provided. */
+  avgIsEstimated?: boolean
+}
 
-function buildRuneData(morgues: GameRecord[] = []) {
-  const counts = Array.from({ length: MAX_RUNES }, (_, i) => ({
-    runes: i + 1,
-    wins: 0,
-    attempts: 0,
-  }))
-
-  for (const m of morgues) {
-    const r = m.runes
-    if (!r || r <= 0) continue
-    const clamped = Math.min(MAX_RUNES, r)
-    const idx = clamped - 1
-    counts[idx].attempts += 1
-    if (m.result === "win") {
-      counts[idx].wins += 1
+function buildSpeciesTestData(
+  speciesStats: StatEntry[] = [],
+  speciesAverages: StatCategoryAverage[] = [],
+): SpeciesDatum[] {
+  const hasAverages = speciesAverages.length > 0
+  return speciesStats.map((s) => {
+    const avgEntry = speciesAverages.find((a) => a.name === s.name)
+    const userAttempts = s.attempts
+    const avgAttempts = hasAverages && avgEntry?.avgAttempts != null
+      ? avgEntry.avgAttempts
+      : Math.max(1, Math.round(userAttempts * 0.5))
+    const avgIsEstimated = !hasAverages || avgEntry == null
+    const low = Math.min(avgAttempts, userAttempts)
+    const high = Math.max(avgAttempts, userAttempts)
+    const firstSeg = low
+    const secondSeg = high - low
+    const isAvgFirst = avgAttempts < userAttempts
+    return {
+      name: s.name,
+      userAttempts,
+      avgAttempts: avgEntry?.avgAttempts ?? avgAttempts,
+      firstSeg,
+      secondSeg,
+      isAvgFirst,
+      avgIsEstimated,
     }
-  }
-
-  return counts
-    .filter((c) => c.attempts > 0)
-    .map((c) => {
-      const nonWin = Math.max(0, c.attempts - c.wins)
-      return {
-        runes: c.runes,
-        wins: c.wins,
-        attemptsNonWin: nonWin,
-        attemptsTotal: c.attempts,
-      }
-    })
+  })
 }
 
-type RuneDatum = {
-  runes: number
-  wins: number
-  attemptsNonWin: number
-  attemptsTotal: number
-}
-
-function TestPerformanceTooltip({
-  active,
-  payload,
-  label,
-}: TooltipProps<number, string>) {
-  if (!active || !payload || payload.length === 0) return null
-  const p = payload[0].payload as RuneDatum | undefined
-  if (!p) return null
-
-  const showWins = p.runes > 2 && p.wins > 0
-
-  return (
-    <div className="border-2 border-primary bg-card p-3">
-      <p className="font-mono text-sm text-primary">Runes: {p.runes}</p>
-      {showWins && (
-        <p className="text-base text-yellow-400">Wins: {p.wins}</p>
-      )}
-      <p className="text-base text-muted-foreground">
-        Attempts (wins + deaths): {p.attemptsTotal}
-      </p>
-    </div>
-  )
-}
-
-export function TestPerformanceChart({ morgues = [] }: TestPerformanceChartProps) {
-  const data = buildRuneData(morgues)
+export function TestPerformanceChart({
+  speciesStats = [],
+  speciesAverages = [],
+}: TestPerformanceChartProps) {
+  const data = buildSpeciesTestData(speciesStats, speciesAverages)
   const { themeStyle } = useTheme()
 
   const winsColor =
@@ -102,11 +85,11 @@ export function TestPerformanceChart({ morgues = [] }: TestPerformanceChartProps
         <CardTitle className="font-mono text-sm text-primary">TEST PERFORMANCE</CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
-        <ResponsiveContainer width="100%" height={260}>
+        <ResponsiveContainer width="100%" height={520}>
           <BarChart
             data={data}
             layout="vertical"
-            margin={{ top: 10, right: 20, left: 60, bottom: 20 }}
+            margin={{ top: 10, right: 20, left: 100, bottom: 20 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
             <XAxis
@@ -116,7 +99,7 @@ export function TestPerformanceChart({ morgues = [] }: TestPerformanceChartProps
               tickLine={false}
               allowDecimals={false}
               label={{
-                value: "Number of games",
+                value: "Attempts",
                 position: "bottom",
                 offset: 0,
                 style: { fill: "var(--muted-foreground)", fontSize: 12 },
@@ -124,48 +107,72 @@ export function TestPerformanceChart({ morgues = [] }: TestPerformanceChartProps
             />
             <YAxis
               type="category"
-              dataKey="runes"
+              dataKey="name"
               stroke="var(--muted-foreground)"
               fontSize={12}
               tickLine={false}
-              width={40}
-              label={{
-                value: "Runes collected",
-                angle: -90,
-                position: "insideLeft",
-                style: { fill: "var(--muted-foreground)", fontSize: 12, textAnchor: "middle" },
-              }}
+              width={100}
+              interval={0}
             />
             <Tooltip
-              content={<TestPerformanceTooltip />}
-              cursor={{ fill: "rgba(148, 163, 184, 0.06)", stroke: "transparent" }}
-            />
-            <Legend
-              verticalAlign="bottom"
-              align="center"
-              formatter={(value) =>
-                value === "wins" ? "Wins" : "Attempts (wins + deaths)"
-              }
-              wrapperStyle={{
-                fontFamily: "var(--font-body)",
-                fontSize: 11,
-                bottom: 5,
+              formatter={(value: number, key: string, payload) => {
+                const p = payload.payload as SpeciesDatum
+                if (key === "firstSeg") {
+                  return [p.firstSeg, p.isAvgFirst ? "Avg (all players)" : "You (attempts)"]
+                }
+                if (key === "secondSeg") {
+                  return [p.secondSeg, p.isAvgFirst ? "You (attempts)" : "Avg (all players)"]
+                }
+                return [value, key]
+              }}
+              labelFormatter={(label) => `Species: ${label}`}
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null
+                const p = payload[0].payload as SpeciesDatum
+                return (
+                  <div className="border-2 border-primary bg-card p-3">
+                    <p className="font-mono text-sm text-primary">{label}</p>
+                    <p className="text-base text-muted-foreground">
+                      You: {p.userAttempts} attempts
+                    </p>
+                    <p className="text-base text-muted-foreground">
+                      Avg: {p.avgAttempts} attempts{p.avgIsEstimated ? " (estimated)" : ""}
+                    </p>
+                  </div>
+                )
               }}
             />
-            <Bar
-              dataKey="wins"
-              stackId="runes"
-              fill={winsColor}
-              radius={[0, 2, 2, 0]}
-            />
-            <Bar
-              dataKey="attemptsNonWin"
-              stackId="runes"
-              fill={attemptsColor}
-              radius={[0, 0, 0, 0]}
-            />
+            <Bar dataKey="firstSeg" stackId="attempts" radius={[0, 0, 0, 0]}>
+              {data.map((entry, index) => (
+                <Cell
+                  key={`first-${index}`}
+                  fill={entry.isAvgFirst ? attemptsColor : winsColor}
+                />
+              ))}
+            </Bar>
+            <Bar dataKey="secondSeg" stackId="attempts" radius={[0, 2, 2, 0]}>
+              {data.map((entry, index) => (
+                <Cell
+                  key={`second-${index}`}
+                  fill={entry.isAvgFirst ? winsColor : attemptsColor}
+                />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-6" style={{ backgroundColor: attemptsColor }} />
+            <span className="text-sm text-muted-foreground">Avg (all players)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-6" style={{ backgroundColor: winsColor }} />
+            <span className="text-sm text-muted-foreground">You (attempts)</span>
+          </div>
+          {data.some((d) => d.avgIsEstimated) && (
+            <span className="text-xs text-muted-foreground">Avg shown as estimated until global data is loaded</span>
+          )}
+        </div>
       </CardContent>
     </Card>
   )
