@@ -71,7 +71,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
   const { themeStyle } = useTheme()
   const { settings, setSettings } = useSettings()
   const [searchQuery, setSearchQuery] = useState(settings.morguesTable.searchQuery)
-  const [currentPage, setCurrentPage] = useState(settings.morguesTable.currentPage)
+  const [currentPage, setCurrentPage] = useState(1)
   const [viewingMorgue, setViewingMorgue] = useState<GameRecord | null>(null)
   const viewId = searchParams.get("view")
 
@@ -94,7 +94,6 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
   // Keep local state in sync if settings change elsewhere
   useEffect(() => {
     setSearchQuery(settings.morguesTable.searchQuery)
-    setCurrentPage(settings.morguesTable.currentPage)
     setResultFilter(settings.morguesTable.resultFilter as ResultFilter)
     setSpeciesFilter(settings.morguesTable.speciesFilter as SpeciesFilter)
     setBackgroundFilter(settings.morguesTable.backgroundFilter as BackgroundFilter)
@@ -634,7 +633,6 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
               onClick={() => {
                 setCurrentPage((p) => {
                   const next = p - 1
-                  updateMorguesSettings({ currentPage: next })
                   return next
                 })
               }}
@@ -652,7 +650,6 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
               onClick={() => {
                 setCurrentPage((p) => {
                   const next = p + 1
-                  updateMorguesSettings({ currentPage: next })
                   return next
                 })
               }}

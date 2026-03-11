@@ -162,6 +162,15 @@ interface MorgueBrowserProps {
   sharePath?: string
 }
 
+function formatGodName(god: string | null | undefined): string {
+  const name = (god ?? "").trim()
+  if (!name) return ""
+  if (name.includes("the Shining One")) {
+    return name.replace("the Shining One", "The Shining One")
+  }
+  return name
+}
+
 export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton = true, initialRawText, initialFilename, fillHeight, shareUrl, sharePath }: MorgueBrowserProps) {
   const [rawText, setRawText] = useState<string | null>(initialRawText ?? null)
   const [filename, setFilename] = useState<string>(initialFilename ?? "")
@@ -314,7 +323,8 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
                 {(() => {
                   const parts = [game.species, game.background].filter(Boolean)
                   const base = parts.join(" ") || "Character"
-                  return game.god ? `${base} of ${game.god}` : base
+                  const godName = formatGodName(game.god)
+                  return godName ? `${base} of ${godName}` : base
                 })()}
               </p>
               <p className="font-mono text-xs sm:text-sm text-muted-foreground tracking-wide">
