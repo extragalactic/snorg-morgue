@@ -22,6 +22,7 @@ import { PerformanceGraph } from "@/components/dashboard/performance-graph"
 import { GoalProgress } from "@/components/dashboard/goal-progress"
 import { LevelAtDeathChart } from "@/components/dashboard/level-at-death-chart"
 import { RuneCollectionChart } from "@/components/dashboard/rune-collection-chart"
+import { TestPerformanceChart } from "@/components/dashboard/test-performance-chart"
 import { Top10Killers } from "@/components/dashboard/top-10-killers"
 import { SpeciesBackgroundComboGrid } from "@/components/dashboard/species-background-combo-grid"
 import { UploadDialog } from "@/components/dashboard/upload-dialog"
@@ -542,6 +543,7 @@ export default function DashboardPage({
                     </PlayerStatsChart>
                   </div>
                   <div className="space-y-4">
+                    <TestPerformanceChart morgues={morgues} />
                     <RuneCollectionChart morgues={morgues} />
                     <Top10Killers morgues={morgues} loading={statsLoading} />
                   </div>
