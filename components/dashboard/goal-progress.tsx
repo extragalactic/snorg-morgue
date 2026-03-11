@@ -230,7 +230,7 @@ function AchievementDetailGrid({
         return (
           <span
             key={name}
-            className={`font-mono text-xs ${won ? "text-white font-semibold" : "text-white/55"}`}
+            className={`font-mono text-sm ${won ? "text-white font-semibold" : "text-white/60"}`}
           >
             {formatName(name)}
           </span>
@@ -255,7 +255,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
     speciesBackgroundAttempts: new Map<string, Set<string>>(),
   }
   const achievementPopupClass =
-    "max-w-[384px] rounded-none border-2 border-primary/30 bg-zinc-900 p-3 text-white"
+    "max-w-[448px] rounded-none border-2 border-primary/30 bg-zinc-900 p-3 text-white"
   const coreGoals = goals.filter(
     (g) =>
       g.name === "Great Player" ||

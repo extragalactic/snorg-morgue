@@ -44,10 +44,10 @@ function LevelDeathTooltip({ active, payload }: LevelDeathTooltipProps) {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
-      <div className="border-2 border-primary bg-card p-2">
-        <p className="font-mono text-xs text-primary">Level {data.level}</p>
+      <div className="border-2 border-primary bg-card p-3">
+        <p className="font-mono text-sm text-primary">Level {data.level}</p>
         {payload.map((p) => (
-          <p key={p.name} className="text-sm" style={{ color: p.color }}>
+          <p key={p.name} className="text-base" style={{ color: p.color }}>
             {p.name}: {p.value.toFixed ? p.value.toFixed(2) : p.value}
           </p>
         ))}

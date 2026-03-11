@@ -150,12 +150,12 @@ function SpeciesTooltip({ active, payload }: SpeciesTooltipProps) {
     const data = payload[0].payload
     const winRate = data.attempts > 0 ? ((data.wins / data.attempts) * 100).toFixed(1) : "0"
     return (
-      <div className="border-2 border-primary bg-card p-2">
-        <p className="font-mono text-xs text-primary">{speciesDisplayLabel(data.name)}</p>
-        <p className="text-xs text-muted-foreground mb-1">{data.tier}</p>
-        <p className="text-sm">Wins: {data.wins}</p>
-        <p className="text-sm">Attempts: {data.attempts}</p>
-        <p className="text-sm text-primary">Win Rate: {winRate}%</p>
+      <div className="border-2 border-primary bg-card p-3">
+        <p className="font-mono text-sm text-primary">{speciesDisplayLabel(data.name)}</p>
+        <p className="text-sm text-muted-foreground mb-1">{data.tier}</p>
+        <p className="text-base">Wins: {data.wins}</p>
+        <p className="text-base">Attempts: {data.attempts}</p>
+        <p className="text-base text-primary">Win Rate: {winRate}%</p>
       </div>
     )
   }
@@ -177,12 +177,12 @@ function BackgroundTooltip({ active, payload }: BackgroundTooltipProps) {
     const winRate = data.attempts > 0 ? ((data.wins / data.attempts) * 100).toFixed(1) : "0"
     const name = data.name.replace(/Elementalist\b/g, "Elem.")
     return (
-      <div className="border-2 border-primary bg-card p-2">
-        <p className="font-mono text-xs text-primary">{name}</p>
-        <p className="text-xs text-muted-foreground mb-1">{data.category}</p>
-        <p className="text-sm">Wins: {data.wins}</p>
-        <p className="text-sm">Attempts: {data.attempts}</p>
-        <p className="text-sm text-primary">Win Rate: {winRate}%</p>
+      <div className="border-2 border-primary bg-card p-3">
+        <p className="font-mono text-sm text-primary">{name}</p>
+        <p className="text-sm text-muted-foreground mb-1">{data.category}</p>
+        <p className="text-base">Wins: {data.wins}</p>
+        <p className="text-base">Attempts: {data.attempts}</p>
+        <p className="text-base text-primary">Win Rate: {winRate}%</p>
       </div>
     )
   }
@@ -203,12 +203,12 @@ function GodsTooltip({ active, payload }: GodsTooltipProps) {
     const data = payload[0].payload
     const winRate = data.attempts > 0 ? ((data.wins / data.attempts) * 100).toFixed(1) : "0"
     return (
-      <div className="border-2 border-primary bg-card p-2 max-w-xs">
-        <p className="font-mono text-xs text-primary">{data.name}</p>
-        {data.description && <p className="text-xs text-muted-foreground mb-1 italic">{data.description}</p>}
-        <p className="text-sm">Wins: {data.wins}</p>
-        <p className="text-sm">Attempts: {data.attempts}</p>
-        <p className="text-sm text-primary">Win Rate: {winRate}%</p>
+      <div className="border-2 border-primary bg-card p-3 max-w-xs">
+        <p className="font-mono text-sm text-primary">{data.name}</p>
+        {data.description && <p className="text-sm text-muted-foreground mb-1 italic">{data.description}</p>}
+        <p className="text-base">Wins: {data.wins}</p>
+        <p className="text-base">Attempts: {data.attempts}</p>
+        <p className="text-base text-primary">Win Rate: {winRate}%</p>
       </div>
     )
   }

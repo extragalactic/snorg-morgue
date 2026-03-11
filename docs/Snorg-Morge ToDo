@@ -2,12 +2,12 @@ Snorg-Morge ToDo
 
 - enable Google auth
 - add a button to download all morgues (in a zip)
-- need to test on older versions of morgue files
 - need a success state for completed awards
-
-- need to test email/username duplicates on signup
 - Ignis needs special attention re: completion stats with gods
-- Fedhas isn't appearing on gods performance
+
+
+- need to test logic for email/username duplicates on signup
+- need to test on older versions of morgue files
 
 ...hey, buy more vape bags!
 

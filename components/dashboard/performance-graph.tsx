@@ -44,10 +44,10 @@ interface CustomTooltipProps {
 function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (active && payload && payload.length) {
     return (
-      <div className="border-2 border-primary bg-card p-3">
-        <p className="font-mono text-xs text-primary mb-2">{label}</p>
+      <div className="border-2 border-primary bg-card p-4">
+        <p className="font-mono text-sm text-primary mb-2">{label}</p>
         {payload.map((entry, index) => (
-          <p key={index} className="text-sm" style={{ color: entry.color }}>
+          <p key={index} className="text-base" style={{ color: entry.color }}>
             {entry.dataKey === "winRate"
               ? "Win Rate"
               : "Avg XL"}

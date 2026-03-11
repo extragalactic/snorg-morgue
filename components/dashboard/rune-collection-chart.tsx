@@ -73,12 +73,12 @@ function RuneTooltip({
   const showWins = p.runes > 2 && p.wins > 0
 
   return (
-    <div className="border-2 border-primary bg-card p-2">
-      <p className="font-mono text-xs text-primary">Runes: {p.runes}</p>
+    <div className="border-2 border-primary bg-card p-3">
+      <p className="font-mono text-sm text-primary">Runes: {p.runes}</p>
       {showWins && (
-        <p className="text-sm text-yellow-400">Wins: {p.wins}</p>
+        <p className="text-base text-yellow-400">Wins: {p.wins}</p>
       )}
-      <p className="text-sm text-muted-foreground">
+      <p className="text-base text-muted-foreground">
         Attempts (wins + deaths): {p.attemptsTotal}
       </p>
     </div>
