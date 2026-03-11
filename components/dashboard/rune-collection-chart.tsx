@@ -133,7 +133,10 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                 style: { fill: "var(--muted-foreground)", fontSize: 12, textAnchor: "middle" },
               }}
             />
-            <Tooltip content={<RuneTooltip />} />
+            <Tooltip
+              content={<RuneTooltip />}
+              cursor={{ fill: "rgba(148, 163, 184, 0.06)", stroke: "transparent" }}
+            />
             <Legend
               verticalAlign="bottom"
               align="center"

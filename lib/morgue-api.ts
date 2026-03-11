@@ -260,6 +260,16 @@ export async function recalcUserStats(
     return { ...r, species, background }
   })
 
+  function normalizeGodName(raw: string): string {
+    const name = (raw ?? "").trim()
+    if (!name) return "(no god)"
+    if (name === "(no god)") return "(no god)"
+    if (name === "Fedhas Madash" || name === "Fedhas") return "Fedhas"
+    if (name.toLowerCase().startsWith("nemelex")) return "Nemelex"
+    if (name.toLowerCase().includes("shining one")) return "The Shining One"
+    return name
+  }
+
   function buildStatEntries(
     list: ParsedMorgueRow[],
     getName: (r: ParsedMorgueRow) => string
@@ -279,7 +289,7 @@ export async function recalcUserStats(
 
   const species_stats = buildStatEntries(normalizedList, (r) => r.species)
   const background_stats = buildStatEntries(normalizedList, (r) => r.background)
-  const god_stats = buildStatEntries(normalizedList, (r) => r.god || "(no god)")
+  const god_stats = buildStatEntries(normalizedList, (r) => normalizeGodName(r.god || "(no god)"))
 
   const totalGames = list.length
   const wins = list.filter((r) => r.is_win)

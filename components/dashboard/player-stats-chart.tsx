@@ -175,9 +175,10 @@ function BackgroundTooltip({ active, payload }: BackgroundTooltipProps) {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     const winRate = data.attempts > 0 ? ((data.wins / data.attempts) * 100).toFixed(1) : "0"
+    const name = data.name.replace(/Elementalist\b/g, "Elem.")
     return (
       <div className="border-2 border-primary bg-card p-2">
-        <p className="font-mono text-xs text-primary">{data.name}</p>
+        <p className="font-mono text-xs text-primary">{name}</p>
         <p className="text-xs text-muted-foreground mb-1">{data.category}</p>
         <p className="text-sm">Wins: {data.wins}</p>
         <p className="text-sm">Attempts: {data.attempts}</p>
@@ -508,9 +509,17 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
                   )
                 } : undefined}
               />
-              <Tooltip content={<CurrentTooltip />} />
+              <Tooltip
+                content={<CurrentTooltip />}
+                cursor={{ fill: "rgba(148, 163, 184, 0.06)", stroke: "transparent" }}
+              />
               {(showMode === "both" || showMode === "attempts") && (
-                <Bar dataKey="attempts" stackId="a" radius={0}>
+                <Bar
+                  dataKey="attempts"
+                  stackId="a"
+                  radius={0}
+                  activeBar={{ fillOpacity: 0.4 }}
+                >
                   {currentChartData.map((entry, index) => {
                     const origIndex = currentAllData.findIndex((d: { name: string }) => d.name === entry.name)
                     return (
@@ -520,7 +529,11 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
                 </Bar>
               )}
               {(showMode === "both" || showMode === "wins") && (
-                <Bar dataKey="wins" radius={0}>
+                <Bar
+                  dataKey="wins"
+                  radius={0}
+                  activeBar={{ opacity: 0.8 }}
+                >
                   {currentChartData.map((_, index) => (
                     <Cell key={`wins-${index}`} fill={`url(#stripe-${index})`} />
                   ))}

@@ -24,8 +24,8 @@ export const ALL_BACKGROUND_NAMES = [
 ]
 
 export const ALL_GOD_NAMES = [
-  "Ashenzari", "Beogh", "Cheibriados", "Dithmenos", "Elyvilon", "Fedhas Madash", "Gozag", "Hepliaklqana",
-  "Ignis", "Jiyva", "Kikubaaqudgha", "Lugonu", "Makhleb", "Nemelex Xobeh", "Okawaru", "Qazlal", "Ru",
+  "Ashenzari", "Beogh", "Cheibriados", "Dithmenos", "Elyvilon", "Fedhas", "Gozag", "Hepliaklqana",
+  "Ignis", "Jiyva", "Kikubaaqudgha", "Lugonu", "Makhleb", "Nemelex", "Okawaru", "Qazlal", "Ru",
   "Sif Muna", "Trog", "Uskayaw", "Vehumet", "Wu Jian", "Xom", "Yredelemnul", "Zin", "The Shining One",
   "(no god)",
 ]
@@ -50,6 +50,7 @@ export const GOD_SHORT_FORMS: Record<string, string> = {
   "Lugonu": "Lug",
   "Makhleb": "Mak",
   "Nemelex Xobeh": "Nem",
+  "Nemelex": "Nem",
   "Okawaru": "Oka",
   "Qazlal": "Qaz",
   "Ru": "Ru",
