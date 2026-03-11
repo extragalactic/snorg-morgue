@@ -79,7 +79,7 @@ export function speciesDisplayLabel(name: string): string {
   return name
 }
 
-function mergeWithFullList(fullNames: string[], stats: StatEntry[]): StatEntry[] {
+export function mergeWithFullList(fullNames: string[], stats: StatEntry[]): StatEntry[] {
   const byName = new Map(stats.map((s) => [s.name, s]))
   return fullNames.map((name) => byName.get(name) ?? { name, wins: 0, attempts: 0 })
 }

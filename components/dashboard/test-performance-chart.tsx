@@ -4,13 +4,21 @@ import { useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { StatEntry } from "@/lib/morgue-db"
 import type { StatCategoryAverage } from "@/lib/morgue-api"
-import { DRACONIAN_COLOUR_NAMES } from "@/lib/dcss-constants"
+import { ALL_BACKGROUND_NAMES, DRACONIAN_COLOUR_NAMES, GOD_NAMES_FOR_CHART } from "@/lib/dcss-constants"
 import {
   buildSpeciesListWithDraconian,
+  mergeWithFullList,
   speciesDisplayLabel,
   DRACONIAN_LABEL_GREY,
 } from "@/components/dashboard/player-stats-chart"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Bar,
   BarChart,
@@ -22,19 +30,18 @@ import {
 } from "recharts"
 import { useTheme } from "@/contexts/theme-context"
 
+type ChartType = "species" | "background" | "gods"
 type ShowMode = "wins" | "attempts"
 
-type SpeciesDatum = {
+type CategoryDatum = {
   name: string
   userAttempts: number
   avgAttempts: number
   userWins: number
   avgWins: number
-  /** Attempts: first (avg) and second (you) segment lengths. */
   firstSeg: number
   secondSeg: number
   isAvgFirst: boolean
-  /** Wins: first (avg) and second (you) segment lengths. */
   firstSegWins: number
   secondSegWins: number
   isAvgFirstWins: boolean
@@ -44,15 +51,19 @@ type SpeciesDatum = {
 interface TestPerformanceChartProps {
   speciesStats?: StatEntry[]
   speciesAverages?: StatCategoryAverage[]
+  backgroundStats?: StatEntry[]
+  backgroundAverages?: StatCategoryAverage[]
+  godStats?: StatEntry[]
+  godAverages?: StatCategoryAverage[]
 }
 
-function buildSpeciesTestData(
-  speciesList: StatEntry[],
-  speciesAverages: StatCategoryAverage[] = [],
-): SpeciesDatum[] {
-  const hasAverages = speciesAverages.length > 0
-  return speciesList.map((s) => {
-    const avgEntry = speciesAverages.find((a) => a.name === s.name) as { avgAttempts?: number; avgWins?: number } | undefined
+function buildCategoryTestData(
+  list: StatEntry[],
+  averages: StatCategoryAverage[] = [],
+): CategoryDatum[] {
+  const hasAverages = averages.length > 0
+  return list.map((s) => {
+    const avgEntry = averages.find((a) => a.name === s.name) as { avgAttempts?: number; avgWins?: number } | undefined
     const userAttempts = s.attempts
     const avgAttempts = Math.floor(
       hasAverages && avgEntry?.avgAttempts != null
@@ -94,11 +105,31 @@ function buildSpeciesTestData(
 export function TestPerformanceChart({
   speciesStats = [],
   speciesAverages = [],
+  backgroundStats = [],
+  backgroundAverages = [],
+  godStats = [],
+  godAverages = [],
 }: TestPerformanceChartProps) {
-  const speciesList = buildSpeciesListWithDraconian(speciesStats)
-  const data = buildSpeciesTestData(speciesList, speciesAverages)
   const { themeStyle } = useTheme()
+  const [chartType, setChartType] = useState<ChartType>("species")
   const [showMode, setShowMode] = useState<ShowMode>("attempts")
+
+  const categoryList = useMemo(() => {
+    if (chartType === "species") return buildSpeciesListWithDraconian(speciesStats)
+    if (chartType === "background") return mergeWithFullList(ALL_BACKGROUND_NAMES, backgroundStats)
+    return mergeWithFullList(GOD_NAMES_FOR_CHART, godStats)
+  }, [chartType, speciesStats, backgroundStats, godStats])
+
+  const averages = useMemo(() => {
+    if (chartType === "species") return speciesAverages
+    if (chartType === "background") return backgroundAverages
+    return godAverages
+  }, [chartType, speciesAverages, backgroundAverages, godAverages])
+
+  const data = useMemo(
+    () => buildCategoryTestData(categoryList, averages ?? []),
+    [categoryList, averages]
+  )
 
   const winsColor =
     themeStyle === "ascii" ? "oklch(0.8 0.2 145)" : "rgba(250, 204, 21, 0.9)"
@@ -113,8 +144,10 @@ export function TestPerformanceChart({
   })), [data, showMode])
 
   const chartHeight = displayData.length > 0
-    ? Math.min(900, Math.max(200, displayData.length * 36))
+    ? Math.min(chartType === "gods" ? 850 : 900, Math.max(200, displayData.length * 36))
     : 400
+
+  const categoryLabel = chartType === "species" ? "Species" : chartType === "background" ? "Background" : "God"
 
   if (displayData.length === 0) {
     return null
@@ -123,7 +156,19 @@ export function TestPerformanceChart({
   return (
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <CardTitle className="font-mono text-sm text-primary">TEST PERFORMANCE</CardTitle>
+        <CardTitle className="font-mono text-sm text-primary flex items-center gap-2">
+          <Select value={chartType} onValueChange={(v: ChartType) => setChartType(v)}>
+            <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 hover:text-yellow-400">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-none border-2 border-primary/50">
+              <SelectItem value="species" className="font-mono text-sm cursor-pointer hover:text-yellow-400">Species</SelectItem>
+              <SelectItem value="background" className="font-mono text-sm cursor-pointer hover:text-yellow-400">Background</SelectItem>
+              <SelectItem value="gods" className="font-mono text-sm cursor-pointer hover:text-yellow-400">Gods</SelectItem>
+            </SelectContent>
+          </Select>
+          <span>TEST PERFORMANCE</span>
+        </CardTitle>
         <div className="flex flex-wrap items-center gap-6 pt-3">
           <div className="flex items-center gap-3">
             <span className="font-mono text-xs text-primary">SHOW:</span>
@@ -167,28 +212,49 @@ export function TestPerformanceChart({
               width={160}
               tickLine={false}
               interval={0}
-              tick={(props: { x: number; y: number; payload?: { value?: string } }) => {
-                const value = props.payload?.value ?? ""
-                const isGrey = DRACONIAN_COLOUR_NAMES.includes(value)
-                return (
-                  <text
-                    x={props.x}
-                    y={props.y}
-                    dy={4}
-                    textAnchor="end"
-                    fill={isGrey ? DRACONIAN_LABEL_GREY : "var(--muted-foreground)"}
-                    fontSize={14}
-                    className="font-mono"
-                  >
-                    {speciesDisplayLabel(value)}
-                  </text>
-                )
-              }}
+              tick={
+                chartType === "species"
+                  ? (props: { x: number; y: number; payload?: { value?: string } }) => {
+                      const value = props.payload?.value ?? ""
+                      const isGrey = DRACONIAN_COLOUR_NAMES.includes(value)
+                      return (
+                        <text
+                          x={props.x}
+                          y={props.y}
+                          dy={4}
+                          textAnchor="end"
+                          fill={isGrey ? DRACONIAN_LABEL_GREY : "var(--muted-foreground)"}
+                          fontSize={14}
+                          className="font-mono"
+                        >
+                          {speciesDisplayLabel(value)}
+                        </text>
+                      )
+                    }
+                  : chartType === "background"
+                    ? (props: { x: number; y: number; payload?: { value?: string } }) => {
+                        const value = (props.payload?.value ?? "").replace(/\bElementalist\b/g, "Elem.")
+                        return (
+                          <text
+                            x={props.x}
+                            y={props.y}
+                            dy={4}
+                            textAnchor="end"
+                            fill="var(--muted-foreground)"
+                            fontSize={14}
+                            className="font-mono"
+                          >
+                            {value}
+                          </text>
+                        )
+                      }
+                    : undefined
+              }
             />
             <Tooltip
               cursor={{ fill: "rgba(148, 163, 184, 0.06)", stroke: "transparent" }}
               formatter={(value: number, key: string, payload) => {
-                const p = payload.payload as SpeciesDatum & { firstSegDisplay: number; secondSegDisplay: number; isAvgFirstDisplay: boolean }
+                const p = payload.payload as CategoryDatum & { firstSegDisplay: number; secondSegDisplay: number; isAvgFirstDisplay: boolean }
                 if (key === "firstSegDisplay") {
                   return [p.firstSegDisplay, p.isAvgFirstDisplay ? "Avg (all players)" : showMode === "wins" ? "You (wins)" : "You (attempts)"]
                 }
@@ -197,13 +263,18 @@ export function TestPerformanceChart({
                 }
                 return [value, key]
               }}
-              labelFormatter={(label) => `Species: ${label}`}
+              labelFormatter={(label) => `${categoryLabel}: ${label}`}
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null
-                const p = payload[0].payload as SpeciesDatum
+                const p = payload[0].payload as CategoryDatum
+                const displayName = chartType === "species"
+                  ? speciesDisplayLabel(String(label))
+                  : chartType === "background"
+                    ? String(label).replace(/\bElementalist\b/g, "Elem.")
+                    : String(label)
                 return (
                   <div className="border-2 border-primary bg-card p-3">
-                    <p className="font-mono text-sm text-primary">{speciesDisplayLabel(String(label))}</p>
+                    <p className="font-mono text-sm text-primary">{displayName}</p>
                     <p className="text-base text-muted-foreground">
                       You: {p.userAttempts} attempts, {p.userWins} wins
                     </p>
@@ -218,7 +289,7 @@ export function TestPerformanceChart({
               {displayData.map((entry, index) => (
                 <Cell
                   key={`first-${index}`}
-                  fill={(entry as SpeciesDatum & { isAvgFirstDisplay: boolean }).isAvgFirstDisplay ? attemptsColor : winsColor}
+                  fill={(entry as CategoryDatum & { isAvgFirstDisplay: boolean }).isAvgFirstDisplay ? attemptsColor : winsColor}
                 />
               ))}
             </Bar>
@@ -226,7 +297,7 @@ export function TestPerformanceChart({
               {displayData.map((entry, index) => (
                 <Cell
                   key={`second-${index}`}
-                  fill={(entry as SpeciesDatum & { isAvgFirstDisplay: boolean }).isAvgFirstDisplay ? winsColor : attemptsColor}
+                  fill={(entry as CategoryDatum & { isAvgFirstDisplay: boolean }).isAvgFirstDisplay ? winsColor : attemptsColor}
                 />
               ))}
             </Bar>
