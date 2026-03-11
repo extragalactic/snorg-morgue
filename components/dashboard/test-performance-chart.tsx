@@ -3,10 +3,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { StatEntry } from "@/lib/morgue-db"
 import type { StatCategoryAverage } from "@/lib/morgue-api"
+import { DRACONIAN_COLOUR_NAMES } from "@/lib/dcss-constants"
+import {
+  buildSpeciesListWithDraconian,
+  speciesDisplayLabel,
+  DRACONIAN_LABEL_GREY,
+} from "@/components/dashboard/player-stats-chart"
 import {
   Bar,
   BarChart,
-  CartesianGrid,
   Cell,
   ResponsiveContainer,
   Tooltip,
@@ -35,11 +40,11 @@ type SpeciesDatum = {
 }
 
 function buildSpeciesTestData(
-  speciesStats: StatEntry[] = [],
+  speciesList: StatEntry[],
   speciesAverages: StatCategoryAverage[] = [],
 ): SpeciesDatum[] {
   const hasAverages = speciesAverages.length > 0
-  return speciesStats.map((s) => {
+  return speciesList.map((s) => {
     const avgEntry = speciesAverages.find((a) => a.name === s.name)
     const userAttempts = s.attempts
     const avgAttempts = hasAverages && avgEntry?.avgAttempts != null
@@ -67,13 +72,18 @@ export function TestPerformanceChart({
   speciesStats = [],
   speciesAverages = [],
 }: TestPerformanceChartProps) {
-  const data = buildSpeciesTestData(speciesStats, speciesAverages)
+  const speciesList = buildSpeciesListWithDraconian(speciesStats)
+  const data = buildSpeciesTestData(speciesList, speciesAverages)
   const { themeStyle } = useTheme()
 
   const winsColor =
     themeStyle === "ascii" ? "oklch(0.8 0.2 145)" : "rgba(250, 204, 21, 0.9)"
   const attemptsColor =
     themeStyle === "ascii" ? "oklch(0.5 0.1 145)" : "rgba(148, 163, 184, 0.6)"
+
+  const chartHeight = data.length > 0
+    ? Math.min(900, Math.max(200, data.length * 36))
+    : 400
 
   if (data.length === 0) {
     return null
@@ -85,36 +95,48 @@ export function TestPerformanceChart({
         <CardTitle className="font-mono text-sm text-primary">TEST PERFORMANCE</CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
-        <ResponsiveContainer width="100%" height={520}>
+        <ResponsiveContainer width="100%" height={chartHeight}>
           <BarChart
             data={data}
             layout="vertical"
-            margin={{ top: 10, right: 20, left: 100, bottom: 20 }}
+            barGap={0}
+            barCategoryGap="20%"
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
             <XAxis
               type="number"
               stroke="var(--muted-foreground)"
-              fontSize={12}
+              fontSize={14}
               tickLine={false}
               allowDecimals={false}
-              label={{
-                value: "Attempts",
-                position: "bottom",
-                offset: 0,
-                style: { fill: "var(--muted-foreground)", fontSize: 12 },
-              }}
             />
             <YAxis
               type="category"
               dataKey="name"
               stroke="var(--muted-foreground)"
-              fontSize={12}
+              fontSize={14}
+              width={160}
               tickLine={false}
-              width={100}
               interval={0}
+              tick={(props: { x: number; y: number; payload?: { value?: string } }) => {
+                const value = props.payload?.value ?? ""
+                const isGrey = DRACONIAN_COLOUR_NAMES.includes(value)
+                return (
+                  <text
+                    x={props.x}
+                    y={props.y}
+                    dy={4}
+                    textAnchor="end"
+                    fill={isGrey ? DRACONIAN_LABEL_GREY : "var(--muted-foreground)"}
+                    fontSize={14}
+                    className="font-mono"
+                  >
+                    {speciesDisplayLabel(value)}
+                  </text>
+                )
+              }}
             />
             <Tooltip
+              cursor={{ fill: "rgba(148, 163, 184, 0.06)", stroke: "transparent" }}
               formatter={(value: number, key: string, payload) => {
                 const p = payload.payload as SpeciesDatum
                 if (key === "firstSeg") {
@@ -131,7 +153,7 @@ export function TestPerformanceChart({
                 const p = payload[0].payload as SpeciesDatum
                 return (
                   <div className="border-2 border-primary bg-card p-3">
-                    <p className="font-mono text-sm text-primary">{label}</p>
+                    <p className="font-mono text-sm text-primary">{speciesDisplayLabel(String(label))}</p>
                     <p className="text-base text-muted-foreground">
                       You: {p.userAttempts} attempts
                     </p>
