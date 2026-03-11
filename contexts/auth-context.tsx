@@ -136,27 +136,106 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, name: string) => {
     setError(null)
+
+    const trimmedName = name.trim()
+    if (!trimmedName) {
+      const message = "Please enter a username."
+      setError(message)
+      toast({ title: "Sign up failed", description: message, variant: "destructive" })
+      return
+    }
+
+    // Compute slug and check if username is already taken
+    const desiredSlug = slugifyUsername(trimmedName)
+    if (!desiredSlug) {
+      const message = "Please choose a different username."
+      setError(message)
+      toast({ title: "Sign up failed", description: message, variant: "destructive" })
+      return
+    }
+
+    // Check for existing profile with this slug
+    const { data: existingProfile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("username_slug", desiredSlug)
+      .maybeSingle()
+
+    if (profileError) {
+      // If we can't check, fail safe and ask them to try again
+      const message = "Could not verify username availability. Please try again."
+      setError(message)
+      toast({ title: "Sign up failed", description: message, variant: "destructive" })
+      return
+    }
+
+    if (existingProfile) {
+      const message = "That username is already taken. Please choose a different name."
+      setError(message)
+      toast({ title: "Sign up failed", description: message, variant: "destructive" })
+      return
+    }
+
     const { data, error: err } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: name },
+        data: { full_name: trimmedName },
       },
     })
+
     if (err) {
-      setError(err.message)
-      toast({ title: "Sign up failed", description: err.message, variant: "destructive" })
+      const raw = err.message || "Sign up failed."
+      const message =
+        raw.includes("already registered") || raw.includes("already exists")
+          ? "An account with that email already exists. Please sign in or use a different email."
+          : raw
+
+      setError(message)
+      toast({ title: "Sign up failed", description: message, variant: "destructive" })
       return
     }
-    if (data.user && !data.session) {
+
+    const session = data.session
+    const user = data.user
+
+    if (user && !session) {
+      // Email confirmation flow; create profile row once the user confirms and signs in.
       toast({
         title: "Check your email",
         description: "We sent you a confirmation link. Click it to confirm your account.",
       })
       return
     }
-    setSession(data.session)
-    const s = slugifyUsername(data.session?.user?.user_metadata?.full_name || data.session?.user?.user_metadata?.name || data.session?.user?.email?.split("@")[0] || "user")
+
+    if (session?.user) {
+      // Create profile row with unique username slug.
+      const { error: profileInsertError } = await supabase
+        .from("profiles")
+        .insert({
+          id: session.user.id,
+          username_slug: desiredSlug,
+        })
+
+      if (profileInsertError) {
+        const msg =
+          profileInsertError.code === "23505" // unique_violation
+            ? "That username is already taken. Please choose a different name."
+            : "Could not create profile. Please try signing up again."
+
+        setError(msg)
+        toast({ title: "Sign up failed", description: msg, variant: "destructive" })
+        return
+      }
+    }
+
+    setSession(session ?? null)
+    const s = slugifyUsername(
+      session?.user?.user_metadata?.full_name ||
+      session?.user?.user_metadata?.name ||
+      session?.user?.email?.split("@")[0] ||
+      "user"
+    )
     router.push(s ? `/${s}/analytics` : "/")
   }
 
