@@ -359,12 +359,12 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
   return (
     <>
     <Card className="border-2 border-primary/30 rounded-none">
-        <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="font-mono text-sm text-primary">
-              {titleText}
-            </CardTitle>
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+      <CardHeader className="border-b-2 border-primary/20 pb-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="font-mono text-sm text-primary">
+            {titleText}
+          </CardTitle>
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto sm:justify-end">
             {/* Result Filter */}
             <div className="flex gap-1">
               {(["all", "win", "death"] as const).map((filter) => (
