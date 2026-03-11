@@ -1,16 +1,13 @@
 Snorg-Morge ToDo
 
 - enable Google auth
+- add a button to download all morgues (in a zip)
 - Ignis needs special attention re: completion stats with gods
 
-- add a button to download all morgues (in a zip)
 
-- handle mobile (likely disable it)
+- need to test logic for email/username duplicates on signup
+- need to test on older versions of morgue files
 
 ...hey, buy more vape bags!
-
-
-
-
 
 

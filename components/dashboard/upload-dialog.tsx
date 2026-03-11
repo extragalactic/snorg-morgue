@@ -244,6 +244,9 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
           <DialogTitle className="font-mono text-primary">
             UPLOAD MORGUE FILES
           </DialogTitle>
+          <DialogDescription className="mt-1 font-mono text-xs text-muted-foreground">
+            Currently tested with v0.33 and v0.34
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-2">

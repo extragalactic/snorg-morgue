@@ -73,12 +73,12 @@ function RuneTooltip({
   const showWins = p.runes > 2 && p.wins > 0
 
   return (
-    <div className="border-2 border-primary bg-card p-2">
-      <p className="font-mono text-xs text-primary">Runes: {p.runes}</p>
+    <div className="border-2 border-primary bg-card p-3">
+      <p className="font-mono text-sm text-primary">Runes: {p.runes}</p>
       {showWins && (
-        <p className="text-sm text-yellow-400">Wins: {p.wins}</p>
+        <p className="text-base text-yellow-400">Wins: {p.wins}</p>
       )}
-      <p className="text-sm text-muted-foreground">
+      <p className="text-base text-muted-foreground">
         Attempts (wins + deaths): {p.attemptsTotal}
       </p>
     </div>
@@ -133,7 +133,10 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                 style: { fill: "var(--muted-foreground)", fontSize: 12, textAnchor: "middle" },
               }}
             />
-            <Tooltip content={<RuneTooltip />} />
+            <Tooltip
+              content={<RuneTooltip />}
+              cursor={{ fill: "rgba(148, 163, 184, 0.06)", stroke: "transparent" }}
+            />
             <Legend
               verticalAlign="bottom"
               align="center"

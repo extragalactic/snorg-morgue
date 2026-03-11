@@ -110,7 +110,7 @@ export default function LoginPage() {
           />
           <Card className="w-full border-2 border-green-500/30 bg-card/80 backdrop-blur rounded-none">
           <CardHeader className="text-center border-b border-green-500/20 pb-6">
-            <CardTitle className="text-2xl text-green-400" style={{ fontFamily: 'var(--font-troll)' }}>
+            <CardTitle className="text-3xl sm:text-[2rem] text-green-400" style={{ fontFamily: 'var(--font-troll)' }}>
               {"Welcome to Snorg's Morgue"}
             </CardTitle>
             <CardDescription>

@@ -3,6 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Check } from "lucide-react"
+import { useTheme } from "@/contexts/theme-context"
 import {
   TOTAL_SPECIES,
   TOTAL_BACKGROUNDS,
@@ -212,7 +214,7 @@ const defaultGoals: Goal[] = [
   { name: "Tiamat", description: `Win with all ${TOTAL_DRACONIAN_COLOURS} colours of Draconian`, current: 0, max: TOTAL_DRACONIAN_COLOURS },
 ]
 
-/** Grid of items for achievement rollover: 3 columns; hasWin = bright, else muted. Dark background, bright text. */
+/** Grid of items for achievement rollover: 3 columns; hasWin = bright, else muted. */
 function AchievementDetailGrid({
   items,
   hasWins,
@@ -220,6 +222,9 @@ function AchievementDetailGrid({
   items: string[]
   hasWins: Set<string>
 }) {
+  const formatName = (name: string) =>
+    name.replace(/Elementalist\b/g, "Elem.")
+
   return (
     <div className="grid grid-cols-3 gap-x-4 gap-y-0.5 py-0.5">
       {items.map((name) => {
@@ -227,9 +232,11 @@ function AchievementDetailGrid({
         return (
           <span
             key={name}
-            className={`font-mono text-xs ${won ? "text-white font-semibold" : "text-white/55"}`}
+            className={`font-mono text-sm ${
+              won ? "text-foreground font-semibold" : "text-foreground/60"
+            }`}
           >
-            {name}
+            {formatName(name)}
           </span>
         )
       })}
@@ -238,6 +245,7 @@ function AchievementDetailGrid({
 }
 
 export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps) {
+  const { themeStyle } = useTheme()
   const computed = morgues.length > 0 ? computeGoals(morgues) : null
   const goals = computed?.goals ?? defaultGoals
   const coreWins = computed?.coreWins ?? {
@@ -252,7 +260,9 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
     speciesBackgroundAttempts: new Map<string, Set<string>>(),
   }
   const achievementPopupClass =
-    "max-w-[320px] rounded-none border-2 border-primary/30 bg-zinc-900 p-3 text-white"
+    "max-w-[448px] rounded-none border-2 border-primary/30 bg-card text-foreground"
+  const completeIndicatorClass =
+    themeStyle === "ascii" ? "bg-emerald-300" : "bg-emerald-400"
   const coreGoals = goals.filter(
     (g) =>
       g.name === "Great Player" ||
@@ -295,6 +305,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           <div className="grid gap-6 md:grid-cols-4">
           {coreGoals.map((goal) => {
             const percentage = (goal.current / goal.max) * 100
+            const isComplete = goal.current >= goal.max
             const detailContent =
               goal.name === "Great Player" ? (
                 <AchievementDetailGrid items={ALL_SPECIES_NAMES} hasWins={coreWins.speciesWithWins} />
@@ -313,14 +324,32 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                 <TooltipTrigger asChild>
                   <div className="space-y-2 cursor-default">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-sm text-foreground">{goal.name}</span>
-                      <span className="font-mono text-sm text-primary">
+                      <span className="flex items-center gap-1 font-mono text-sm text-foreground">
+                        {goal.name}
+                        {isComplete && (
+                          <Check
+                            className={`h-3.5 w-3.5 ${
+                              themeStyle === "ascii" ? "text-emerald-300" : "text-emerald-400"
+                            }`}
+                          />
+                        )}
+                      </span>
+                      <span
+                        className={`font-mono text-sm ${
+                          isComplete
+                            ? themeStyle === "ascii"
+                              ? "text-emerald-300"
+                              : "text-emerald-400"
+                            : "text-primary"
+                        }`}
+                      >
                         {goal.current}/{goal.max}
                       </span>
                     </div>
                     <Progress
                       value={percentage}
                       className="h-3 rounded-none bg-secondary border border-primary/30"
+                      indicatorClassName={isComplete ? completeIndicatorClass : undefined}
                     />
                     <p className="text-xs text-muted-foreground whitespace-pre-line">
                       {goal.description}
@@ -352,6 +381,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
               <div className="grid gap-6 md:grid-cols-4">
                 {greaterSpeciesGoals.map((goal) => {
                   const percentage = (goal.current / goal.max) * 100
+                  const isComplete = goal.current >= goal.max
                   const speciesName = goal.name.replace(/^Greater /, "")
                   const hasWins = speciesMaps.speciesBackgroundWins.get(speciesName) ?? new Set<string>()
                   return (
@@ -359,16 +389,32 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                       <TooltipTrigger asChild>
                         <div className="space-y-2 cursor-default">
                           <div className="flex items-center justify-between">
-                            <span className="font-mono text-sm text-foreground">
+                            <span className="flex items-center gap-1 font-mono text-sm text-foreground">
                               {goal.name}
+                              {isComplete && (
+                                <Check
+                                  className={`h-3.5 w-3.5 ${
+                                    themeStyle === "ascii" ? "text-emerald-300" : "text-emerald-400"
+                                  }`}
+                                />
+                              )}
                             </span>
-                            <span className="font-mono text-sm text-primary">
+                            <span
+                              className={`font-mono text-sm ${
+                                isComplete
+                                  ? themeStyle === "ascii"
+                                    ? "text-emerald-300"
+                                    : "text-emerald-400"
+                                  : "text-primary"
+                              }`}
+                            >
                               {goal.current}/{goal.max}
                             </span>
                           </div>
                           <Progress
                             value={percentage}
                             className="h-3 rounded-none bg-secondary border border-primary/30"
+                            indicatorClassName={isComplete ? completeIndicatorClass : undefined}
                           />
                           <p className="text-xs text-muted-foreground whitespace-pre-line">
                             {goal.description}
@@ -391,10 +437,15 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
         </Card>
       )}
 
+      {/* Snorg Awards section title */}
+      <div className="mt-6 mb-5">
+        <h2 className="font-mono text-lg text-primary">SNORG AWARDS</h2>
+      </div>
+
       {/* Snorg Awards card */}
-      <Card className="mt-6 border-2 border-primary/30 rounded-none">
+      <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">SNORG AWARDS</CardTitle>
+          <CardTitle className="font-mono text-sm text-primary">PERSISTENT PLAYER</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <p className="font-mono text-sm text-muted-foreground mb-4">
@@ -487,6 +538,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
               <div className="grid gap-6 md:grid-cols-4">
                 {enthusiasticSpeciesWithProgress.map((goal) => {
                   const percentage = (goal.current / goal.max) * 100
+                  const isComplete = goal.current >= goal.max
                   const speciesName = goal.name.replace(/^Enthusiastic /, "")
                   const hasWins = speciesMaps.speciesBackgroundAttempts.get(speciesName) ?? new Set<string>()
                   return (
@@ -494,16 +546,32 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                       <TooltipTrigger asChild>
                         <div className="space-y-2 cursor-default">
                           <div className="flex items-center justify-between">
-                            <span className="font-mono text-sm text-foreground">
+                            <span className="flex items-center gap-1 font-mono text-sm text-foreground">
                               {goal.name}
+                              {isComplete && (
+                                <Check
+                                  className={`h-3.5 w-3.5 ${
+                                    themeStyle === "ascii" ? "text-emerald-300" : "text-emerald-400"
+                                  }`}
+                                />
+                              )}
                             </span>
-                            <span className="font-mono text-sm text-primary">
+                        <span
+                          className={`font-mono text-sm ${
+                            isComplete
+                              ? themeStyle === "ascii"
+                                ? "text-emerald-300"
+                                : "text-emerald-400"
+                              : "text-primary"
+                          }`}
+                        >
                               {goal.current}/{goal.max}
-                            </span>
+                        </span>
                           </div>
                           <Progress
                             value={percentage}
                             className="h-3 rounded-none bg-secondary border border-primary/30"
+                            indicatorClassName={isComplete ? completeIndicatorClass : undefined}
                           />
                           <p className="text-xs text-muted-foreground whitespace-pre-line">
                             {goal.description}
@@ -537,6 +605,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
               <div className="grid gap-6 md:grid-cols-4">
                 {devotedSpeciesGoals.map((goal) => {
                   const percentage = (goal.current / goal.max) * 100
+                  const isComplete = goal.current >= goal.max
                   const speciesName = goal.name.replace(/^Devoted /, "")
                   const hasWins = speciesMaps.speciesGodWins.get(speciesName) ?? new Set<string>()
                   return (
@@ -544,16 +613,32 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                       <TooltipTrigger asChild>
                         <div className="space-y-2 cursor-default">
                           <div className="flex items-center justify-between">
-                            <span className="font-mono text-sm text-foreground">
+                            <span className="flex items-center gap-1 font-mono text-sm text-foreground">
                               {goal.name}
+                              {isComplete && (
+                                <Check
+                                  className={`h-3.5 w-3.5 ${
+                                    themeStyle === "ascii" ? "text-emerald-300" : "text-emerald-400"
+                                  }`}
+                                />
+                              )}
                             </span>
-                            <span className="font-mono text-sm text-primary">
+                            <span
+                              className={`font-mono text-sm ${
+                                isComplete
+                                  ? themeStyle === "ascii"
+                                    ? "text-emerald-300"
+                                    : "text-emerald-400"
+                                  : "text-primary"
+                              }`}
+                            >
                               {goal.current}/{goal.max}
                             </span>
                           </div>
                           <Progress
                             value={percentage}
                             className="h-3 rounded-none bg-secondary border border-primary/30"
+                            indicatorClassName={isComplete ? completeIndicatorClass : undefined}
                           />
                           <p className="text-xs text-muted-foreground whitespace-pre-line">
                             {goal.description}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
@@ -18,6 +18,7 @@ import {
   ALL_BACKGROUND_NAMES,
   GOD_NAMES_FOR_CHART,
 } from "@/lib/dcss-constants"
+import { useSettings } from "@/contexts/settings-context"
 import type { StatEntry } from "@/lib/morgue-db"
 import {
   BarChart,
@@ -149,12 +150,12 @@ function SpeciesTooltip({ active, payload }: SpeciesTooltipProps) {
     const data = payload[0].payload
     const winRate = data.attempts > 0 ? ((data.wins / data.attempts) * 100).toFixed(1) : "0"
     return (
-      <div className="border-2 border-primary bg-card p-2">
-        <p className="font-mono text-xs text-primary">{speciesDisplayLabel(data.name)}</p>
-        <p className="text-xs text-muted-foreground mb-1">{data.tier}</p>
-        <p className="text-sm">Wins: {data.wins}</p>
-        <p className="text-sm">Attempts: {data.attempts}</p>
-        <p className="text-sm text-primary">Win Rate: {winRate}%</p>
+      <div className="border-2 border-primary bg-card p-3">
+        <p className="font-mono text-sm text-primary">{speciesDisplayLabel(data.name)}</p>
+        <p className="text-sm text-muted-foreground mb-1">{data.tier}</p>
+        <p className="text-base">Wins: {data.wins}</p>
+        <p className="text-base">Attempts: {data.attempts}</p>
+        <p className="text-base text-primary">Win Rate: {winRate}%</p>
       </div>
     )
   }
@@ -174,13 +175,14 @@ function BackgroundTooltip({ active, payload }: BackgroundTooltipProps) {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     const winRate = data.attempts > 0 ? ((data.wins / data.attempts) * 100).toFixed(1) : "0"
+    const name = data.name.replace(/Elementalist\b/g, "Elem.")
     return (
-      <div className="border-2 border-primary bg-card p-2">
-        <p className="font-mono text-xs text-primary">{data.name}</p>
-        <p className="text-xs text-muted-foreground mb-1">{data.category}</p>
-        <p className="text-sm">Wins: {data.wins}</p>
-        <p className="text-sm">Attempts: {data.attempts}</p>
-        <p className="text-sm text-primary">Win Rate: {winRate}%</p>
+      <div className="border-2 border-primary bg-card p-3">
+        <p className="font-mono text-sm text-primary">{name}</p>
+        <p className="text-sm text-muted-foreground mb-1">{data.category}</p>
+        <p className="text-base">Wins: {data.wins}</p>
+        <p className="text-base">Attempts: {data.attempts}</p>
+        <p className="text-base text-primary">Win Rate: {winRate}%</p>
       </div>
     )
   }
@@ -201,12 +203,12 @@ function GodsTooltip({ active, payload }: GodsTooltipProps) {
     const data = payload[0].payload
     const winRate = data.attempts > 0 ? ((data.wins / data.attempts) * 100).toFixed(1) : "0"
     return (
-      <div className="border-2 border-primary bg-card p-2 max-w-xs">
-        <p className="font-mono text-xs text-primary">{data.name}</p>
-        {data.description && <p className="text-xs text-muted-foreground mb-1 italic">{data.description}</p>}
-        <p className="text-sm">Wins: {data.wins}</p>
-        <p className="text-sm">Attempts: {data.attempts}</p>
-        <p className="text-sm text-primary">Win Rate: {winRate}%</p>
+      <div className="border-2 border-primary bg-card p-3 max-w-xs">
+        <p className="font-mono text-sm text-primary">{data.name}</p>
+        {data.description && <p className="text-sm text-muted-foreground mb-1 italic">{data.description}</p>}
+        <p className="text-base">Wins: {data.wins}</p>
+        <p className="text-base">Attempts: {data.attempts}</p>
+        <p className="text-base text-primary">Win Rate: {winRate}%</p>
       </div>
     )
   }
@@ -230,10 +232,28 @@ export interface PlayerStatsChartProps {
 }
 
 export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godStats = [] }: PlayerStatsChartProps) {
-  const [sortMethod, setSortMethod] = useState<SortMethod>("default")
-  const [showMode, setShowMode] = useState<ShowMode>("wins")
-  const [chartType, setChartType] = useState<ChartType>("species")
+  const { settings, setSettings } = useSettings()
+  const [sortMethod, setSortMethod] = useState<SortMethod>(settings.performanceChart.sortMethod as SortMethod)
+  const [showMode, setShowMode] = useState<ShowMode>(settings.performanceChart.showMode as ShowMode)
+  const [chartType, setChartType] = useState<ChartType>(settings.performanceChart.chartType as ChartType)
   const { themeStyle } = useTheme()
+
+  // Keep local state in sync if settings change from elsewhere
+  useEffect(() => {
+    setSortMethod(settings.performanceChart.sortMethod as SortMethod)
+    setShowMode(settings.performanceChart.showMode as ShowMode)
+    setChartType(settings.performanceChart.chartType as ChartType)
+  }, [settings.performanceChart.sortMethod, settings.performanceChart.showMode, settings.performanceChart.chartType])
+
+  const updatePerformanceSettings = (partial: Partial<{ sortMethod: SortMethod; showMode: ShowMode; chartType: ChartType }>) => {
+    setSettings((prev) => ({
+      ...prev,
+      performanceChart: {
+        ...prev.performanceChart,
+        ...partial,
+      },
+    }))
+  }
 
   // Build chart data: merge full canonical lists with user stats so zero-data entries show
   const allSpeciesData = useMemo(() => {
@@ -354,7 +374,13 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
         <CardTitle className="font-mono text-sm text-primary flex items-center gap-2">
-          <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
+          <Select
+            value={chartType}
+            onValueChange={(value: ChartType) => {
+              setChartType(value)
+              updatePerformanceSettings({ chartType: value })
+            }}
+          >
             <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 hover:text-yellow-400">
               <SelectValue />
             </SelectTrigger>
@@ -377,19 +403,28 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
             <div className="flex gap-2">
               <FilterToggleButton
                 selected={sortMethod === "wins"}
-                onClick={() => setSortMethod("wins")}
+                onClick={() => {
+                  setSortMethod("wins")
+                  updatePerformanceSettings({ sortMethod: "wins" })
+                }}
               >
                 Wins
               </FilterToggleButton>
               <FilterToggleButton
                 selected={sortMethod === "attempts"}
-                onClick={() => setSortMethod("attempts")}
+                onClick={() => {
+                  setSortMethod("attempts")
+                  updatePerformanceSettings({ sortMethod: "attempts" })
+                }}
               >
                 Attempts
               </FilterToggleButton>
               <FilterToggleButton
                 selected={sortMethod === "default"}
-                onClick={() => setSortMethod("default")}
+                onClick={() => {
+                  setSortMethod("default")
+                  updatePerformanceSettings({ sortMethod: "default" })
+                }}
               >
                 Default
               </FilterToggleButton>
@@ -400,19 +435,28 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
             <div className="flex gap-2">
               <FilterToggleButton
                 selected={showMode === "wins"}
-                onClick={() => setShowMode("wins")}
+                onClick={() => {
+                  setShowMode("wins")
+                  updatePerformanceSettings({ showMode: "wins" })
+                }}
               >
                 Wins
               </FilterToggleButton>
               <FilterToggleButton
                 selected={showMode === "attempts"}
-                onClick={() => setShowMode("attempts")}
+                onClick={() => {
+                  setShowMode("attempts")
+                  updatePerformanceSettings({ showMode: "attempts" })
+                }}
               >
                 Attempts
               </FilterToggleButton>
               <FilterToggleButton
                 selected={showMode === "both"}
-                onClick={() => setShowMode("both")}
+                onClick={() => {
+                  setShowMode("both")
+                  updatePerformanceSettings({ showMode: "both" })
+                }}
               >
                 Both
               </FilterToggleButton>
@@ -465,9 +509,17 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
                   )
                 } : undefined}
               />
-              <Tooltip content={<CurrentTooltip />} />
+              <Tooltip
+                content={<CurrentTooltip />}
+                cursor={{ fill: "rgba(148, 163, 184, 0.06)", stroke: "transparent" }}
+              />
               {(showMode === "both" || showMode === "attempts") && (
-                <Bar dataKey="attempts" stackId="a" radius={0}>
+                <Bar
+                  dataKey="attempts"
+                  stackId="a"
+                  radius={0}
+                  activeBar={{ fillOpacity: 0.4 }}
+                >
                   {currentChartData.map((entry, index) => {
                     const origIndex = currentAllData.findIndex((d: { name: string }) => d.name === entry.name)
                     return (
@@ -477,7 +529,11 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
                 </Bar>
               )}
               {(showMode === "both" || showMode === "wins") && (
-                <Bar dataKey="wins" radius={0}>
+                <Bar
+                  dataKey="wins"
+                  radius={0}
+                  activeBar={{ opacity: 0.8 }}
+                >
                   {currentChartData.map((_, index) => (
                     <Cell key={`wins-${index}`} fill={`url(#stripe-${index})`} />
                   ))}
