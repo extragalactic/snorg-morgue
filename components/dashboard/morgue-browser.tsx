@@ -246,7 +246,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
   return (
     <div className={fillHeight ? "flex min-h-0 flex-1 flex-col gap-4" : "space-y-4"}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
           {!hideBackButton && (
             <Button
               variant="ghost"
@@ -261,7 +261,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
           <div>
             <h2 className="font-mono text-lg text-primary">{game.character}</h2>
             <p className="text-sm text-muted-foreground">
-              {game.species} {game.background} — {game.date}
+              {game.date}
             </p>
           </div>
         </div>
@@ -309,11 +309,20 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
       <Card className={fillHeight ? "flex min-h-0 flex-1 flex-col overflow-hidden border-2 border-primary/30 rounded-none" : "border-2 border-primary/30 rounded-none"}>
         <CardHeader className="flex-shrink-0 border-b-2 border-primary/20 py-3">
           <div className="flex items-center justify-between">
-            <p className="font-mono text-sm text-primary">
-              Morgue file for your {[game.species, game.background].filter(Boolean).join(" ") || "character"}
-            </p>
+            <div>
+              <p className="font-mono text-lg sm:text-xl text-primary">
+                {(() => {
+                  const parts = [game.species, game.background].filter(Boolean)
+                  const base = parts.join(" ") || "Character"
+                  return game.god ? `${base} of ${game.god}` : base
+                })()}
+              </p>
+              <p className="font-mono text-xs sm:text-sm text-muted-foreground tracking-wide">
+                {`LEVEL ${game.xl}`}
+              </p>
+            </div>
             {filename && (
-              <p className="text-xs text-muted-foreground truncate max-w-[200px]">{filename}</p>
+              <p className="text-xs text-muted-foreground">{filename}</p>
             )}
           </div>
           {sectionTitles.length > 0 && (
@@ -346,7 +355,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
               <div className="p-8 text-center text-destructive text-sm">{error}</div>
             )}
             {rawText && !loading && segments.length > 0 && (
-              <div className="font-mono text-sm leading-relaxed">
+              <div className="font-mono text-base leading-relaxed">
                 {segments.map((seg) => (
                   <div key={seg.id} id={seg.id} className="p-4">
                     {seg.text.split(/\n/).map((line, i) => (
@@ -362,7 +371,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
               </div>
             )}
             {rawText && !loading && segments.length === 0 && (
-              <pre className="p-4 font-mono text-sm leading-relaxed whitespace-pre-wrap break-words">
+              <pre className="p-4 font-mono text-base leading-relaxed whitespace-pre-wrap break-words">
                 {rawText}
               </pre>
             )}

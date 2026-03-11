@@ -2,10 +2,11 @@ Snorg-Morge ToDo
 
 - enable Google auth
 - Ignis needs special attention re: completion stats with gods
-
+- Fedhas isn't appearing on gods performance
 - add a button to download all morgues (in a zip)
-
-- handle mobile (likely disable it)
+- the site should save your filter selection and restore it next session
+- must mention tested version numbers (currently only 0.33 and 0.34)
+- need a success state for completed awards
 
 ...hey, buy more vape bags!
 

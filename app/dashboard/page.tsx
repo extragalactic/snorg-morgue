@@ -207,18 +207,6 @@ export default function DashboardPage({
                 {activeTab === "morgues" && "MORGUE FILES"}
                 {activeTab === "extras" && "RESOURCES"}
               </h1>
-              {activeTab === "analysis" && globalStats && globalStats.userCount > 0 && (
-                <span className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
-                  <Switch
-                    checked={showGlobalAverages}
-                    onCheckedChange={setShowGlobalAverages}
-                    className="data-[state=checked]:bg-[var(--average-color)] data-[state=checked]:border-[var(--average-color)]"
-                  />
-                  <span>
-                    Average values ({globalStats.userCount} total players)
-                  </span>
-                </span>
-              )}
             </div>
             <p className="text-sm text-muted-foreground">
               {activeTab === "analysis" && "Track and analyze your DCSS progress"}
@@ -227,27 +215,39 @@ export default function DashboardPage({
               {activeTab === "extras" && "Helpful links and community resources"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <UploadDialog onUploadComplete={loadData} />
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              {activeTab === "analysis" && globalStats && globalStats.userCount > 0 && (
+                <span className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
+                  <span>Show averages</span>
+                  <Switch
+                    checked={showGlobalAverages}
+                    onCheckedChange={setShowGlobalAverages}
+                    className="mr-[15px] data-[state=checked]:bg-[var(--average-color)] data-[state=checked]:border-[var(--average-color)]"
+                  />
+                </span>
+              )}
+              <UploadDialog onUploadComplete={loadData} />
+            </div>
             {activeTab === "morgues" && (
-              <>
-              <Button
-                variant="destructive"
-                className="rounded-none border-2 bg-red-600 text-white hover:bg-red-700 font-mono text-xs"
-                onClick={() => setRefreshConfirmOpen(true)}
-                disabled={isRefreshing || isNuking}
-              >
-                {isRefreshing ? "Refreshing…" : "Refresh Morgues"}
-              </Button>
-              <Button
-                variant="destructive"
-                className="rounded-none border-2 font-mono text-xs"
-                onClick={() => setNukeConfirmOpen(true)}
-                disabled={isNuking || isRefreshing}
-              >
-                {isNuking ? "Nuking…" : "Nuke Morgue"}
-              </Button>
-              </>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="destructive"
+                  className="rounded-none border-2 bg-red-600 text-white hover:bg-red-700 font-mono text-xs"
+                  onClick={() => setRefreshConfirmOpen(true)}
+                  disabled={isRefreshing || isNuking}
+                >
+                  {isRefreshing ? "Refreshing…" : "Refresh Morgues"}
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="rounded-none border-2 font-mono text-xs"
+                  onClick={() => setNukeConfirmOpen(true)}
+                  disabled={isNuking || isRefreshing}
+                >
+                  {isNuking ? "Nuking…" : "Nuke Morgue"}
+                </Button>
+              </div>
             )}
           </div>
         </div>

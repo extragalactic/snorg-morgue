@@ -106,7 +106,7 @@ export function LevelAtDeathChart({
           {morgues.length > 0 && (() => {
             const deaths = morgues.filter((m) => m.result === "death").length
             return (
-              <span className="font-mono text-xs font-normal text-muted-foreground">
+              <span className="font-mono text-[13px] sm:text-sm font-normal text-muted-foreground">
                 Total YASDs: {deaths}
               </span>
             )
