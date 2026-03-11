@@ -19,6 +19,7 @@ import {
   GOD_NAMES_FOR_CHART,
 } from "@/lib/dcss-constants"
 import type { StatEntry } from "@/lib/morgue-db"
+import type { StatCategoryAverage } from "@/lib/morgue-api"
 import {
   BarChart,
   Bar,
@@ -140,7 +141,7 @@ interface SpeciesTooltipProps {
   payload?: Array<{ 
     value: number
     dataKey: string
-    payload: { name: string; wins: number; attempts: number; tier: string } 
+    payload: { name: string; wins: number; attempts: number; tier: string; avgWins?: number; avgAttempts?: number } 
   }>
 }
 
@@ -148,6 +149,10 @@ function SpeciesTooltip({ active, payload }: SpeciesTooltipProps) {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     const winRate = data.attempts > 0 ? ((data.wins / data.attempts) * 100).toFixed(1) : "0"
+    const hasAvg = data.avgWins !== undefined && data.avgAttempts !== undefined
+    const avgWinRate = hasAvg && (data.avgAttempts ?? 0) > 0
+      ? (((data.avgWins ?? 0) / (data.avgAttempts ?? 0)) * 100).toFixed(1)
+      : null
     return (
       <div className="border-2 border-primary bg-card p-2">
         <p className="font-mono text-xs text-primary">{speciesDisplayLabel(data.name)}</p>
@@ -155,6 +160,12 @@ function SpeciesTooltip({ active, payload }: SpeciesTooltipProps) {
         <p className="text-sm">Wins: {data.wins}</p>
         <p className="text-sm">Attempts: {data.attempts}</p>
         <p className="text-sm text-primary">Win Rate: {winRate}%</p>
+        {hasAvg && (
+          <>
+            <p className="text-xs text-muted-foreground mt-1 pt-1 border-t border-border">Avg wins: {data.avgWins} · Avg attempts: {data.avgAttempts}</p>
+            {avgWinRate != null && <p className="text-xs text-muted-foreground">Avg win rate: {avgWinRate}%</p>}
+          </>
+        )}
       </div>
     )
   }
@@ -166,7 +177,7 @@ interface BackgroundTooltipProps {
   payload?: Array<{ 
     value: number
     dataKey: string
-    payload: { name: string; wins: number; attempts: number; category: string } 
+    payload: { name: string; wins: number; attempts: number; category: string; avgWins?: number; avgAttempts?: number } 
   }>
 }
 
@@ -174,6 +185,10 @@ function BackgroundTooltip({ active, payload }: BackgroundTooltipProps) {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     const winRate = data.attempts > 0 ? ((data.wins / data.attempts) * 100).toFixed(1) : "0"
+    const hasAvg = data.avgWins !== undefined && data.avgAttempts !== undefined
+    const avgWinRate = hasAvg && (data.avgAttempts ?? 0) > 0
+      ? (((data.avgWins ?? 0) / (data.avgAttempts ?? 0)) * 100).toFixed(1)
+      : null
     return (
       <div className="border-2 border-primary bg-card p-2">
         <p className="font-mono text-xs text-primary">{data.name}</p>
@@ -181,6 +196,12 @@ function BackgroundTooltip({ active, payload }: BackgroundTooltipProps) {
         <p className="text-sm">Wins: {data.wins}</p>
         <p className="text-sm">Attempts: {data.attempts}</p>
         <p className="text-sm text-primary">Win Rate: {winRate}%</p>
+        {hasAvg && (
+          <>
+            <p className="text-xs text-muted-foreground mt-1 pt-1 border-t border-border">Avg wins: {data.avgWins} · Avg attempts: {data.avgAttempts}</p>
+            {avgWinRate != null && <p className="text-xs text-muted-foreground">Avg win rate: {avgWinRate}%</p>}
+          </>
+        )}
       </div>
     )
   }
@@ -192,7 +213,7 @@ interface GodsTooltipProps {
   payload?: Array<{ 
     value: number
     dataKey: string
-    payload: { name: string; wins: number; attempts: number; description: string } 
+    payload: { name: string; wins: number; attempts: number; description: string; avgWins?: number; avgAttempts?: number } 
   }>
 }
 
@@ -200,6 +221,10 @@ function GodsTooltip({ active, payload }: GodsTooltipProps) {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     const winRate = data.attempts > 0 ? ((data.wins / data.attempts) * 100).toFixed(1) : "0"
+    const hasAvg = data.avgWins !== undefined && data.avgAttempts !== undefined
+    const avgWinRate = hasAvg && (data.avgAttempts ?? 0) > 0
+      ? (((data.avgWins ?? 0) / (data.avgAttempts ?? 0)) * 100).toFixed(1)
+      : null
     return (
       <div className="border-2 border-primary bg-card p-2 max-w-xs">
         <p className="font-mono text-xs text-primary">{data.name}</p>
@@ -207,6 +232,12 @@ function GodsTooltip({ active, payload }: GodsTooltipProps) {
         <p className="text-sm">Wins: {data.wins}</p>
         <p className="text-sm">Attempts: {data.attempts}</p>
         <p className="text-sm text-primary">Win Rate: {winRate}%</p>
+        {hasAvg && (
+          <>
+            <p className="text-xs text-muted-foreground mt-1 pt-1 border-t border-border">Avg wins: {data.avgWins} · Avg attempts: {data.avgAttempts}</p>
+            {avgWinRate != null && <p className="text-xs text-muted-foreground">Avg win rate: {avgWinRate}%</p>}
+          </>
+        )}
       </div>
     )
   }
@@ -223,13 +254,43 @@ function StripedPattern({ id, color }: { id: string; color: string }) {
   )
 }
 
+/** Custom bar shape that forces fill onto the rect so bars are always visible (works around Recharts default fill not showing). */
+function BarRectShape(props: Record<string, unknown>) {
+  const { fill, fillOpacity, x, y, width, height } = props as {
+    fill?: string
+    fillOpacity?: number
+    x?: number
+    y?: number
+    width?: number
+    height?: number
+  }
+  const fx = Number(x) || 0
+  const fy = Number(y) || 0
+  const fw = Math.max(0, Number(width) || 0)
+  const fh = Math.max(0, Number(height) || 0)
+  if (fw === 0 || fh === 0) return null
+  const barFill = fill && String(fill).trim() ? String(fill) : "#d4a574"
+  const opacity = fillOpacity !== undefined && fillOpacity !== null ? Number(fillOpacity) : 1
+  return <rect x={fx} y={fy} width={fw} height={fh} fill={barFill} fillOpacity={opacity} />
+}
+
 export interface PlayerStatsChartProps {
   speciesStats?: StatEntry[]
   backgroundStats?: StatEntry[]
   godStats?: StatEntry[]
+  speciesAverages?: StatCategoryAverage[]
+  backgroundAverages?: StatCategoryAverage[]
+  godAverages?: StatCategoryAverage[]
 }
 
-export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godStats = [] }: PlayerStatsChartProps) {
+export function PlayerStatsChart({
+  speciesStats = [],
+  backgroundStats = [],
+  godStats = [],
+  speciesAverages = [],
+  backgroundAverages = [],
+  godAverages = [],
+}: PlayerStatsChartProps) {
   const [sortMethod, setSortMethod] = useState<SortMethod>("default")
   const [showMode, setShowMode] = useState<ShowMode>("wins")
   const [chartType, setChartType] = useState<ChartType>("species")
@@ -280,14 +341,14 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
     allBackgroundData.map((entry, index) => 
       themeStyle === "ascii" ? asciiGreenShades[index % asciiGreenShades.length] : entry.color
     ),
-    [themeStyle]
+    [themeStyle, allBackgroundData]
   )
 
   const godsColors = useMemo(() => 
     allGodsData.map((entry, index) => 
       themeStyle === "ascii" ? asciiGreenShades[index % asciiGreenShades.length] : entry.color
     ),
-    [themeStyle]
+    [themeStyle, allGodsData]
   )
 
   const sortedSpeciesData = useMemo(() => {
@@ -314,14 +375,14 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
     return [...allBackgroundData].sort((a, b) => 
       sortMethod === "wins" ? b.wins - a.wins : b.attempts - a.attempts
     )
-  }, [sortMethod])
+  }, [sortMethod, allBackgroundData])
 
   const sortedGodsData = useMemo(() => {
     if (sortMethod === "default") return allGodsData
     return [...allGodsData].sort((a, b) => 
       sortMethod === "wins" ? b.wins - a.wins : b.attempts - a.attempts
     )
-  }, [sortMethod])
+  }, [sortMethod, allGodsData])
 
   // Get current chart data, colors, and tooltip based on selected type
   const currentChartData = chartType === "species" ? sortedSpeciesData 
@@ -340,15 +401,80 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
     : chartType === "background" ? BackgroundTooltip 
     : GodsTooltip
 
+  const currentAverages = chartType === "species" ? speciesAverages 
+    : chartType === "background" ? backgroundAverages 
+    : godAverages
+  const currentAveragesMap = useMemo(
+    () => new Map(currentAverages.map((a) => [a.name, a])),
+    [currentAverages]
+  )
+  const hasAverages = currentAverages.length > 0
+
+  type ChartRow = (typeof currentChartData)[number] & {
+    barSegLeft?: number
+    barSegRight?: number
+    leftIsAvg?: boolean
+    avgWins?: number
+    avgAttempts?: number
+  }
+  const chartDataForBars = useMemo((): ChartRow[] => {
+    if (!hasAverages) {
+      return currentChartData.map((row) => ({
+        ...row,
+        wins: Number(row.wins) || 0,
+        attempts: Number(row.attempts) || 0,
+      })) as ChartRow[]
+    }
+    const metric = showMode === "wins" ? "wins" : "attempts"
+    return currentChartData.map((row) => {
+      const avg = currentAveragesMap.get(row.name)
+      const userVal = Number(row[metric]) || 0
+      const avgVal = metric === "wins" ? (Number(avg?.avgWins) || 0) : (Number(avg?.avgAttempts) || 0)
+      const leftLen = Math.min(userVal, avgVal)
+      const rightLen = Math.max(userVal, avgVal) - leftLen
+      const leftIsAvg = avgVal <= userVal
+      return {
+        ...row,
+        wins: Number(row.wins) || 0,
+        attempts: Number(row.attempts) || 0,
+        barSegLeft: leftLen,
+        barSegRight: rightLen,
+        leftIsAvg,
+        avgWins: avg?.avgWins ?? 0,
+        avgAttempts: avg?.avgAttempts ?? 0,
+      }
+    })
+  }, [hasAverages, currentChartData, showMode, currentAveragesMap])
+
   const chartHeight = currentChartData.length > 0
     ? Math.min(chartType === "gods" ? 850 : 900, Math.max(200, currentChartData.length * 36))
     : 400
-  const xDomainMax = currentChartData.length
-    ? showMode === "wins"
-      ? Math.max(3, ...currentChartData.map((d) => d.wins))
-      : Math.max(3, ...currentChartData.map((d) => d.attempts))
+  const xDomainMax = chartDataForBars.length
+    ? hasAverages
+      ? Math.max(3, ...chartDataForBars.map((d) => (Number(d.barSegLeft) || 0) + (Number(d.barSegRight) || 0)))
+      : showMode === "wins"
+        ? Math.max(3, ...chartDataForBars.map((d) => Number(d.wins) || 0))
+        : Math.max(3, ...chartDataForBars.map((d) => Number(d.attempts) || 0))
     : 3
+  const xDomain: [number, number] = [0, xDomainMax]
   const hasData = currentChartData.length > 0
+
+  const maxDataValue = hasData
+    ? showMode === "wins"
+      ? Math.max(...chartDataForBars.map((d) => Number(d.wins) || 0))
+      : Math.max(...chartDataForBars.map((d) => Number(d.attempts) || 0))
+    : 0
+  const hasAnyValues = maxDataValue > 0
+
+  // Minimal data to verify Recharts renders bars; remove or set to false once confirmed
+  const DEBUG_BAR_CHART = false
+  const displayData: Array<{ name: string; wins: number; attempts: number }> = DEBUG_BAR_CHART
+    ? [
+        { name: "Test A", wins: 3, attempts: 10 },
+        { name: "Test B", wins: 1, attempts: 5 },
+        { name: "Test C", wins: 0, attempts: 2 },
+      ]
+    : chartDataForBars.map((d) => ({ name: d.name, wins: Number(d.wins) || 0, attempts: Number(d.attempts) || 0 }))
 
   return (
     <Card className="border-2 border-primary/30 rounded-none">
@@ -410,81 +536,113 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
               >
                 Attempts
               </FilterToggleButton>
-              <FilterToggleButton
-                selected={showMode === "both"}
-                onClick={() => setShowMode("both")}
-              >
-                Both
-              </FilterToggleButton>
             </div>
           </div>
         </div>
       </CardHeader>
       <CardContent className="pt-4">
         {hasData ? (
-          <ResponsiveContainer width="100%" height={chartHeight}>
-            <BarChart data={currentChartData} layout="vertical" barGap={0} barCategoryGap="20%">
+          hasAnyValues ? (
+          <div style={{ width: "100%", minWidth: 400, minHeight: chartHeight }}>
+          <BarChart
+              data={displayData}
+              width={600}
+              height={DEBUG_BAR_CHART ? 300 : chartHeight}
+              barGap={4}
+              barCategoryGap="10%"
+              margin={{ top: 5, right: 30, left: 5, bottom: DEBUG_BAR_CHART ? 40 : 80 }}
+            >
               <defs>
-                {currentChartData.map((entry, index) => {
+                {chartDataForBars.map((entry, index) => {
                   const origIndex = currentAllData.findIndex((d: { name: string }) => d.name === entry.name)
+                  const color = (origIndex >= 0 ? currentColors[origIndex] : currentColors[0]) ?? "#888"
                   return (
-                    <StripedPattern key={`pattern-${index}`} id={`stripe-${index}`} color={currentColors[origIndex]} />
+                    <StripedPattern key={`pattern-${index}`} id={`stripe-${index}`} color={color} />
                   )
                 })}
               </defs>
-              <XAxis 
-                type="number" 
-                stroke="var(--muted-foreground)" 
-                fontSize={14}
-                domain={[3, xDomainMax]}
-                allowDecimals={false}
-              />
-              <YAxis
+              <XAxis
                 type="category"
                 dataKey="name"
                 stroke="var(--muted-foreground)"
-                fontSize={14}
-                width={160}
-                tickLine={false}
+                fontSize={12}
+                angle={DEBUG_BAR_CHART ? 0 : -45}
+                textAnchor={DEBUG_BAR_CHART ? "middle" : "end"}
+                height={DEBUG_BAR_CHART ? 40 : 80}
                 interval={0}
-                tick={chartType === "species" ? (props: { x: number; y: number; payload?: { value?: string } }) => {
-                  const value = props.payload?.value ?? ""
-                  const isGrey = DRACONIAN_COLOUR_NAMES.includes(value)
-                  return (
-                    <text
-                      x={props.x}
-                      y={props.y}
-                      dy={4}
-                      textAnchor="end"
-                      fill={isGrey ? DRACONIAN_LABEL_GREY : "var(--muted-foreground)"}
-                      fontSize={14}
-                      className="font-mono"
-                    >
-                      {speciesDisplayLabel(value)}
-                    </text>
-                  )
-                } : undefined}
+              />
+              <YAxis
+                type="number"
+                stroke="var(--muted-foreground)"
+                fontSize={14}
+                domain={DEBUG_BAR_CHART ? [0, 10] : xDomain}
+                allowDecimals={false}
               />
               <Tooltip content={<CurrentTooltip />} />
-              {(showMode === "both" || showMode === "attempts") && (
-                <Bar dataKey="attempts" stackId="a" radius={0}>
-                  {currentChartData.map((entry, index) => {
-                    const origIndex = currentAllData.findIndex((d: { name: string }) => d.name === entry.name)
-                    return (
-                      <Cell key={`attempts-${index}`} fill={currentColors[origIndex]} fillOpacity={0.5} />
-                    )
-                  })}
-                </Bar>
-              )}
-              {(showMode === "both" || showMode === "wins") && (
-                <Bar dataKey="wins" radius={0}>
-                  {currentChartData.map((_, index) => (
-                    <Cell key={`wins-${index}`} fill={`url(#stripe-${index})`} />
-                  ))}
-                </Bar>
+              {hasAverages && !DEBUG_BAR_CHART ? (
+                <>
+                  <Bar dataKey="barSegLeft" stackId="dual" radius={0} shape={BarRectShape}>
+                    {chartDataForBars.map((entry, index) => {
+                      const origIndex = currentAllData.findIndex((d: { name: string }) => d.name === entry.name)
+                      if (entry.leftIsAvg) {
+                        return <Cell key={`left-${index}`} fill="var(--average-color)" />
+                      }
+                      return (
+                        <Cell
+                          key={`left-${index}`}
+                          fill={showMode === "wins" ? `url(#stripe-${index})` : currentColors[origIndex]}
+                          fillOpacity={showMode === "attempts" ? 0.5 : 1}
+                        />
+                      )
+                    })}
+                  </Bar>
+                  <Bar dataKey="barSegRight" stackId="dual" radius={0} shape={BarRectShape}>
+                    {chartDataForBars.map((entry, index) => {
+                      const origIndex = currentAllData.findIndex((d: { name: string }) => d.name === entry.name)
+                      if (!entry.leftIsAvg) {
+                        return <Cell key={`right-${index}`} fill="var(--average-color)" />
+                      }
+                      return (
+                        <Cell
+                          key={`right-${index}`}
+                          fill={showMode === "wins" ? `url(#stripe-${index})` : currentColors[origIndex]}
+                          fillOpacity={showMode === "attempts" ? 0.5 : 1}
+                        />
+                      )
+                    })}
+                  </Bar>
+                </>
+              ) : (
+                <>
+                  {showMode === "attempts" && (
+                    <Bar dataKey="attempts" radius={0} fill="#888888" isAnimationActive={false} shape={BarRectShape}>
+                      {displayData.map((row, index) => {
+                        const origIndex = currentAllData.findIndex((d: { name: string }) => d.name === row.name)
+                        const color = (origIndex >= 0 ? currentColors[origIndex] : currentColors[0]) ?? "#888"
+                        return <Cell key={`attempts-${index}`} fill={color} fillOpacity={0.7} />
+                      })}
+                    </Bar>
+                  )}
+                  {showMode === "wins" && (
+                    <Bar dataKey="wins" radius={0} fill="#d4a574" isAnimationActive={false} shape={BarRectShape}>
+                      {displayData.map((row, index) => {
+                        const origIndex = currentAllData.findIndex((d: { name: string }) => d.name === row.name)
+                        const color = (origIndex >= 0 ? currentColors[origIndex] : currentColors[0]) ?? "#d4a574"
+                        return <Cell key={`wins-${index}`} fill={color ? `url(#stripe-${index})` : "#d4a574"} />
+                      })}
+                    </Bar>
+                  )}
+                </>
               )}
             </BarChart>
-          </ResponsiveContainer>
+          </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center font-mono text-sm text-muted-foreground py-12 gap-2" style={{ height: chartHeight }}>
+              <p>No wins or attempts data for this view.</p>
+              <p className="text-xs">Species: {speciesStats?.length ?? 0} · Backgrounds: {backgroundStats?.length ?? 0} · Gods: {godStats?.length ?? 0}</p>
+              <p className="text-xs">If you have morgues uploaded, try re-uploading one or refreshing the page to recalculate stats.</p>
+            </div>
+          )
         ) : (
           <div className="flex items-center justify-center font-mono text-sm text-muted-foreground" style={{ height: chartHeight }}>
             {chartType === "species" && "No species data yet"}
@@ -493,7 +651,7 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
           </div>
         )}
         <div className="mt-4 flex flex-wrap items-center justify-center gap-4">
-          {(showMode === "both" || showMode === "wins") && (
+          {showMode === "wins" && (
             <div className="flex items-center gap-2">
               <div 
                 className="h-3 w-6" 
@@ -507,13 +665,19 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
               <span className="text-sm text-muted-foreground">Wins</span>
             </div>
           )}
-          {(showMode === "both" || showMode === "attempts") && (
+          {showMode === "attempts" && (
             <div className="flex items-center gap-2">
               <div 
                 className="h-3 w-6" 
                 style={{ backgroundColor: themeStyle === "ascii" ? "rgba(34,197,94,0.5)" : "rgba(212,165,116,0.5)" }} 
               />
               <span className="text-sm text-muted-foreground">Attempts</span>
+            </div>
+          )}
+          {hasAverages && (
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-6" style={{ backgroundColor: "var(--average-color)" }} />
+              <span className="text-sm text-muted-foreground">Average</span>
             </div>
           )}
         </div>

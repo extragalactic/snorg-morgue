@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 
+/** Set to false to allow mobile; gate logic remains in place but is bypassed. */
+const MOBILE_GATE_ENABLED = false
+
 interface MobileGateProps {
   children: React.ReactNode
 }
@@ -28,7 +31,7 @@ export function MobileGate({ children }: MobileGateProps) {
     return null
   }
 
-  if (!isMobile) {
+  if (!MOBILE_GATE_ENABLED || !isMobile) {
     return <>{children}</>
   }
 

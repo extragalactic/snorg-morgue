@@ -23,7 +23,10 @@
 --   "level_death": {
 --     "averages": numeric[27],
 --     "user_count": int
---   }
+--   },
+--   "species_averages": [ { "name", "avg_wins", "avg_attempts" }, ... ],
+--   "background_averages": [ ... ],
+--   "god_averages": [ ... ]
 --   -- Future extensions can add keys here without breaking callers.
 -- }
 --
@@ -97,6 +100,51 @@ level_array as (
 level_user_count as (
   select count(distinct user_id) as user_count
   from per_user_level
+),
+-- Per-species average wins/attempts per user (for Species/Background/God chart)
+per_user_species as (
+  select
+    user_id,
+    species as name,
+    count(*) filter (where is_win)::numeric as wins,
+    count(*)::numeric as attempts
+  from base
+  where species is not null and trim(species) != ''
+  group by user_id, species
+),
+species_avgs as (
+  select name, avg(wins) as avg_wins, avg(attempts) as avg_attempts
+  from per_user_species
+  group by name
+),
+per_user_background as (
+  select
+    user_id,
+    background as name,
+    count(*) filter (where is_win)::numeric as wins,
+    count(*)::numeric as attempts
+  from base
+  where background is not null and trim(background) != ''
+  group by user_id, background
+),
+background_avgs as (
+  select name, avg(wins) as avg_wins, avg(attempts) as avg_attempts
+  from per_user_background
+  group by name
+),
+per_user_god as (
+  select
+    user_id,
+    coalesce(nullif(trim(god), ''), '(no god)') as name,
+    count(*) filter (where is_win)::numeric as wins,
+    count(*)::numeric as attempts
+  from base
+  group by user_id, coalesce(nullif(trim(god), ''), '(no god)')
+),
+god_avgs as (
+  select name, avg(wins) as avg_wins, avg(attempts) as avg_attempts
+  from per_user_god
+  group by name
 )
 select jsonb_build_object(
   'user_count', (select user_count from user_stats_agg),
@@ -122,7 +170,10 @@ select jsonb_build_object(
   'level_death', jsonb_build_object(
     'averages', coalesce((select averages from level_array), array[]::numeric[]),
     'user_count', coalesce((select user_count from level_user_count), 0)
-  )
+  ),
+  'species_averages', coalesce((select jsonb_agg(jsonb_build_object('name', name, 'avg_wins', avg_wins, 'avg_attempts', avg_attempts)) from species_avgs), '[]'::jsonb),
+  'background_averages', coalesce((select jsonb_agg(jsonb_build_object('name', name, 'avg_wins', avg_wins, 'avg_attempts', avg_attempts)) from background_avgs), '[]'::jsonb),
+  'god_averages', coalesce((select jsonb_agg(jsonb_build_object('name', name, 'avg_wins', avg_wins, 'avg_attempts', avg_attempts)) from god_avgs), '[]'::jsonb)
 );
 $$;
 

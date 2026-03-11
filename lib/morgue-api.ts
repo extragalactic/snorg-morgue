@@ -39,6 +39,27 @@ export interface GameRecord {
   reachedLair5?: boolean
 }
 
+/**
+ * Build StatEntry[] from a list of game records (e.g. when user_stats arrays are empty).
+ * Use for species, background, or god by passing the appropriate key.
+ */
+export function buildStatEntriesFromMorgues(
+  morgues: GameRecord[],
+  key: "species" | "background" | "god"
+): StatEntry[] {
+  const map = new Map<string, { wins: number; attempts: number }>()
+  for (const r of morgues) {
+    const name = key === "god" ? (r.god?.trim() || "(no god)") : (r[key]?.trim() || "(none)")
+    const entry = map.get(name) ?? { wins: 0, attempts: 0 }
+    entry.attempts++
+    if (r.result === "win") entry.wins++
+    map.set(name, entry)
+  }
+  return Array.from(map.entries())
+    .map(([name, { wins, attempts }]) => ({ name, wins, attempts }))
+    .sort((a, b) => b.attempts - a.attempts)
+}
+
 export interface UploadResult {
   success: number
   failed: { filename: string; error: string }[]
@@ -454,10 +475,19 @@ export interface GlobalLevelDeathStats {
   userCount: number
 }
 
+export interface StatCategoryAverage {
+  name: string
+  avgWins: number
+  avgAttempts: number
+}
+
 export interface GlobalAnalysisStats {
   userCount: number
   totals: GlobalAnalysisTotals
   levelDeath: GlobalLevelDeathStats
+  speciesAverages: StatCategoryAverage[]
+  backgroundAverages: StatCategoryAverage[]
+  godAverages: StatCategoryAverage[]
 }
 
 /**
@@ -489,6 +519,9 @@ export async function fetchGlobalAnalysisStats(
       averages?: number[]
       user_count?: number
     }
+    species_averages?: Array<{ name?: string; avg_wins?: number; avg_attempts?: number }>
+    background_averages?: Array<{ name?: string; avg_wins?: number; avg_attempts?: number }>
+    god_averages?: Array<{ name?: string; avg_wins?: number; avg_attempts?: number }>
   }
 
   const totals = payload.totals ?? {}
@@ -513,6 +546,21 @@ export async function fetchGlobalAnalysisStats(
       averages: level.averages ?? [],
       userCount: level.user_count ?? 0,
     },
+    speciesAverages: (payload.species_averages ?? []).map((e) => ({
+      name: e.name ?? "",
+      avgWins: Number(e.avg_wins) || 0,
+      avgAttempts: Number(e.avg_attempts) || 0,
+    })),
+    backgroundAverages: (payload.background_averages ?? []).map((e) => ({
+      name: e.name ?? "",
+      avgWins: Number(e.avg_wins) || 0,
+      avgAttempts: Number(e.avg_attempts) || 0,
+    })),
+    godAverages: (payload.god_averages ?? []).map((e) => ({
+      name: e.name ?? "",
+      avgWins: Number(e.avg_wins) || 0,
+      avgAttempts: Number(e.avg_attempts) || 0,
+    })),
   }
 }
 

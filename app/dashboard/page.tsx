@@ -38,6 +38,7 @@ import {
   formatFastestWin,
   deleteAllMorgues,
   refreshMorguesFromRaw,
+  buildStatEntriesFromMorgues,
   type GameRecord,
 } from "@/lib/morgue-api"
 import { GOD_SHORT_FORMS } from "@/lib/dcss-constants"
@@ -190,6 +191,11 @@ export default function DashboardPage({
   const totalGames = morgues.length
   const lair5Pct = totalGames > 0 ? Math.round((reachedLair5Count / totalGames) * 100) : 0
   const gamesReachedLair5Value = `${lair5Pct}%`
+
+  // Use user_stats arrays when present; otherwise derive from morgues so the Performance chart has data
+  const chartSpeciesStats = stats?.species_stats?.length ? stats.species_stats : buildStatEntriesFromMorgues(morgues, "species")
+  const chartBackgroundStats = stats?.background_stats?.length ? stats.background_stats : buildStatEntriesFromMorgues(morgues, "background")
+  const chartGodStats = stats?.god_stats?.length ? stats.god_stats : buildStatEntriesFromMorgues(morgues, "god")
 
   return (
     <div className="min-h-screen bg-background">
@@ -445,9 +451,12 @@ export default function DashboardPage({
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="space-y-4">
                     <PlayerStatsChart
-                      speciesStats={stats?.species_stats}
-                      backgroundStats={stats?.background_stats}
-                      godStats={stats?.god_stats}
+                      speciesStats={chartSpeciesStats}
+                      backgroundStats={chartBackgroundStats}
+                      godStats={chartGodStats}
+                      speciesAverages={undefined}
+                      backgroundAverages={undefined}
+                      godAverages={undefined}
                     >
                       {/* Performance Over Time chart temporarily hidden but kept for future use */}
                       {/* <PerformanceGraph morgues={morgues} /> */}

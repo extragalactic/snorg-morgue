@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "rpc:global-stats": "node scripts/call-global-stats.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
