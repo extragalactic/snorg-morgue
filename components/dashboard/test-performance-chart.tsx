@@ -1,5 +1,6 @@
  "use client"
 
+import { useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { StatEntry } from "@/lib/morgue-db"
 import type { StatCategoryAverage } from "@/lib/morgue-api"
@@ -9,6 +10,7 @@ import {
   speciesDisplayLabel,
   DRACONIAN_LABEL_GREY,
 } from "@/components/dashboard/player-stats-chart"
+import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import {
   Bar,
   BarChart,
@@ -20,23 +22,28 @@ import {
 } from "recharts"
 import { useTheme } from "@/contexts/theme-context"
 
-interface TestPerformanceChartProps {
-  speciesStats?: StatEntry[]
-  speciesAverages?: StatCategoryAverage[]
-}
+type ShowMode = "wins" | "attempts"
 
 type SpeciesDatum = {
   name: string
   userAttempts: number
   avgAttempts: number
-  /** First segment length (closest to origin): always the smaller of avg vs you. */
+  userWins: number
+  avgWins: number
+  /** Attempts: first (avg) and second (you) segment lengths. */
   firstSeg: number
-  /** Second segment length: the remainder so total bar = max(avg, you). */
   secondSeg: number
-  /** True when first segment is avg (grey), second is you (yellow). */
   isAvgFirst: boolean
-  /** True when avg was derived because no average data was provided. */
+  /** Wins: first (avg) and second (you) segment lengths. */
+  firstSegWins: number
+  secondSegWins: number
+  isAvgFirstWins: boolean
   avgIsEstimated?: boolean
+}
+
+interface TestPerformanceChartProps {
+  speciesStats?: StatEntry[]
+  speciesAverages?: StatCategoryAverage[]
 }
 
 function buildSpeciesTestData(
@@ -45,24 +52,40 @@ function buildSpeciesTestData(
 ): SpeciesDatum[] {
   const hasAverages = speciesAverages.length > 0
   return speciesList.map((s) => {
-    const avgEntry = speciesAverages.find((a) => a.name === s.name)
+    const avgEntry = speciesAverages.find((a) => a.name === s.name) as { avgAttempts?: number; avgWins?: number } | undefined
     const userAttempts = s.attempts
-    const avgAttempts = hasAverages && avgEntry?.avgAttempts != null
-      ? avgEntry.avgAttempts
-      : Math.max(1, Math.round(userAttempts * 0.5))
+    const avgAttempts = Math.floor(
+      hasAverages && avgEntry?.avgAttempts != null
+        ? Number(avgEntry.avgAttempts)
+        : Math.floor(userAttempts * 0.5)
+    )
+    const userWins = s.wins
+    const avgWins = Math.floor(
+      (avgEntry?.avgWins != null) ? Number(avgEntry.avgWins) : Math.floor(userWins * 0.5)
+    )
     const avgIsEstimated = !hasAverages || avgEntry == null
     const low = Math.min(avgAttempts, userAttempts)
     const high = Math.max(avgAttempts, userAttempts)
     const firstSeg = low
     const secondSeg = high - low
     const isAvgFirst = avgAttempts < userAttempts
+    const lowWins = Math.min(avgWins, userWins)
+    const highWins = Math.max(avgWins, userWins)
+    const firstSegWins = lowWins
+    const secondSegWins = highWins - lowWins
+    const isAvgFirstWins = avgWins < userWins
     return {
       name: s.name,
       userAttempts,
-      avgAttempts: avgEntry?.avgAttempts ?? avgAttempts,
+      avgAttempts,
+      userWins,
+      avgWins,
       firstSeg,
       secondSeg,
       isAvgFirst,
+      firstSegWins,
+      secondSegWins,
+      isAvgFirstWins,
       avgIsEstimated,
     }
   })
@@ -75,17 +98,25 @@ export function TestPerformanceChart({
   const speciesList = buildSpeciesListWithDraconian(speciesStats)
   const data = buildSpeciesTestData(speciesList, speciesAverages)
   const { themeStyle } = useTheme()
+  const [showMode, setShowMode] = useState<ShowMode>("attempts")
 
   const winsColor =
     themeStyle === "ascii" ? "oklch(0.8 0.2 145)" : "rgba(250, 204, 21, 0.9)"
   const attemptsColor =
     themeStyle === "ascii" ? "oklch(0.5 0.1 145)" : "rgba(148, 163, 184, 0.6)"
 
-  const chartHeight = data.length > 0
-    ? Math.min(900, Math.max(200, data.length * 36))
+  const displayData = useMemo(() => data.map((d) => ({
+    ...d,
+    firstSegDisplay: showMode === "wins" ? d.firstSegWins : d.firstSeg,
+    secondSegDisplay: showMode === "wins" ? d.secondSegWins : d.secondSeg,
+    isAvgFirstDisplay: showMode === "wins" ? d.isAvgFirstWins : d.isAvgFirst,
+  })), [data, showMode])
+
+  const chartHeight = displayData.length > 0
+    ? Math.min(900, Math.max(200, displayData.length * 36))
     : 400
 
-  if (data.length === 0) {
+  if (displayData.length === 0) {
     return null
   }
 
@@ -93,11 +124,30 @@ export function TestPerformanceChart({
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
         <CardTitle className="font-mono text-sm text-primary">TEST PERFORMANCE</CardTitle>
+        <div className="flex flex-wrap items-center gap-6 pt-3">
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-xs text-primary">SHOW:</span>
+            <div className="flex gap-2">
+              <FilterToggleButton
+                selected={showMode === "wins"}
+                onClick={() => setShowMode("wins")}
+              >
+                Wins
+              </FilterToggleButton>
+              <FilterToggleButton
+                selected={showMode === "attempts"}
+                onClick={() => setShowMode("attempts")}
+              >
+                Attempts
+              </FilterToggleButton>
+            </div>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="pt-4">
         <ResponsiveContainer width="100%" height={chartHeight}>
           <BarChart
-            data={data}
+            data={displayData}
             layout="vertical"
             barGap={0}
             barCategoryGap="20%"
@@ -138,12 +188,12 @@ export function TestPerformanceChart({
             <Tooltip
               cursor={{ fill: "rgba(148, 163, 184, 0.06)", stroke: "transparent" }}
               formatter={(value: number, key: string, payload) => {
-                const p = payload.payload as SpeciesDatum
-                if (key === "firstSeg") {
-                  return [p.firstSeg, p.isAvgFirst ? "Avg (all players)" : "You (attempts)"]
+                const p = payload.payload as SpeciesDatum & { firstSegDisplay: number; secondSegDisplay: number; isAvgFirstDisplay: boolean }
+                if (key === "firstSegDisplay") {
+                  return [p.firstSegDisplay, p.isAvgFirstDisplay ? "Avg (all players)" : showMode === "wins" ? "You (wins)" : "You (attempts)"]
                 }
-                if (key === "secondSeg") {
-                  return [p.secondSeg, p.isAvgFirst ? "You (attempts)" : "Avg (all players)"]
+                if (key === "secondSegDisplay") {
+                  return [p.secondSegDisplay, p.isAvgFirstDisplay ? (showMode === "wins" ? "You (wins)" : "You (attempts)") : "Avg (all players)"]
                 }
                 return [value, key]
               }}
@@ -155,28 +205,28 @@ export function TestPerformanceChart({
                   <div className="border-2 border-primary bg-card p-3">
                     <p className="font-mono text-sm text-primary">{speciesDisplayLabel(String(label))}</p>
                     <p className="text-base text-muted-foreground">
-                      You: {p.userAttempts} attempts
+                      You: {p.userAttempts} attempts, {p.userWins} wins
                     </p>
                     <p className="text-base text-muted-foreground">
-                      Avg: {p.avgAttempts} attempts{p.avgIsEstimated ? " (estimated)" : ""}
+                      Avg: {p.avgAttempts} attempts{p.avgIsEstimated ? " (est.)" : ""}, {p.avgWins} wins
                     </p>
                   </div>
                 )
               }}
             />
-            <Bar dataKey="firstSeg" stackId="attempts" radius={[0, 0, 0, 0]}>
-              {data.map((entry, index) => (
+            <Bar dataKey="firstSegDisplay" stackId="stack" radius={[0, 0, 0, 0]}>
+              {displayData.map((entry, index) => (
                 <Cell
                   key={`first-${index}`}
-                  fill={entry.isAvgFirst ? attemptsColor : winsColor}
+                  fill={(entry as SpeciesDatum & { isAvgFirstDisplay: boolean }).isAvgFirstDisplay ? attemptsColor : winsColor}
                 />
               ))}
             </Bar>
-            <Bar dataKey="secondSeg" stackId="attempts" radius={[0, 2, 2, 0]}>
-              {data.map((entry, index) => (
+            <Bar dataKey="secondSegDisplay" stackId="stack" radius={[0, 2, 2, 0]}>
+              {displayData.map((entry, index) => (
                 <Cell
                   key={`second-${index}`}
-                  fill={entry.isAvgFirst ? winsColor : attemptsColor}
+                  fill={(entry as SpeciesDatum & { isAvgFirstDisplay: boolean }).isAvgFirstDisplay ? winsColor : attemptsColor}
                 />
               ))}
             </Bar>
@@ -189,7 +239,9 @@ export function TestPerformanceChart({
           </div>
           <div className="flex items-center gap-2">
             <div className="h-3 w-6" style={{ backgroundColor: winsColor }} />
-            <span className="text-sm text-muted-foreground">You (attempts)</span>
+            <span className="text-sm text-muted-foreground">
+              You ({showMode === "wins" ? "wins" : "attempts"})
+            </span>
           </div>
           {data.some((d) => d.avgIsEstimated) && (
             <span className="text-xs text-muted-foreground">Avg shown as estimated until global data is loaded</span>
