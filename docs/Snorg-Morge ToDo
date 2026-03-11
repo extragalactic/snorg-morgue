@@ -1,9 +1,10 @@
 Snorg-Morge ToDo
 
 - enable Google auth
-- Need some metrics for higher numbers of runes per game
 - Ignis needs special attention re: completion stats with gods
-- create some Supabase RPCs to calculate global averages
+
+- add a button to download all morgues (in a zip)
+
 - handle mobile (likely disable it)
 
 ...hey, buy more vape bags!
