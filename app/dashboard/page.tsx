@@ -17,11 +17,10 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Navigation } from "@/components/dashboard/navigation"
 import { StatCard } from "@/components/dashboard/stat-card"
-import { PlayerStatsChart } from "@/components/dashboard/player-stats-chart"
-import { PerformanceGraph } from "@/components/dashboard/performance-graph"
 import { GoalProgress } from "@/components/dashboard/goal-progress"
 import { LevelAtDeathChart } from "@/components/dashboard/level-at-death-chart"
 import { RuneCollectionChart } from "@/components/dashboard/rune-collection-chart"
+import { TestPerformanceChart } from "@/components/dashboard/test-performance-chart"
 import { Top10Killers } from "@/components/dashboard/top-10-killers"
 import { SpeciesBackgroundComboGrid } from "@/components/dashboard/species-background-combo-grid"
 import { UploadDialog } from "@/components/dashboard/upload-dialog"
@@ -263,14 +262,19 @@ export default function DashboardPage({
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-2">
               {activeTab === "analysis" && globalStats && globalStats.userCount > 0 && (
-                <span className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
-                  <span>Show averages</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-center">
+                    <span className="font-mono text-xs text-muted-foreground">Show averages</span>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      ({globalStats.userCount} total players)
+                    </span>
+                  </div>
                   <Switch
                     checked={showGlobalAverages}
                     onCheckedChange={setShowGlobalAverages}
-                    className="mr-[15px] data-[state=checked]:bg-[var(--average-color)] data-[state=checked]:border-[var(--average-color)]"
+                    className="data-[state=checked]:bg-[var(--average-color)] data-[state=checked]:border-[var(--average-color)]"
                   />
-                </span>
+                </div>
               )}
               <UploadDialog onUploadComplete={loadData} />
               {activeTab === "morgues" && morgues.length > 0 && (
@@ -532,14 +536,12 @@ export default function DashboardPage({
                 </div>
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="space-y-4">
-                    <PlayerStatsChart
-                      speciesStats={stats?.species_stats}
-                      backgroundStats={stats?.background_stats}
-                      godStats={stats?.god_stats}
-                    >
-                      {/* Performance Over Time chart temporarily hidden but kept for future use */}
-                      {/* <PerformanceGraph morgues={morgues} /> */}
-                    </PlayerStatsChart>
+                    <TestPerformanceChart
+                      speciesStats={stats?.species_stats ?? []}
+                      backgroundStats={stats?.background_stats ?? []}
+                      godStats={stats?.god_stats ?? []}
+                      showAverages={showGlobalAverages}
+                    />
                   </div>
                   <div className="space-y-4">
                     <RuneCollectionChart morgues={morgues} />

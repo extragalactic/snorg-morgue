@@ -71,20 +71,22 @@ const godColors = [
 const DRACONIAN_BAR_GREY = "#9ca3af"
 const DRACONIAN_LABEL_GREY = "#6b7280"
 
+export { DRACONIAN_LABEL_GREY }
+
 /** Display label for species: draconian colours show just the colour (e.g. "Red"), not "Red Draconian". */
-function speciesDisplayLabel(name: string): string {
+export function speciesDisplayLabel(name: string): string {
   if (DRACONIAN_COLOUR_NAMES.includes(name)) return name.replace(/\s+Draconian$/, "")
   return name
 }
 
-function mergeWithFullList(fullNames: string[], stats: StatEntry[]): StatEntry[] {
+export function mergeWithFullList(fullNames: string[], stats: StatEntry[]): StatEntry[] {
   const byName = new Map(stats.map((s) => [s.name, s]))
   return fullNames.map((name) => byName.get(name) ?? { name, wins: 0, attempts: 0 })
 }
 
 /** Species list with Draconian as summary row + one row per colour (grey styling for colours).
  * Any species in stats that are not in the canonical list are aggregated into an "Other" row so totals match. */
-function buildSpeciesListWithDraconian(stats: StatEntry[]): StatEntry[] {
+export function buildSpeciesListWithDraconian(stats: StatEntry[]): StatEntry[] {
   const byName = new Map(stats.map((s) => [s.name, s]))
   const canonicalSpecies = new Set([
     ...ALL_SPECIES_NAMES,

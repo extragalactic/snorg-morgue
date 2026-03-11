@@ -229,14 +229,19 @@ export async function recalcUserStats(
   // Order by game play date (from morgue filename) so best_streak = consecutive wins chronologically.
   const fileIds = [...new Set(list.map((r) => r.morgue_file_id))]
   const filenameByFileId = new Map<string, string>()
+  const everIgnisByFileId = new Map<string, boolean>()
   if (fileIds.length > 0) {
     const { data: files } = await supabase
       .from("morgue_files")
-      .select("id, filename")
+      .select("id, filename, raw_text")
       .eq("user_id", userId)
       .in("id", fileIds)
     for (const f of files ?? []) {
-      filenameByFileId.set(f.id, (f as { filename: string }).filename ?? "")
+      const row = f as { id: string; filename?: string; raw_text?: string }
+      filenameByFileId.set(row.id, row.filename ?? "")
+      const raw = row.raw_text ?? ""
+      // Count Ignis as "ever worshipped" if the morgue text mentions Ignis anywhere.
+      everIgnisByFileId.set(row.id, /Ignis/i.test(raw))
     }
   }
   // DCSS filenames: morgue-Name-YYYYMMDD-HHMMSS.txt; use as sort key for chronological order
@@ -289,7 +294,29 @@ export async function recalcUserStats(
 
   const species_stats = buildStatEntries(normalizedList, (r) => r.species)
   const background_stats = buildStatEntries(normalizedList, (r) => r.background)
-  const god_stats = buildStatEntries(normalizedList, (r) => normalizeGodName(r.god || "(no god)"))
+  // God stats: normally count by the final god at death/win, except for Ignis.
+  // Ignis counts as "attempted" (and "won" if applicable) if the player ever joined Ignis during the game,
+  // even if they later switched to another god. Wins/attempts still also count for the final god.
+  const ignisName = normalizeGodName("Ignis")
+  const godStatsMap = new Map<string, { wins: number; attempts: number }>()
+  const bumpGod = (name: string, isWin: boolean) => {
+    const key = name || "(none)"
+    const entry = godStatsMap.get(key) ?? { wins: 0, attempts: 0 }
+    entry.attempts++
+    if (isWin) entry.wins++
+    godStatsMap.set(key, entry)
+  }
+  for (const r of normalizedList) {
+    const finalGod = normalizeGodName(r.god || "(no god)")
+    bumpGod(finalGod, r.is_win)
+    const everIgnis = everIgnisByFileId.get(r.morgue_file_id) ?? false
+    if (everIgnis && finalGod !== ignisName) {
+      bumpGod(ignisName, r.is_win)
+    }
+  }
+  const god_stats: StatEntry[] = Array.from(godStatsMap.entries())
+    .map(([name, { wins, attempts }]) => ({ name, wins, attempts }))
+    .sort((a, b) => b.attempts - a.attempts)
 
   const totalGames = list.length
   const wins = list.filter((r) => r.is_win)
