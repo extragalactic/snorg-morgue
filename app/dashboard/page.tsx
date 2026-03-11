@@ -115,6 +115,8 @@ export default function DashboardPage({
   const [isNuking, setIsNuking] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshConfirmOpen, setRefreshConfirmOpen] = useState(false)
+  const [downloadConfirmOpen, setDownloadConfirmOpen] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
 
   const loadData = useCallback(async () => {
     setMorguesLoading(true)
@@ -193,6 +195,49 @@ export default function DashboardPage({
   const lair5Pct = totalGames > 0 ? Math.round((reachedLair5Count / totalGames) * 100) : 0
   const gamesReachedLair5Value = `${lair5Pct}%`
 
+  const handleDownloadAllMorgues = useCallback(async () => {
+    if (!userId || morgues.length === 0 || isDownloading) return
+    setIsDownloading(true)
+    try {
+      const { default: JSZip } = await import("jszip")
+      const zip = new JSZip()
+      const folder = zip.folder("morgues")!
+
+      for (const game of morgues) {
+        try {
+          const res = await fetch(`/api/morgues/${encodeURIComponent(game.id)}`)
+          if (!res.ok) continue
+          const data = await res.json()
+          const raw = (data.rawText as string) ?? ""
+          const filename = (data.filename as string) || `morgue-${game.character}-${game.id}.txt`
+          folder.file(filename, raw)
+        } catch {
+          // skip failed file
+        }
+      }
+
+      const blob = await zip.generateAsync({ type: "blob" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = "snorg-morgues.zip"
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error("Failed to create morgues zip", e)
+      toast({
+        title: "Download failed",
+        description: "Could not create morgue ZIP file. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDownloading(false)
+      setDownloadConfirmOpen(false)
+    }
+  }, [userId, morgues, isDownloading])
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} usernameSlug={usernameSlug} />
@@ -228,6 +273,15 @@ export default function DashboardPage({
                 </span>
               )}
               <UploadDialog onUploadComplete={loadData} />
+              {activeTab === "morgues" && morgues.length > 0 && (
+                <Button
+                  className="gap-2 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs"
+                  onClick={() => setDownloadConfirmOpen(true)}
+                  disabled={isDownloading}
+                >
+                  {isDownloading ? "Preparing…" : "Download All"}
+                </Button>
+              )}
             </div>
             {activeTab === "morgues" && (
               <div className="flex items-center gap-2">
@@ -294,6 +348,35 @@ export default function DashboardPage({
                 disabled={isRefreshing}
               >
                 Yes, refresh
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={downloadConfirmOpen} onOpenChange={setDownloadConfirmOpen}>
+          <AlertDialogContent className="rounded-none border-2 border-primary/30">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-mono">Download all morgues?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will download all of your original morgue files in a single ZIP archive. Large collections may take a little while to prepare.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                className="rounded-none border-2 border-primary/50 font-mono text-xs hover:text-yellow-400"
+                disabled={isDownloading}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="rounded-none border-2 border-primary bg-primary text-primary-foreground font-mono text-xs min-w-[5.5rem]"
+                disabled={isDownloading}
+                onClick={(e) => {
+                  e.preventDefault()
+                  void handleDownloadAllMorgues()
+                }}
+              >
+                {isDownloading ? "Preparing…" : "Download ZIP"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
