@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Trophy, Skull, Target, Flame, Zap, Timer, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -98,6 +99,7 @@ export default function DashboardPage({
   const [globalLevelDeathAverages, setGlobalLevelDeathAverages] = useState<number[] | null>(null)
   const [globalLevelDeathUserCount, setGlobalLevelDeathUserCount] = useState<number | null>(null)
   const [globalStats, setGlobalStats] = useState<GlobalAnalysisStats | null>(null)
+  const [showGlobalAverages, setShowGlobalAverages] = useState(true)
 
   // Redirect /dashboard to /username/analytics when not using URL-driven tabs
   useEffect(() => {
@@ -207,9 +209,10 @@ export default function DashboardPage({
               </h1>
               {activeTab === "analysis" && globalStats && globalStats.userCount > 0 && (
                 <span className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
-                  <span
-                    className="inline-block h-2 w-6 rounded-full"
-                    style={{ backgroundColor: "var(--average-color)" }}
+                  <Switch
+                    checked={showGlobalAverages}
+                    onCheckedChange={setShowGlobalAverages}
+                    className="data-[state=checked]:bg-[var(--average-color)] data-[state=checked]:border-[var(--average-color)]"
                   />
                   <span>
                     Average values ({globalStats.userCount} total players)
@@ -342,8 +345,8 @@ export default function DashboardPage({
                 <LevelAtDeathChart
                   morgues={morgues}
                   loading={statsLoading}
-                  globalAverageDeathsPerLevel={globalLevelDeathAverages ?? undefined}
-                  globalAverageUserCount={globalLevelDeathUserCount ?? undefined}
+                  globalAverageDeathsPerLevel={showGlobalAverages ? (globalLevelDeathAverages ?? undefined) : undefined}
+                  globalAverageUserCount={showGlobalAverages ? globalLevelDeathUserCount ?? undefined : undefined}
                 />
               )}
               {isEmpty ? (
@@ -357,7 +360,7 @@ export default function DashboardPage({
                     title="Total Wins"
                     value={statsData?.totalWins ?? 0}
                     secondaryValue={
-                      globalStats && globalStats.userCount > 0
+                      showGlobalAverages && globalStats && globalStats.userCount > 0
                         ? (globalStats.totals.totalWins / globalStats.userCount).toFixed(1)
                         : undefined
                     }
@@ -368,7 +371,7 @@ export default function DashboardPage({
                     title="Total Deaths"
                     value={statsData?.totalDeaths ?? 0}
                     secondaryValue={
-                      globalStats && globalStats.userCount > 0
+                      showGlobalAverages && globalStats && globalStats.userCount > 0
                         ? (globalStats.totals.totalDeaths / globalStats.userCount).toFixed(1)
                         : undefined
                     }
@@ -379,7 +382,7 @@ export default function DashboardPage({
                     title="Win Rate"
                     value={statsData ? `${statsData.winRate.toFixed(1)}%` : "0%"}
                     secondaryValue={
-                      globalStats
+                      showGlobalAverages && globalStats
                         ? `${globalStats.totals.overallWinRate.toFixed(1)}%`
                         : undefined
                     }
@@ -390,7 +393,7 @@ export default function DashboardPage({
                     title="Best Streak"
                     value={statsData?.bestStreak ?? 0}
                     secondaryValue={
-                      globalStats
+                      showGlobalAverages && globalStats
                         ? globalStats.totals.avgBestStreak.toFixed(1)
                         : undefined
                     }
@@ -403,7 +406,7 @@ export default function DashboardPage({
                     title="Avg XL at Death"
                     value={statsData ? statsData.avgXlAtDeath.toFixed(1) : "—"}
                     secondaryValue={
-                      globalStats
+                      showGlobalAverages && globalStats
                         ? globalStats.totals.avgXlAtDeath.toFixed(1)
                         : undefined
                     }
@@ -414,7 +417,7 @@ export default function DashboardPage({
                     title="Games that reached Lair:5"
                     value={gamesReachedLair5Value}
                     secondaryValue={
-                      globalStats
+                      showGlobalAverages && globalStats
                         ? `${globalStats.totals.lair5ReachRate.toFixed(1)}%`
                         : undefined
                     }
@@ -425,7 +428,7 @@ export default function DashboardPage({
                     title="Fastest Win"
                     value={statsData?.fastestWin ?? "—"}
                     secondaryValue={
-                      globalStats
+                      showGlobalAverages && globalStats
                         ? formatFastestWin(globalStats.totals.fastestWinSeconds)
                         : undefined
                     }
@@ -436,7 +439,9 @@ export default function DashboardPage({
                     title="Smallest Turncount"
                     value={smallestTurncountValue}
                     secondaryValue={
-                      globalStats?.totals.smallestTurncountWin ?? undefined
+                      showGlobalAverages && globalStats?.totals.smallestTurncountWin != null
+                        ? globalStats.totals.smallestTurncountWin
+                        : undefined
                     }
                     subtitle={smallestTurncountSubtitle}
                     icon={Timer}

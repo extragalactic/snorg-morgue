@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   TOTAL_SPECIES,
   TOTAL_BACKGROUNDS,
@@ -9,6 +10,8 @@ import {
   DRACONIAN_COLOUR_NAMES,
   TOTAL_DRACONIAN_COLOURS,
   ALL_SPECIES_NAMES,
+  ALL_BACKGROUND_NAMES,
+  GOD_NAMES_FOR_CHART,
 } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 
@@ -51,7 +54,26 @@ interface GoalProgressProps {
   loading?: boolean
 }
 
-function computeGoals(morgues: GameRecord[]): Goal[] {
+/** Win sets for the four core goals (species, backgrounds, gods, draconian colours). */
+interface CoreGoalWinSets {
+  speciesWithWins: Set<string>
+  backgroundsWithWins: Set<string>
+  godsWithWins: Set<string>
+  dracColoursWithWins: Set<string>
+}
+
+/** Per-species sets for Greater / Devoted / Enthusiastic rollover popups. */
+interface SpeciesGoalMaps {
+  speciesBackgroundWins: Map<string, Set<string>>
+  speciesGodWins: Map<string, Set<string>>
+  speciesBackgroundAttempts: Map<string, Set<string>>
+}
+
+function computeGoals(morgues: GameRecord[]): {
+  goals: Goal[]
+  coreWins: CoreGoalWinSets
+  speciesMaps: SpeciesGoalMaps
+} {
   const wins = morgues.filter((m) => m.result === "win")
 
   const species = new Set(wins.map((m) => m.species))
@@ -167,7 +189,20 @@ function computeGoals(morgues: GameRecord[]): Goal[] {
     })
   }
 
-  return goals
+  return {
+    goals,
+    coreWins: {
+      speciesWithWins: species,
+      backgroundsWithWins: backgrounds,
+      godsWithWins: gods,
+      dracColoursWithWins: dracColours,
+    },
+    speciesMaps: {
+      speciesBackgroundWins,
+      speciesGodWins,
+      speciesBackgroundAttempts,
+    },
+  }
 }
 
 const defaultGoals: Goal[] = [
@@ -177,8 +212,47 @@ const defaultGoals: Goal[] = [
   { name: "Tiamat", description: `Win with all ${TOTAL_DRACONIAN_COLOURS} colours of Draconian`, current: 0, max: TOTAL_DRACONIAN_COLOURS },
 ]
 
+/** Grid of items for achievement rollover: 3 columns; hasWin = bright, else muted. Dark background, bright text. */
+function AchievementDetailGrid({
+  items,
+  hasWins,
+}: {
+  items: string[]
+  hasWins: Set<string>
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-x-4 gap-y-0.5 py-0.5">
+      {items.map((name) => {
+        const won = hasWins.has(name)
+        return (
+          <span
+            key={name}
+            className={`font-mono text-xs ${won ? "text-white font-semibold" : "text-white/55"}`}
+          >
+            {name}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
 export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps) {
-  const goals = morgues.length > 0 ? computeGoals(morgues) : defaultGoals
+  const computed = morgues.length > 0 ? computeGoals(morgues) : null
+  const goals = computed?.goals ?? defaultGoals
+  const coreWins = computed?.coreWins ?? {
+    speciesWithWins: new Set<string>(),
+    backgroundsWithWins: new Set<string>(),
+    godsWithWins: new Set<string>(),
+    dracColoursWithWins: new Set<string>(),
+  }
+  const speciesMaps = computed?.speciesMaps ?? {
+    speciesBackgroundWins: new Map<string, Set<string>>(),
+    speciesGodWins: new Map<string, Set<string>>(),
+    speciesBackgroundAttempts: new Map<string, Set<string>>(),
+  }
+  const achievementPopupClass =
+    "max-w-[320px] rounded-none border-2 border-primary/30 bg-zinc-900 p-3 text-white"
   const coreGoals = goals.filter(
     (g) =>
       g.name === "Great Player" ||
@@ -221,22 +295,46 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           <div className="grid gap-6 md:grid-cols-4">
           {coreGoals.map((goal) => {
             const percentage = (goal.current / goal.max) * 100
-            return (
-              <div key={goal.name} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-sm text-foreground">{goal.name}</span>
-                  <span className="font-mono text-sm text-primary">
-                    {goal.current}/{goal.max}
-                  </span>
-                </div>
-                <Progress
-                  value={percentage}
-                  className="h-3 rounded-none bg-secondary border border-primary/30"
+            const detailContent =
+              goal.name === "Great Player" ? (
+                <AchievementDetailGrid items={ALL_SPECIES_NAMES} hasWins={coreWins.speciesWithWins} />
+              ) : goal.name === "Greater Player" ? (
+                <AchievementDetailGrid items={ALL_BACKGROUND_NAMES} hasWins={coreWins.backgroundsWithWins} />
+              ) : goal.name === "Polytheist" ? (
+                <AchievementDetailGrid items={GOD_NAMES_FOR_CHART} hasWins={coreWins.godsWithWins} />
+              ) : goal.name === "Tiamat" ? (
+                <AchievementDetailGrid
+                  items={DRACONIAN_COLOUR_NAMES.map((n) => n.replace(/ Draconian$/, ""))}
+                  hasWins={new Set([...coreWins.dracColoursWithWins].map((n) => n.replace(/ Draconian$/, "")))}
                 />
-                <p className="text-xs text-muted-foreground whitespace-pre-line">
-                  {goal.description}
-                </p>
-              </div>
+              ) : null
+            return (
+              <Tooltip key={goal.name}>
+                <TooltipTrigger asChild>
+                  <div className="space-y-2 cursor-default">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-sm text-foreground">{goal.name}</span>
+                      <span className="font-mono text-sm text-primary">
+                        {goal.current}/{goal.max}
+                      </span>
+                    </div>
+                    <Progress
+                      value={percentage}
+                      className="h-3 rounded-none bg-secondary border border-primary/30"
+                    />
+                    <p className="text-xs text-muted-foreground whitespace-pre-line">
+                      {goal.description}
+                    </p>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="bottom"
+                  sideOffset={8}
+                  className={achievementPopupClass}
+                >
+                  {detailContent}
+                </TooltipContent>
+              </Tooltip>
             )
           })}
           </div>
@@ -254,24 +352,33 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
               <div className="grid gap-6 md:grid-cols-4">
                 {greaterSpeciesGoals.map((goal) => {
                   const percentage = (goal.current / goal.max) * 100
+                  const speciesName = goal.name.replace(/^Greater /, "")
+                  const hasWins = speciesMaps.speciesBackgroundWins.get(speciesName) ?? new Set<string>()
                   return (
-                    <div key={goal.name} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-sm text-foreground">
-                          {goal.name}
-                        </span>
-                        <span className="font-mono text-sm text-primary">
-                          {goal.current}/{goal.max}
-                        </span>
-                      </div>
-                      <Progress
-                        value={percentage}
-                        className="h-3 rounded-none bg-secondary border border-primary/30"
-                      />
-                      <p className="text-xs text-muted-foreground whitespace-pre-line">
-                        {goal.description}
-                      </p>
-                    </div>
+                    <Tooltip key={goal.name}>
+                      <TooltipTrigger asChild>
+                        <div className="space-y-2 cursor-default">
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-sm text-foreground">
+                              {goal.name}
+                            </span>
+                            <span className="font-mono text-sm text-primary">
+                              {goal.current}/{goal.max}
+                            </span>
+                          </div>
+                          <Progress
+                            value={percentage}
+                            className="h-3 rounded-none bg-secondary border border-primary/30"
+                          />
+                          <p className="text-xs text-muted-foreground whitespace-pre-line">
+                            {goal.description}
+                          </p>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
+                        <AchievementDetailGrid items={ALL_BACKGROUND_NAMES} hasWins={hasWins} />
+                      </TooltipContent>
+                    </Tooltip>
                   )
                 })}
               </div>
@@ -380,24 +487,33 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
               <div className="grid gap-6 md:grid-cols-4">
                 {enthusiasticSpeciesWithProgress.map((goal) => {
                   const percentage = (goal.current / goal.max) * 100
+                  const speciesName = goal.name.replace(/^Enthusiastic /, "")
+                  const hasWins = speciesMaps.speciesBackgroundAttempts.get(speciesName) ?? new Set<string>()
                   return (
-                    <div key={goal.name} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-sm text-foreground">
-                          {goal.name}
-                        </span>
-                        <span className="font-mono text-sm text-primary">
-                          {goal.current}/{goal.max}
-                        </span>
-                      </div>
-                      <Progress
-                        value={percentage}
-                        className="h-3 rounded-none bg-secondary border border-primary/30"
-                      />
-                      <p className="text-xs text-muted-foreground whitespace-pre-line">
-                        {goal.description}
-                      </p>
-                    </div>
+                    <Tooltip key={goal.name}>
+                      <TooltipTrigger asChild>
+                        <div className="space-y-2 cursor-default">
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-sm text-foreground">
+                              {goal.name}
+                            </span>
+                            <span className="font-mono text-sm text-primary">
+                              {goal.current}/{goal.max}
+                            </span>
+                          </div>
+                          <Progress
+                            value={percentage}
+                            className="h-3 rounded-none bg-secondary border border-primary/30"
+                          />
+                          <p className="text-xs text-muted-foreground whitespace-pre-line">
+                            {goal.description}
+                          </p>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
+                        <AchievementDetailGrid items={ALL_BACKGROUND_NAMES} hasWins={hasWins} />
+                      </TooltipContent>
+                    </Tooltip>
                   )
                 })}
               </div>
@@ -421,24 +537,33 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
               <div className="grid gap-6 md:grid-cols-4">
                 {devotedSpeciesGoals.map((goal) => {
                   const percentage = (goal.current / goal.max) * 100
+                  const speciesName = goal.name.replace(/^Devoted /, "")
+                  const hasWins = speciesMaps.speciesGodWins.get(speciesName) ?? new Set<string>()
                   return (
-                    <div key={goal.name} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-sm text-foreground">
-                          {goal.name}
-                        </span>
-                        <span className="font-mono text-sm text-primary">
-                          {goal.current}/{goal.max}
-                        </span>
-                      </div>
-                      <Progress
-                        value={percentage}
-                        className="h-3 rounded-none bg-secondary border border-primary/30"
-                      />
-                      <p className="text-xs text-muted-foreground whitespace-pre-line">
-                        {goal.description}
-                      </p>
-                    </div>
+                    <Tooltip key={goal.name}>
+                      <TooltipTrigger asChild>
+                        <div className="space-y-2 cursor-default">
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-sm text-foreground">
+                              {goal.name}
+                            </span>
+                            <span className="font-mono text-sm text-primary">
+                              {goal.current}/{goal.max}
+                            </span>
+                          </div>
+                          <Progress
+                            value={percentage}
+                            className="h-3 rounded-none bg-secondary border border-primary/30"
+                          />
+                          <p className="text-xs text-muted-foreground whitespace-pre-line">
+                            {goal.description}
+                          </p>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
+                        <AchievementDetailGrid items={GOD_NAMES_FOR_CHART} hasWins={hasWins} />
+                      </TooltipContent>
+                    </Tooltip>
                   )
                 })}
               </div>
