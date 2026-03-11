@@ -47,6 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useSettings } from "@/contexts/settings-context"
 
 type ResultFilter = "all" | "win" | "death"
 type SpeciesFilter = "all" | string
@@ -68,8 +69,9 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
   const searchParams = useSearchParams()
   const { userId } = useAuth()
   const { themeStyle } = useTheme()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
+  const { settings, setSettings } = useSettings()
+  const [searchQuery, setSearchQuery] = useState(settings.morguesTable.searchQuery)
+  const [currentPage, setCurrentPage] = useState(settings.morguesTable.currentPage)
   const [viewingMorgue, setViewingMorgue] = useState<GameRecord | null>(null)
   const viewId = searchParams.get("view")
 
@@ -81,13 +83,35 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
 
   const [deleteConfirmGame, setDeleteConfirmGame] = useState<GameRecord | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [resultFilter, setResultFilter] = useState<ResultFilter>("all")
-  const [speciesFilter, setSpeciesFilter] = useState<SpeciesFilter>("all")
-  const [backgroundFilter, setBackgroundFilter] = useState<BackgroundFilter>("all")
-  const [godFilter, setGodFilter] = useState<GodFilter>("all")
-  const [sortField, setSortField] = useState<SortField | null>(null)
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
+  const [resultFilter, setResultFilter] = useState<ResultFilter>(settings.morguesTable.resultFilter as ResultFilter)
+  const [speciesFilter, setSpeciesFilter] = useState<SpeciesFilter>(settings.morguesTable.speciesFilter as SpeciesFilter)
+  const [backgroundFilter, setBackgroundFilter] = useState<BackgroundFilter>(settings.morguesTable.backgroundFilter as BackgroundFilter)
+  const [godFilter, setGodFilter] = useState<GodFilter>(settings.morguesTable.godFilter as GodFilter)
+  const [sortField, setSortField] = useState<SortField | null>(settings.morguesTable.sortField as SortField | null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>(settings.morguesTable.sortDirection as SortDirection)
   const itemsPerPage = 15
+
+  // Keep local state in sync if settings change elsewhere
+  useEffect(() => {
+    setSearchQuery(settings.morguesTable.searchQuery)
+    setCurrentPage(settings.morguesTable.currentPage)
+    setResultFilter(settings.morguesTable.resultFilter as ResultFilter)
+    setSpeciesFilter(settings.morguesTable.speciesFilter as SpeciesFilter)
+    setBackgroundFilter(settings.morguesTable.backgroundFilter as BackgroundFilter)
+    setGodFilter(settings.morguesTable.godFilter as GodFilter)
+    setSortField(settings.morguesTable.sortField as SortField | null)
+    setSortDirection(settings.morguesTable.sortDirection as SortDirection)
+  }, [settings.morguesTable])
+
+  const updateMorguesSettings = (partial: Partial<typeof settings.morguesTable>) => {
+    setSettings((prev) => ({
+      ...prev,
+      morguesTable: {
+        ...prev.morguesTable,
+        ...partial,
+      },
+    }))
+  }
 
   const getCombo = (game: GameRecord) => {
     const species = (game.species ?? "").trim()
@@ -214,12 +238,16 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+      const nextDir: SortDirection = sortDirection === "asc" ? "desc" : "asc"
+      setSortDirection(nextDir)
+      updateMorguesSettings({ sortDirection: nextDir })
     } else {
       setSortField(field)
       setSortDirection("asc")
+      updateMorguesSettings({ sortField: field, sortDirection: "asc" })
     }
     setCurrentPage(1)
+    updateMorguesSettings({ currentPage: 1 })
   }
 
   const SortableHeader = ({ field, children, className = "" }: { field: SortField; children: React.ReactNode; className?: string }) => (
@@ -346,6 +374,10 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                   onClick={() => {
                     setResultFilter(filter)
                     setCurrentPage(1)
+                    updateMorguesSettings({
+                      resultFilter: filter,
+                      currentPage: 1,
+                    })
                   }}
                 >
                   {filter === "all" ? "All" : filter === "win" ? "Wins" : "Deaths"}
@@ -356,8 +388,13 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
             <Select
               value={speciesFilter}
               onValueChange={(value) => {
-                setSpeciesFilter(value as SpeciesFilter)
+                const v = value as SpeciesFilter
+                setSpeciesFilter(v)
                 setCurrentPage(1)
+                updateMorguesSettings({
+                  speciesFilter: v,
+                  currentPage: 1,
+                })
               }}
             >
               <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-xs h-8 bg-background">
@@ -378,8 +415,13 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
             <Select
               value={backgroundFilter}
               onValueChange={(value) => {
-                setBackgroundFilter(value as BackgroundFilter)
+                const v = value as BackgroundFilter
+                setBackgroundFilter(v)
                 setCurrentPage(1)
+                updateMorguesSettings({
+                  backgroundFilter: v,
+                  currentPage: 1,
+                })
               }}
             >
               <SelectTrigger className="w-[160px] rounded-none border-2 border-primary/50 font-mono text-xs h-8 bg-background">
@@ -400,8 +442,13 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
             <Select
               value={godFilter}
               onValueChange={(value) => {
-                setGodFilter(value as GodFilter)
+                const v = value as GodFilter
+                setGodFilter(v)
                 setCurrentPage(1)
+                updateMorguesSettings({
+                  godFilter: v,
+                  currentPage: 1,
+                })
               }}
             >
               <SelectTrigger className="w-[130px] rounded-none border-2 border-primary/50 font-mono text-xs h-8 bg-background">
@@ -425,8 +472,13 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                 placeholder="Search morgues..."
                 value={searchQuery}
                 onChange={(e) => {
-                  setSearchQuery(e.target.value)
+                  const value = e.target.value
+                  setSearchQuery(value)
                   setCurrentPage(1)
+                  updateMorguesSettings({
+                    searchQuery: value,
+                    currentPage: 1,
+                  })
                 }}
                 className="rounded-none border-2 border-primary/50 bg-input pl-9 pr-9 text-sm focus:border-primary"
               />
@@ -439,6 +491,10 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                   onClick={() => {
                     setSearchQuery("")
                     setCurrentPage(1)
+                    updateMorguesSettings({
+                      searchQuery: "",
+                      currentPage: 1,
+                    })
                   }}
                   aria-label="Clear search"
                 >
@@ -575,7 +631,13 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
               size="icon"
               className="group h-9 w-9 rounded-none border-2 border-primary/50"
               disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => p - 1)}
+              onClick={() => {
+                setCurrentPage((p) => {
+                  const next = p - 1
+                  updateMorguesSettings({ currentPage: next })
+                  return next
+                })
+              }}
             >
               <ChevronLeft className={`h-5 w-5 ${themeStyle === "ascii" ? "group-hover:text-green-400" : "group-hover:text-yellow-400"}`} />
             </Button>
@@ -587,7 +649,13 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
               size="icon"
               className="group h-9 w-9 rounded-none border-2 border-primary/50"
               disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((p) => p + 1)}
+              onClick={() => {
+                setCurrentPage((p) => {
+                  const next = p + 1
+                  updateMorguesSettings({ currentPage: next })
+                  return next
+                })
+              }}
             >
               <ChevronRight className={`h-5 w-5 ${themeStyle === "ascii" ? "group-hover:text-green-400" : "group-hover:text-yellow-400"}`} />
             </Button>

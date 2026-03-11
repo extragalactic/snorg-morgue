@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
@@ -18,6 +18,7 @@ import {
   ALL_BACKGROUND_NAMES,
   GOD_NAMES_FOR_CHART,
 } from "@/lib/dcss-constants"
+import { useSettings } from "@/contexts/settings-context"
 import type { StatEntry } from "@/lib/morgue-db"
 import {
   BarChart,
@@ -230,10 +231,28 @@ export interface PlayerStatsChartProps {
 }
 
 export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godStats = [] }: PlayerStatsChartProps) {
-  const [sortMethod, setSortMethod] = useState<SortMethod>("default")
-  const [showMode, setShowMode] = useState<ShowMode>("wins")
-  const [chartType, setChartType] = useState<ChartType>("species")
+  const { settings, setSettings } = useSettings()
+  const [sortMethod, setSortMethod] = useState<SortMethod>(settings.performanceChart.sortMethod as SortMethod)
+  const [showMode, setShowMode] = useState<ShowMode>(settings.performanceChart.showMode as ShowMode)
+  const [chartType, setChartType] = useState<ChartType>(settings.performanceChart.chartType as ChartType)
   const { themeStyle } = useTheme()
+
+  // Keep local state in sync if settings change from elsewhere
+  useEffect(() => {
+    setSortMethod(settings.performanceChart.sortMethod as SortMethod)
+    setShowMode(settings.performanceChart.showMode as ShowMode)
+    setChartType(settings.performanceChart.chartType as ChartType)
+  }, [settings.performanceChart.sortMethod, settings.performanceChart.showMode, settings.performanceChart.chartType])
+
+  const updatePerformanceSettings = (partial: Partial<{ sortMethod: SortMethod; showMode: ShowMode; chartType: ChartType }>) => {
+    setSettings((prev) => ({
+      ...prev,
+      performanceChart: {
+        ...prev.performanceChart,
+        ...partial,
+      },
+    }))
+  }
 
   // Build chart data: merge full canonical lists with user stats so zero-data entries show
   const allSpeciesData = useMemo(() => {
@@ -354,7 +373,13 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
         <CardTitle className="font-mono text-sm text-primary flex items-center gap-2">
-          <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
+          <Select
+            value={chartType}
+            onValueChange={(value: ChartType) => {
+              setChartType(value)
+              updatePerformanceSettings({ chartType: value })
+            }}
+          >
             <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 hover:text-yellow-400">
               <SelectValue />
             </SelectTrigger>
@@ -377,19 +402,28 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
             <div className="flex gap-2">
               <FilterToggleButton
                 selected={sortMethod === "wins"}
-                onClick={() => setSortMethod("wins")}
+                onClick={() => {
+                  setSortMethod("wins")
+                  updatePerformanceSettings({ sortMethod: "wins" })
+                }}
               >
                 Wins
               </FilterToggleButton>
               <FilterToggleButton
                 selected={sortMethod === "attempts"}
-                onClick={() => setSortMethod("attempts")}
+                onClick={() => {
+                  setSortMethod("attempts")
+                  updatePerformanceSettings({ sortMethod: "attempts" })
+                }}
               >
                 Attempts
               </FilterToggleButton>
               <FilterToggleButton
                 selected={sortMethod === "default"}
-                onClick={() => setSortMethod("default")}
+                onClick={() => {
+                  setSortMethod("default")
+                  updatePerformanceSettings({ sortMethod: "default" })
+                }}
               >
                 Default
               </FilterToggleButton>
@@ -400,19 +434,28 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
             <div className="flex gap-2">
               <FilterToggleButton
                 selected={showMode === "wins"}
-                onClick={() => setShowMode("wins")}
+                onClick={() => {
+                  setShowMode("wins")
+                  updatePerformanceSettings({ showMode: "wins" })
+                }}
               >
                 Wins
               </FilterToggleButton>
               <FilterToggleButton
                 selected={showMode === "attempts"}
-                onClick={() => setShowMode("attempts")}
+                onClick={() => {
+                  setShowMode("attempts")
+                  updatePerformanceSettings({ showMode: "attempts" })
+                }}
               >
                 Attempts
               </FilterToggleButton>
               <FilterToggleButton
                 selected={showMode === "both"}
-                onClick={() => setShowMode("both")}
+                onClick={() => {
+                  setShowMode("both")
+                  updatePerformanceSettings({ showMode: "both" })
+                }}
               >
                 Both
               </FilterToggleButton>
