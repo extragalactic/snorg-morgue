@@ -245,7 +245,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
             UPLOAD MORGUE FILES
           </DialogTitle>
           <DialogDescription className="mt-1 font-mono text-xs text-muted-foreground">
-            Currently tested with v0.33 and v0.34
+            Currently tested with v0.33 and v0.34 (...work in progress)
           </DialogDescription>
         </DialogHeader>
 

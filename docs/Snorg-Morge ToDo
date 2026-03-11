@@ -1,11 +1,14 @@
 Snorg-Morge ToDo
 
 - enable Google auth
-- Ignis needs special attention re: completion stats with gods
+- Gozag isn't parsing
+- the Morgue dropdowns should also show items not in the data (with muted text)
 
 
 - need to test logic for email/username duplicates on signup
 - need to test on older versions of morgue files
+
+
 
 ...hey, buy more vape bags!
 

@@ -32,6 +32,7 @@ import { useTheme } from "@/contexts/theme-context"
 
 type ChartType = "species" | "background" | "gods"
 type ShowMode = "wins" | "attempts"
+type SortMethod = "default" | "wins" | "attempts"
 
 type CategoryDatum = {
   name: string
@@ -55,6 +56,8 @@ interface TestPerformanceChartProps {
   backgroundAverages?: StatCategoryAverage[]
   godStats?: StatEntry[]
   godAverages?: StatCategoryAverage[]
+  /** When false, only "You" data is shown (no Avg segment). Follows the dashboard "Show averages" switch. */
+  showAverages?: boolean
 }
 
 function buildCategoryTestData(
@@ -109,10 +112,12 @@ export function TestPerformanceChart({
   backgroundAverages = [],
   godStats = [],
   godAverages = [],
+  showAverages = true,
 }: TestPerformanceChartProps) {
   const { themeStyle } = useTheme()
   const [chartType, setChartType] = useState<ChartType>("species")
   const [showMode, setShowMode] = useState<ShowMode>("attempts")
+  const [sortMethod, setSortMethod] = useState<SortMethod>("default")
 
   const categoryList = useMemo(() => {
     if (chartType === "species") return buildSpeciesListWithDraconian(speciesStats)
@@ -131,23 +136,60 @@ export function TestPerformanceChart({
     [categoryList, averages]
   )
 
+  const sortedData = useMemo(() => {
+    if (sortMethod === "default") return data
+    if (chartType === "species") {
+      const others = data.filter(
+        (d) => d.name !== "Draconian" && !DRACONIAN_COLOUR_NAMES.includes(d.name)
+      )
+      const draconianMain = data.find((d) => d.name === "Draconian")
+      const draconianColourRows = DRACONIAN_COLOUR_NAMES.map((name) => data.find((d) => d.name === name)).filter((d): d is CategoryDatum => d != null)
+      const sortKey = sortMethod === "wins" ? "userWins" : "userAttempts"
+      const toSort: CategoryDatum[] = draconianMain != null ? [...others, draconianMain] : others
+      const sorted = [...toSort].sort((a, b) => b[sortKey] - a[sortKey])
+      return sorted.flatMap((d) =>
+        d.name === "Draconian" ? [d, ...draconianColourRows] : [d]
+      )
+    }
+    const key = sortMethod === "wins" ? "userWins" : "userAttempts"
+    return [...data].sort((a, b) => b[key] - a[key])
+  }, [data, sortMethod, chartType])
+
   const winsColor =
     themeStyle === "ascii" ? "oklch(0.8 0.2 145)" : "rgba(250, 204, 21, 0.9)"
-  const attemptsColor =
-    themeStyle === "ascii" ? "oklch(0.5 0.1 145)" : "rgba(148, 163, 184, 0.6)"
+  const attemptsColor = "var(--average-color)"
 
-  const displayData = useMemo(() => data.map((d) => ({
-    ...d,
-    firstSegDisplay: showMode === "wins" ? d.firstSegWins : d.firstSeg,
-    secondSegDisplay: showMode === "wins" ? d.secondSegWins : d.secondSeg,
-    isAvgFirstDisplay: showMode === "wins" ? d.isAvgFirstWins : d.isAvgFirst,
-  })), [data, showMode])
+  const displayData = useMemo(() => sortedData.map((d) => {
+    const isAvgFirstDisplay = showMode === "wins" ? d.isAvgFirstWins : d.isAvgFirst
+    const firstSeg = showMode === "wins" ? d.firstSegWins : d.firstSeg
+    const secondSeg = showMode === "wins" ? d.secondSegWins : d.secondSeg
+    const firstSegDisplay = showAverages
+      ? firstSeg
+      : (isAvgFirstDisplay ? 0 : firstSeg)
+    const secondSegDisplay = showAverages
+      ? secondSeg
+      : (isAvgFirstDisplay ? secondSeg : 0)
+    return {
+      ...d,
+      firstSegDisplay,
+      secondSegDisplay,
+      isAvgFirstDisplay,
+    }
+  }), [sortedData, showMode, showAverages])
 
   const chartHeight = displayData.length > 0
     ? Math.min(chartType === "gods" ? 850 : 900, Math.max(200, displayData.length * 36))
     : 400
 
   const categoryLabel = chartType === "species" ? "Species" : chartType === "background" ? "Background" : "God"
+
+  const noGodSummary = useMemo(() => {
+    const total = godStats.reduce((s, e) => s + e.attempts, 0)
+    const noGod = godStats.find((e) => e.name === "(no god)")
+    const count = noGod?.attempts ?? 0
+    const pct = total ? (count / total) * 100 : 0
+    return { count, pct }
+  }, [godStats])
 
   if (displayData.length === 0) {
     return null
@@ -167,9 +209,37 @@ export function TestPerformanceChart({
               <SelectItem value="gods" className="font-mono text-sm cursor-pointer hover:text-yellow-400">Gods</SelectItem>
             </SelectContent>
           </Select>
-          <span>TEST PERFORMANCE</span>
+          <span>PERFORMANCE</span>
+          {chartType === "gods" && (
+            <span className="text-muted-foreground text-sm font-normal" style={{ marginLeft: 20 }}>
+              {noGodSummary.pct.toFixed(0)}% of games had no god
+            </span>
+          )}
         </CardTitle>
-        <div className="flex flex-wrap items-center gap-6 pt-3">
+        <div className="flex flex-col gap-3 pt-3">
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-xs text-primary">SORT BY:</span>
+            <div className="flex gap-2">
+              <FilterToggleButton
+                selected={sortMethod === "wins"}
+                onClick={() => setSortMethod("wins")}
+              >
+                Wins
+              </FilterToggleButton>
+              <FilterToggleButton
+                selected={sortMethod === "attempts"}
+                onClick={() => setSortMethod("attempts")}
+              >
+                Attempts
+              </FilterToggleButton>
+              <FilterToggleButton
+                selected={sortMethod === "default"}
+                onClick={() => setSortMethod("default")}
+              >
+                Default
+              </FilterToggleButton>
+            </div>
+          </div>
           <div className="flex items-center gap-3">
             <span className="font-mono text-xs text-primary">SHOW:</span>
             <div className="flex gap-2">
@@ -304,19 +374,21 @@ export function TestPerformanceChart({
           </BarChart>
         </ResponsiveContainer>
         <div className="mt-4 flex flex-wrap items-center justify-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-6" style={{ backgroundColor: attemptsColor }} />
-            <span className="text-sm text-muted-foreground">Avg (all players)</span>
-          </div>
+          {showAverages && (
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-6" style={{ backgroundColor: attemptsColor }} />
+              <span className="text-sm text-muted-foreground">Avg (all players)</span>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <div className="h-3 w-6" style={{ backgroundColor: winsColor }} />
             <span className="text-sm text-muted-foreground">
               You ({showMode === "wins" ? "wins" : "attempts"})
             </span>
           </div>
-          {data.some((d) => d.avgIsEstimated) && (
+          {/* {showAverages && data.some((d) => d.avgIsEstimated) && (
             <span className="text-xs text-muted-foreground">Avg shown as estimated until global data is loaded</span>
-          )}
+          )} */}
         </div>
       </CardContent>
     </Card>
