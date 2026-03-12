@@ -448,7 +448,7 @@ export default function DashboardPage({
                     value={statsData?.totalWins ?? 0}
                     secondaryValue={
                       showGlobalAverages && globalStats && globalStats.userCount > 0
-                        ? (globalStats.totals.totalWins / globalStats.userCount).toFixed(1)
+                        ? String(Math.floor(globalStats.totals.totalWins / globalStats.userCount))
                         : undefined
                     }
                     subtitle={statsData ? "Escaped with the\nOrb of Zot" : undefined}
@@ -459,7 +459,7 @@ export default function DashboardPage({
                     value={statsData?.totalDeaths ?? 0}
                     secondaryValue={
                       showGlobalAverages && globalStats && globalStats.userCount > 0
-                        ? (globalStats.totals.totalDeaths / globalStats.userCount).toFixed(1)
+                        ? String(Math.floor(globalStats.totals.totalDeaths / globalStats.userCount))
                         : undefined
                     }
                     subtitle="Brave attempts"
@@ -481,7 +481,7 @@ export default function DashboardPage({
                     value={statsData?.bestStreak ?? 0}
                     secondaryValue={
                       showGlobalAverages && globalStats
-                        ? globalStats.totals.avgBestStreak.toFixed(1)
+                        ? String(Math.floor(globalStats.totals.avgBestStreak))
                         : undefined
                     }
                     subtitle="Consecutive wins"

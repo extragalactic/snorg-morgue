@@ -255,9 +255,13 @@ export function parseMorgue(rawText: string): ParsedMorgue {
   const xl = xlMatch ? parseInt(xlMatch[1], 10) : 0
   if (!xlMatch || Number.isNaN(xl)) fail("Could not find experience level (XL).")
 
-  // God: "God:    Wu Jian [******]"
+  // God: "God:    Wu Jian [******]" or fallback: "Was an Initiate of Gozag." / "Was a Worshipper of X."
   const godMatch = text.match(/God:\s+(.+?)(?:\s+\[|$)/)
-  const god = godMatch ? godMatch[1].trim() : ""
+  let god = godMatch ? godMatch[1].trim() : ""
+  if (!god) {
+    const initiateMatch = text.match(/Was (?:an?|a) \w+ of ([^.]+)\./i)
+    if (initiateMatch && initiateMatch[1]) god = initiateMatch[1].trim()
+  }
 
   // Runes: "}: 2/15 runes: decaying, gossamer"
   const runesMatch = text.match(/\}:\s*(\d+)\/(\d+)\s+runes:\s*(.+?)(?:\n|$)/)
