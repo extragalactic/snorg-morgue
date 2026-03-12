@@ -262,7 +262,7 @@ export default function DashboardPage({
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-2">
               {activeTab === "analysis" && globalStats && globalStats.userCount > 0 && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 pr-5">
                   <div className="flex flex-col items-center">
                     <span className="font-mono text-xs text-muted-foreground">Show averages</span>
                     <span className="font-mono text-xs text-muted-foreground">
@@ -541,6 +541,7 @@ export default function DashboardPage({
                       backgroundStats={stats?.background_stats ?? []}
                       godStats={stats?.god_stats ?? []}
                       showAverages={showGlobalAverages}
+                      averagePlayerCount={globalStats?.userCount}
                     />
                   </div>
                   <div className="space-y-4">

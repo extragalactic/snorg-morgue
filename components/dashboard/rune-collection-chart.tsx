@@ -140,14 +140,25 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
             <Legend
               verticalAlign="bottom"
               align="center"
-              formatter={(value) =>
-                value === "wins" ? "Wins" : "Attempts (wins + deaths)"
-              }
               wrapperStyle={{
                 fontFamily: "var(--font-body)",
                 fontSize: 11,
                 bottom: 5,
               }}
+              payload={[
+                {
+                  id: "attemptsNonWin",
+                  type: "square",
+                  value: "Attempts (wins + deaths)",
+                  color: attemptsColor,
+                },
+                {
+                  id: "wins",
+                  type: "square",
+                  value: "Wins",
+                  color: winsColor,
+                },
+              ]}
             />
             <Bar
               dataKey="wins"
