@@ -74,7 +74,7 @@ export function SpeciesBackgroundComboGrid({
   const hasData = morgues.length > 0
 
   return (
-    <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 bg-background border-y-2 border-primary/30 mt-8">
+    <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 bg-background border-b-2 border-primary/30 mt-2">
       <div className="mx-auto max-w-7xl px-4 py-6">
         <Card className="border-2 border-primary/30 rounded-none">
           <CardHeader className="border-b-2 border-primary/20 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
