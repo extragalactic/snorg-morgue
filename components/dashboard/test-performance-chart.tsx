@@ -59,6 +59,8 @@ interface TestPerformanceChartProps {
   godAverages?: StatCategoryAverage[]
   /** When false, only "You" data is shown (no Avg segment). Follows the dashboard "Show averages" switch. */
   showAverages?: boolean
+  /** Total players used for averages, e.g. 8 -> "Average (8 players)". */
+  averagePlayerCount?: number
 }
 
 function buildCategoryTestData(
@@ -114,6 +116,7 @@ export function TestPerformanceChart({
   godStats = [],
   godAverages = [],
   showAverages = true,
+  averagePlayerCount,
 }: TestPerformanceChartProps) {
   const { themeStyle } = useTheme()
   const { settings, setSettings } = useSettings()
@@ -182,29 +185,51 @@ export function TestPerformanceChart({
     themeStyle === "ascii" ? "oklch(0.8 0.2 145)" : "rgba(250, 204, 21, 0.9)"
   const attemptsColor = "var(--average-color)"
 
-  const displayData = useMemo(() => sortedData.map((d) => {
-    const isAvgFirstDisplay = showMode === "wins" ? d.isAvgFirstWins : d.isAvgFirst
-    const firstSeg = showMode === "wins" ? d.firstSegWins : d.firstSeg
-    const secondSeg = showMode === "wins" ? d.secondSegWins : d.secondSeg
-    const firstSegDisplay = showAverages
-      ? firstSeg
-      : (isAvgFirstDisplay ? 0 : firstSeg)
-    const secondSegDisplay = showAverages
-      ? secondSeg
-      : (isAvgFirstDisplay ? secondSeg : 0)
-    return {
-      ...d,
-      firstSegDisplay,
-      secondSegDisplay,
-      isAvgFirstDisplay,
-    }
-  }), [sortedData, showMode, showAverages])
+  const averageAxisLabel =
+    typeof averagePlayerCount === "number" && averagePlayerCount > 0
+      ? `Average (${averagePlayerCount} players)`
+      : "Average"
+
+  const displayData = useMemo(
+    () =>
+      sortedData.map((d) => {
+        const isAvgFirstBase = showMode === "wins" ? d.isAvgFirstWins : d.isAvgFirst
+        const firstSegBase = showMode === "wins" ? d.firstSegWins : d.firstSeg
+        const secondSegBase = showMode === "wins" ? d.secondSegWins : d.secondSeg
+
+        // When averages are off, bars should represent only the user's value.
+        if (!showAverages) {
+          const userValue = showMode === "wins" ? d.userWins : d.userAttempts
+          return {
+            ...d,
+            firstSegDisplay: userValue,
+            secondSegDisplay: 0,
+            isAvgFirstDisplay: false,
+          }
+        }
+
+        // When averages are on, use stacked segments for overlap vs difference.
+        return {
+          ...d,
+          firstSegDisplay: firstSegBase,
+          secondSegDisplay: secondSegBase,
+          isAvgFirstDisplay: isAvgFirstBase,
+        }
+      }),
+    [sortedData, showMode, showAverages]
+  )
 
   const chartHeight = displayData.length > 0
     ? Math.min(chartType === "gods" ? 850 : 900, Math.max(200, displayData.length * 36))
     : 400
 
   const categoryLabel = chartType === "species" ? "Species" : chartType === "background" ? "Background" : "God"
+
+  const xDomainMax = useMemo(() => {
+    if (!displayData.length) return 3
+    const totals = displayData.map((d) => d.firstSegDisplay + d.secondSegDisplay)
+    return Math.max(3, ...totals)
+  }, [displayData])
 
   const noGodSummary = useMemo(() => {
     const total = godStats.reduce((s, e) => s + e.attempts, 0)
@@ -313,6 +338,7 @@ export function TestPerformanceChart({
               stroke="var(--muted-foreground)"
               fontSize={14}
               tickLine={false}
+              domain={[0, xDomainMax]}
               allowDecimals={false}
             />
             <YAxis
@@ -365,14 +391,17 @@ export function TestPerformanceChart({
             <Tooltip
               cursor={{ fill: "rgba(148, 163, 184, 0.06)", stroke: "transparent" }}
               formatter={(value: number, key: string, payload) => {
-                const p = payload.payload as CategoryDatum & { firstSegDisplay: number; secondSegDisplay: number; isAvgFirstDisplay: boolean }
-                if (key === "firstSegDisplay") {
-                  return [p.firstSegDisplay, p.isAvgFirstDisplay ? "Avg (all players)" : showMode === "wins" ? "You (wins)" : "You (attempts)"]
+                const p = payload.payload as CategoryDatum & {
+                  firstSegDisplay: number
+                  secondSegDisplay: number
+                  isAvgFirstDisplay: boolean
                 }
-                if (key === "secondSegDisplay") {
-                  return [p.secondSegDisplay, p.isAvgFirstDisplay ? (showMode === "wins" ? "You (wins)" : "You (attempts)") : "Avg (all players)"]
-                }
-                return [value, key]
+                const total = p.firstSegDisplay + p.secondSegDisplay
+                const label =
+                  showMode === "wins"
+                    ? "Max wins shown (You vs Avg)"
+                    : "Max attempts shown (You vs Avg)"
+                return [total, label]
               }}
               labelFormatter={(label) => `${categoryLabel}: ${label}`}
               content={({ active, payload, label }) => {
@@ -418,13 +447,13 @@ export function TestPerformanceChart({
           {showAverages && (
             <div className="flex items-center gap-2">
               <div className="h-3 w-6" style={{ backgroundColor: attemptsColor }} />
-              <span className="text-sm text-muted-foreground">Avg (all players)</span>
+              <span className="text-sm text-muted-foreground">{averageAxisLabel}</span>
             </div>
           )}
           <div className="flex items-center gap-2">
             <div className="h-3 w-6" style={{ backgroundColor: winsColor }} />
             <span className="text-sm text-muted-foreground">
-              You ({showMode === "wins" ? "wins" : "attempts"})
+              You
             </span>
           </div>
           {/* {showAverages && data.some((d) => d.avgIsEstimated) && (
