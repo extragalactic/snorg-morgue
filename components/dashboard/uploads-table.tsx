@@ -38,7 +38,7 @@ import { deleteMorgue } from "@/lib/morgue-api"
 import { useAuth } from "@/contexts/auth-context"
 import { useTheme } from "@/contexts/theme-context"
 import { toast } from "@/hooks/use-toast"
-import { DRACONIAN_COLOUR_NAMES, GOD_SHORT_FORMS } from "@/lib/dcss-constants"
+import { DRACONIAN_COLOUR_NAMES, GOD_SHORT_FORMS, ALL_SPECIES_NAMES, ALL_BACKGROUND_NAMES, ALL_GOD_NAMES } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 import {
   Select,
@@ -230,10 +230,11 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
   const paginatedData = filteredAndSortedData.slice(startIndex, startIndex + itemsPerPage)
   const totalCount = morgues.length
   const filteredCount = filteredAndSortedData.length
+  const pct = totalCount > 0 ? Math.round((filteredCount / totalCount) * 100) : 0
   const titleText =
     filteredCount === totalCount
       ? `${totalCount} Morgue Files`
-      : `${filteredCount} of ${totalCount} Morgue Files`
+      : `${filteredCount} of ${totalCount} Morgue Files (${pct}%)`
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -263,39 +264,36 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
     </TableHead>
   )
 
-  // Distinct species/background lists for filters
-  const allSpecies = useMemo(
+  // Full canonical lists for filter dropdowns; options not in data are shown muted and disabled
+  const fullSpeciesList = useMemo(
+    () => [...ALL_SPECIES_NAMES, ...DRACONIAN_COLOUR_NAMES],
+    []
+  )
+  const speciesInData = useMemo(
     () =>
-      Array.from(
-        new Set(
-          morgues
-            .map((m) => (m.species ?? "").trim())
-            .filter((s) => s.length > 0)
-        )
-      ).sort((a, b) => a.localeCompare(b)),
+      new Set(
+        morgues
+          .map((m) => (m.species ?? "").trim())
+          .filter((s) => s.length > 0)
+      ),
     [morgues]
   )
-  const allBackgrounds = useMemo(
+  const backgroundsInData = useMemo(
     () =>
-      Array.from(
-        new Set(
-          morgues
-            .map((m) => (m.background ?? "").trim())
-            .filter((b) => b.length > 0)
-        )
-      ).sort((a, b) => a.localeCompare(b)),
+      new Set(
+        morgues
+          .map((m) => (m.background ?? "").trim())
+          .filter((b) => b.length > 0)
+      ),
     [morgues]
   )
-  const allGods = useMemo(
+  const godsInData = useMemo(
     () =>
-      Array.from(
-        new Set(
-          morgues.map((m) => (m.god ?? "").trim() || "(no god)")
-        )
-      ).sort((a, b) => a.localeCompare(b)),
+      new Set(
+        morgues.map((m) => (m.god ?? "").trim() || "(no god)")
+      ),
     [morgues]
   )
-
   const getGodShort = (game: GameRecord) => {
     const god = (game.god ?? "").trim()
     if (!god) return "—"
@@ -403,11 +401,19 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                 <SelectItem value="all" className="font-mono text-xs cursor-pointer">
                   All species
                 </SelectItem>
-                {allSpecies.map((s) => (
-                  <SelectItem key={s} value={s} className="font-mono text-xs cursor-pointer">
-                    {s}
-                  </SelectItem>
-                ))}
+                {fullSpeciesList.map((s) => {
+                  const inData = speciesInData.has(s)
+                  return (
+                    <SelectItem
+                      key={s}
+                      value={s}
+                      disabled={!inData}
+                      className={`font-mono text-xs ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
+                    >
+                      {s}
+                    </SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
             {/* Background filter */}
@@ -430,11 +436,19 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                 <SelectItem value="all" className="font-mono text-xs cursor-pointer">
                   All backgrounds
                 </SelectItem>
-                {allBackgrounds.map((b) => (
-                  <SelectItem key={b} value={b} className="font-mono text-xs cursor-pointer">
-                    {b}
-                  </SelectItem>
-                ))}
+                {ALL_BACKGROUND_NAMES.map((b) => {
+                  const inData = backgroundsInData.has(b)
+                  return (
+                    <SelectItem
+                      key={b}
+                      value={b}
+                      disabled={!inData}
+                      className={`font-mono text-xs ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
+                    >
+                      {b}
+                    </SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
             {/* God filter */}
@@ -457,11 +471,19 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                 <SelectItem value="all" className="font-mono text-xs cursor-pointer">
                   All gods
                 </SelectItem>
-                {allGods.map((g) => (
-                  <SelectItem key={g} value={g} className="font-mono text-xs cursor-pointer">
-                    {getGodShortFromName(g)}
-                  </SelectItem>
-                ))}
+                {ALL_GOD_NAMES.map((g) => {
+                  const inData = godsInData.has(g)
+                  return (
+                    <SelectItem
+                      key={g}
+                      value={g}
+                      disabled={!inData}
+                      className={`font-mono text-xs ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
+                    >
+                      {g}
+                    </SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
             {/* Search */}

@@ -1,6 +1,6 @@
- "use client"
+"use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { StatEntry } from "@/lib/morgue-db"
 import type { StatCategoryAverage } from "@/lib/morgue-api"
@@ -29,6 +29,7 @@ import {
   YAxis,
 } from "recharts"
 import { useTheme } from "@/contexts/theme-context"
+import { useSettings } from "@/contexts/settings-context"
 
 type ChartType = "species" | "background" | "gods"
 type ShowMode = "wins" | "attempts"
@@ -115,9 +116,31 @@ export function TestPerformanceChart({
   showAverages = true,
 }: TestPerformanceChartProps) {
   const { themeStyle } = useTheme()
-  const [chartType, setChartType] = useState<ChartType>("species")
-  const [showMode, setShowMode] = useState<ShowMode>("attempts")
-  const [sortMethod, setSortMethod] = useState<SortMethod>("default")
+  const { settings, setSettings } = useSettings()
+
+  // Normalize legacy "both" showMode to "attempts" for this chart
+  const settingsShowMode: ShowMode = settings.performanceChart.showMode === "both" ? "attempts" : settings.performanceChart.showMode
+
+  const [chartType, setChartType] = useState<ChartType>(settings.performanceChart.chartType)
+  const [showMode, setShowMode] = useState<ShowMode>(settingsShowMode)
+  const [sortMethod, setSortMethod] = useState<SortMethod>(settings.performanceChart.sortMethod)
+
+  // Sync from settings when they change (e.g. loaded from localStorage)
+  useEffect(() => {
+    setChartType(settings.performanceChart.chartType)
+    setSortMethod(settings.performanceChart.sortMethod)
+    setShowMode(settings.performanceChart.showMode === "both" ? "attempts" : settings.performanceChart.showMode)
+  }, [settings.performanceChart.chartType, settings.performanceChart.sortMethod, settings.performanceChart.showMode])
+
+  const updatePerformanceSettings = (partial: Partial<typeof settings.performanceChart>) => {
+    setSettings((prev) => ({
+      ...prev,
+      performanceChart: {
+        ...prev.performanceChart,
+        ...partial,
+      },
+    }))
+  }
 
   const categoryList = useMemo(() => {
     if (chartType === "species") return buildSpeciesListWithDraconian(speciesStats)
@@ -199,7 +222,10 @@ export function TestPerformanceChart({
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
         <CardTitle className="font-mono text-sm text-primary flex items-center gap-2">
-          <Select value={chartType} onValueChange={(v: ChartType) => setChartType(v)}>
+          <Select value={chartType} onValueChange={(v: ChartType) => {
+            setChartType(v)
+            updatePerformanceSettings({ chartType: v })
+          }}>
             <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 hover:text-yellow-400">
               <SelectValue />
             </SelectTrigger>
@@ -222,19 +248,28 @@ export function TestPerformanceChart({
             <div className="flex gap-2">
               <FilterToggleButton
                 selected={sortMethod === "wins"}
-                onClick={() => setSortMethod("wins")}
+                onClick={() => {
+                  setSortMethod("wins")
+                  updatePerformanceSettings({ sortMethod: "wins" })
+                }}
               >
                 Wins
               </FilterToggleButton>
               <FilterToggleButton
                 selected={sortMethod === "attempts"}
-                onClick={() => setSortMethod("attempts")}
+                onClick={() => {
+                  setSortMethod("attempts")
+                  updatePerformanceSettings({ sortMethod: "attempts" })
+                }}
               >
                 Attempts
               </FilterToggleButton>
               <FilterToggleButton
                 selected={sortMethod === "default"}
-                onClick={() => setSortMethod("default")}
+                onClick={() => {
+                  setSortMethod("default")
+                  updatePerformanceSettings({ sortMethod: "default" })
+                }}
               >
                 Default
               </FilterToggleButton>
@@ -245,13 +280,19 @@ export function TestPerformanceChart({
             <div className="flex gap-2">
               <FilterToggleButton
                 selected={showMode === "wins"}
-                onClick={() => setShowMode("wins")}
+                onClick={() => {
+                  setShowMode("wins")
+                  updatePerformanceSettings({ showMode: "wins" })
+                }}
               >
                 Wins
               </FilterToggleButton>
               <FilterToggleButton
                 selected={showMode === "attempts"}
-                onClick={() => setShowMode("attempts")}
+                onClick={() => {
+                  setShowMode("attempts")
+                  updatePerformanceSettings({ showMode: "attempts" })
+                }}
               >
                 Attempts
               </FilterToggleButton>

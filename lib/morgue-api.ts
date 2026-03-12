@@ -272,6 +272,7 @@ export async function recalcUserStats(
     if (name === "Fedhas Madash" || name === "Fedhas") return "Fedhas"
     if (name.toLowerCase().startsWith("nemelex")) return "Nemelex"
     if (name.toLowerCase().includes("shining one")) return "The Shining One"
+    if (name.toLowerCase().startsWith("gozag")) return "Gozag"
     return name
   }
 
