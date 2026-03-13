@@ -134,7 +134,7 @@ function computeGoals(morgues: GameRecord[]): {
       max: TOTAL_SPECIES,
     },
     {
-      name: "Greater Player",
+      name: "Grand Player",
       description: `Achieve Great Player +\nWin with all ${TOTAL_BACKGROUNDS} backgrounds`,
       current: backgrounds.size,
       max: TOTAL_BACKGROUNDS,
@@ -207,12 +207,12 @@ function computeGoals(morgues: GameRecord[]): {
   }
 }
 
-const defaultGoals: Goal[] = [
+  const defaultGoals: Goal[] = [
   { name: "Great Player", description: `Win with all ${TOTAL_SPECIES} species`, current: 0, max: TOTAL_SPECIES },
-  { name: "Greater Player", description: `Achieve Great Player +\nWin with all ${TOTAL_BACKGROUNDS} backgrounds`, current: 0, max: TOTAL_BACKGROUNDS },
+  { name: "Grand Player", description: `Achieve Great Player +\nWin with all ${TOTAL_BACKGROUNDS} backgrounds`, current: 0, max: TOTAL_BACKGROUNDS },
   { name: "Polytheist", description: `Win with all ${TOTAL_GODS} gods`, current: 0, max: TOTAL_GODS },
   { name: "Tiamat", description: `Win with all ${TOTAL_DRACONIAN_COLOURS} colours of Draconian`, current: 0, max: TOTAL_DRACONIAN_COLOURS },
-]
+  ]
 
 /** Grid of items for achievement rollover: 3 columns; hasWin = bright, else muted. */
 function AchievementDetailGrid({
@@ -266,12 +266,12 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
   const coreGoals = goals.filter(
     (g) =>
       g.name === "Great Player" ||
-      g.name === "Greater Player" ||
+      g.name === "Grand Player" ||
       g.name === "Polytheist" ||
       g.name === "Tiamat"
   )
   const greaterSpeciesGoals = goals.filter(
-    (g) => g.name.startsWith("Greater ") && g.name !== "Greater Player"
+    (g) => g.name.startsWith("Greater ") && g.name !== "Grand Player"
   )
   const hasGreaterSpeciesProgress = greaterSpeciesGoals.some((g) => g.current >= 3)
   const devotedSpeciesGoals = goals.filter((g) => g.name.startsWith("Devoted "))
@@ -309,7 +309,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
             const detailContent =
               goal.name === "Great Player" ? (
                 <AchievementDetailGrid items={ALL_SPECIES_NAMES} hasWins={coreWins.speciesWithWins} />
-              ) : goal.name === "Greater Player" ? (
+              ) : goal.name === "Grand Player" ? (
                 <AchievementDetailGrid items={ALL_BACKGROUND_NAMES} hasWins={coreWins.backgroundsWithWins} />
               ) : goal.name === "Polytheist" ? (
                 <AchievementDetailGrid items={GOD_NAMES_FOR_CHART} hasWins={coreWins.godsWithWins} />
