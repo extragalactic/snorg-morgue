@@ -70,7 +70,7 @@ export const GOD_SHORT_FORMS: Record<string, string> = {
 /** Total species for Great Player goal. */
 export const TOTAL_SPECIES = ALL_SPECIES_NAMES.length
 
-/** Total backgrounds for Greater Player goal. */
+/** Total backgrounds for Grand Player goal. */
 export const TOTAL_BACKGROUNDS = ALL_BACKGROUND_NAMES.length
 
 /** Total gods for Polytheist goal. */

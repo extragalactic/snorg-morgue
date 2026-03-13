@@ -71,10 +71,16 @@ interface SpeciesGoalMaps {
   speciesBackgroundAttempts: Map<string, Set<string>>
 }
 
+/** Per-god sets for Disciple of X achievements (species cleared under each god). */
+interface DiscipleGoalMaps {
+  godSpeciesWins: Map<string, Set<string>>
+}
+
 function computeGoals(morgues: GameRecord[]): {
   goals: Goal[]
   coreWins: CoreGoalWinSets
   speciesMaps: SpeciesGoalMaps
+  discipleMaps: DiscipleGoalMaps
 } {
   const wins = morgues.filter((m) => m.result === "win")
 
@@ -90,6 +96,7 @@ function computeGoals(morgues: GameRecord[]): {
   // For each species, track how many distinct backgrounds and gods have wins
   const speciesBackgroundWins = new Map<string, Set<string>>()
   const speciesGodWins = new Map<string, Set<string>>()
+  const godSpeciesWins = new Map<string, Set<string>>()
   for (const m of wins) {
     const sp = m.species
     const bg = m.background
@@ -110,6 +117,19 @@ function computeGoals(morgues: GameRecord[]): {
       }
       godSet.add(god)
     }
+  }
+
+  // For each god, track how many distinct species have wins
+  for (const m of wins) {
+    const sp = m.species
+    const god = m.god
+    if (!sp || !god) continue
+    let speciesSet = godSpeciesWins.get(god)
+    if (!speciesSet) {
+      speciesSet = new Set<string>()
+      godSpeciesWins.set(god, speciesSet)
+    }
+    speciesSet.add(sp)
   }
 
   // For each species, track how many distinct backgrounds have *attempts* (win or loss)
@@ -134,7 +154,7 @@ function computeGoals(morgues: GameRecord[]): {
       max: TOTAL_SPECIES,
     },
     {
-      name: "Greater Player",
+      name: "Grand Player",
       description: `Achieve Great Player +\nWin with all ${TOTAL_BACKGROUNDS} backgrounds`,
       current: backgrounds.size,
       max: TOTAL_BACKGROUNDS,
@@ -204,15 +224,18 @@ function computeGoals(morgues: GameRecord[]): {
       speciesGodWins,
       speciesBackgroundAttempts,
     },
+    discipleMaps: {
+      godSpeciesWins,
+    },
   }
 }
 
-const defaultGoals: Goal[] = [
+  const defaultGoals: Goal[] = [
   { name: "Great Player", description: `Win with all ${TOTAL_SPECIES} species`, current: 0, max: TOTAL_SPECIES },
-  { name: "Greater Player", description: `Achieve Great Player +\nWin with all ${TOTAL_BACKGROUNDS} backgrounds`, current: 0, max: TOTAL_BACKGROUNDS },
+  { name: "Grand Player", description: `Achieve Great Player +\nWin with all ${TOTAL_BACKGROUNDS} backgrounds`, current: 0, max: TOTAL_BACKGROUNDS },
   { name: "Polytheist", description: `Win with all ${TOTAL_GODS} gods`, current: 0, max: TOTAL_GODS },
   { name: "Tiamat", description: `Win with all ${TOTAL_DRACONIAN_COLOURS} colours of Draconian`, current: 0, max: TOTAL_DRACONIAN_COLOURS },
-]
+  ]
 
 /** Grid of items for achievement rollover: 3 columns; hasWin = bright, else muted. */
 function AchievementDetailGrid({
@@ -259,6 +282,9 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
     speciesGodWins: new Map<string, Set<string>>(),
     speciesBackgroundAttempts: new Map<string, Set<string>>(),
   }
+  const discipleMaps = computed?.discipleMaps ?? {
+    godSpeciesWins: new Map<string, Set<string>>(),
+  }
   const achievementPopupClass =
     "max-w-[448px] rounded-none border-2 border-primary/30 bg-card text-foreground"
   const completeIndicatorClass =
@@ -266,12 +292,12 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
   const coreGoals = goals.filter(
     (g) =>
       g.name === "Great Player" ||
-      g.name === "Greater Player" ||
+      g.name === "Grand Player" ||
       g.name === "Polytheist" ||
       g.name === "Tiamat"
   )
   const greaterSpeciesGoals = goals.filter(
-    (g) => g.name.startsWith("Greater ") && g.name !== "Greater Player"
+    (g) => g.name.startsWith("Greater ") && g.name !== "Grand Player"
   )
   const hasGreaterSpeciesProgress = greaterSpeciesGoals.some((g) => g.current >= 3)
   const devotedSpeciesGoals = goals.filter((g) => g.name.startsWith("Devoted "))
@@ -279,6 +305,20 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
   const enthusiasticSpeciesGoals = goals.filter((g) => g.name.startsWith("Enthusiastic "))
   const enthusiasticSpeciesWithProgress = enthusiasticSpeciesGoals.filter((g) => g.current >= 3)
   const hasEnthusiasticSpeciesProgress = enthusiasticSpeciesWithProgress.length > 0
+
+  // Disciple of X data (per-god species completion)
+  const discipleGods =
+    morgues.length > 0
+      ? GOD_NAMES_FOR_CHART.filter(
+          (godName) => (discipleMaps.godSpeciesWins.get(godName)?.size ?? 0) >= 3
+        )
+      : ["Trog"]
+
+  const hasDiscipleProgress =
+    morgues.length > 0
+      ? discipleGods.length > 0
+      : true
+
   if (loading) {
     return (
       <Card className="border-2 border-primary/30 rounded-none">
@@ -309,7 +349,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
             const detailContent =
               goal.name === "Great Player" ? (
                 <AchievementDetailGrid items={ALL_SPECIES_NAMES} hasWins={coreWins.speciesWithWins} />
-              ) : goal.name === "Greater Player" ? (
+              ) : goal.name === "Grand Player" ? (
                 <AchievementDetailGrid items={ALL_BACKGROUND_NAMES} hasWins={coreWins.backgroundsWithWins} />
               ) : goal.name === "Polytheist" ? (
                 <AchievementDetailGrid items={GOD_NAMES_FOR_CHART} hasWins={coreWins.godsWithWins} />
@@ -587,12 +627,97 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
               </div>
             ) : (
               <p className="text-sm text-muted-foreground font-mono">
-                Before you see the Enthusiastic Species tracking you must attempt a win with a species with a minimum of 3 different backgrounds.
+                Before you see the Enthusiastic Species tracking you must attempt a win with a species using a minimum of 3 different backgrounds.
               </p>
             )}
           </CardContent>
         </Card>
       )}
+
+      {/* Divine Disciples card */}
+      <Card className="mt-6 border-2 border-primary/30 rounded-none">
+        <CardHeader className="border-b-2 border-primary/20 pb-3">
+          <CardTitle className="font-mono text-sm text-primary">DIVINE DISCIPLES</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {hasDiscipleProgress ? (
+            <div className="grid gap-6 md:grid-cols-4">
+              {discipleGods.map((godName) => {
+                const speciesSet =
+                  morgues.length > 0
+                    ? discipleMaps.godSpeciesWins.get(godName) ?? new Set<string>()
+                    : new Set<string>(["Minotaur", "Troll", "Hill Orc"])
+                const current = speciesSet.size
+                const percentage = (current / TOTAL_SPECIES) * 100
+                const isComplete = current >= TOTAL_SPECIES
+                const wonSpecies =
+                  morgues.length > 0 ? new Set(speciesSet) : new Set<string>(["Minotaur", "Troll", "Hill Orc"])
+                const tooltipSpecies = ALL_SPECIES_NAMES
+                return (
+                  <Tooltip key={godName}>
+                    <TooltipTrigger asChild>
+                      <div className="space-y-2 cursor-default">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1 font-mono text-sm text-foreground">
+                            Disciple of {godName}
+                            {isComplete && (
+                              <Check
+                                className={`h-3.5 w-3.5 ${
+                                  themeStyle === "ascii" ? "text-emerald-300" : "text-emerald-400"
+                                }`}
+                              />
+                            )}
+                          </span>
+                          <span
+                            className={`font-mono text-sm ${
+                              isComplete
+                                ? themeStyle === "ascii"
+                                  ? "text-emerald-300"
+                                  : "text-emerald-400"
+                                : "text-primary"
+                            }`}
+                          >
+                            {current}/{TOTAL_SPECIES}
+                          </span>
+                        </div>
+                        <Progress
+                          value={percentage}
+                          className="h-3 rounded-none bg-secondary border border-primary/30"
+                          indicatorClassName={isComplete ? completeIndicatorClass : undefined}
+                        />
+                        <p className="text-xs text-muted-foreground whitespace-pre-line">
+                          Win with all {TOTAL_SPECIES} species while worshipping {godName}.
+                        </p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
+                      <div className="grid grid-cols-3 gap-x-4 gap-y-0.5 py-0.5">
+                        {tooltipSpecies.map((sp) => {
+                          const hasWin = wonSpecies.has(sp)
+                          return (
+                            <span
+                              key={sp}
+                              className={`font-mono text-sm ${
+                                hasWin ? "text-foreground font-semibold" : "text-foreground/60"
+                              }`}
+                            >
+                              {sp}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground font-mono">
+              Before you see the Divine Disciples tracking you must have wins with a god on a minimum of 3 different species.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Devoted Species card */}
       {devotedSpeciesGoals.length > 0 && (
@@ -654,7 +779,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
               </div>
             ) : (
               <p className="text-sm text-muted-foreground font-mono">
-                Before you see the Devoted Species tracking you must win with a species with a minimum of 3 different gods.
+                Before you see the Devoted Species tracking you must have wins with a species worshipping a minimum of 3 different gods.
               </p>
             )}
           </CardContent>

@@ -3,8 +3,16 @@ Snorg-Morge ToDo
 - enable Google auth
 - need to test logic for email/username duplicates on signup
 - need to test on older versions of morgue files
+- on the grid block out combos that are not possible
+- new section to show: best score, average score
+- Search Morgues is searching what exactly?
+- would be cool to have a Congrats modal after uploading/detecting a new Win 
+- the importers should enforce reasonable data min/max limits to prevent cheating or broken files
 
+- add a function to only show morgues from a range of game versions
 
+- connect to online game servers
+https://dcss-stats.com/players/dlwiii
 
 ...hey, buy more vape bags!
 

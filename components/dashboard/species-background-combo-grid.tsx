@@ -74,7 +74,7 @@ export function SpeciesBackgroundComboGrid({
   const hasData = morgues.length > 0
 
   return (
-    <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 bg-background border-y-2 border-primary/30 mt-8">
+    <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 bg-background border-b-2 border-primary/30 mt-2">
       <div className="mx-auto max-w-7xl px-4 py-6">
         <Card className="border-2 border-primary/30 rounded-none">
           <CardHeader className="border-b-2 border-primary/20 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -142,6 +142,7 @@ export function SpeciesBackgroundComboGrid({
                           const active =
                             mode === "wins" ? counts.wins > 0 : counts.attempts > 0
                           const comboCode = `${speciesCode(sp)}${backgroundCode(bg)}`
+                          const value = mode === "wins" ? counts.wins : counts.attempts
 
                           if (!active) {
                             return (
@@ -153,15 +154,18 @@ export function SpeciesBackgroundComboGrid({
                             )
                           }
 
+                          const colorClass =
+                            mode === "wins" ? "border-green-500 text-green-500" : "border-yellow-400 text-yellow-400"
+
                           return (
                             <Tooltip key={key}>
                               <TooltipTrigger asChild>
                                 <div
-                                  className={`aspect-square w-full border border-primary/20 ${
-                                    mode === "wins" ? "bg-green-500/60" : "bg-yellow-400/60"
-                                  }`}
+                                  className={`aspect-square w-full border-2 bg-background flex items-center justify-center font-mono text-sm ${colorClass}`}
                                   aria-label={`${sp} ${bg} ${mode}`}
-                                />
+                                >
+                                  {value}
+                                </div>
                               </TooltipTrigger>
                               <TooltipContent
                                 side="top"
