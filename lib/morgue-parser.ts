@@ -3,7 +3,7 @@
  * Throws with a friendly message if the format is unrecognized.
  */
 
-import { ALL_BACKGROUND_NAMES } from "./dcss-constants"
+import { ALL_BACKGROUND_NAMES, ALL_GOD_NAMES } from "./dcss-constants"
 
 export interface ParsedMorgue {
   version: string
@@ -47,6 +47,26 @@ const ABANDON_PROMPT = "Are you sure you want to abandon this character and retu
 /** Distinctive phrase on the confirm line (avoids relying on exact trailing punctuation, which can vary). */
 const ABANDON_CONFIRM_PHRASE = '(Confirm with "quit"'
 const DUNGEON_1_15 = "Dungeon (1/15)"
+
+function normalizeGodNameFromMorgue(raw: string): string {
+  const name = (raw ?? "").trim()
+  if (!name || name === "(no god)") return "(no god)"
+
+  const lower = name.toLowerCase()
+
+  // Handle known variants / prefixes.
+  if (lower.startsWith("fedhas")) return "Fedhas"
+  if (lower.startsWith("nemelex")) return "Nemelex"
+  if (lower.includes("shining one")) return "The Shining One"
+  if (lower.startsWith("gozag")) return "Gozag"
+
+  // Exact canonical match.
+  const canonical = ALL_GOD_NAMES.find((g) => g.toLowerCase() === lower)
+  if (canonical) return canonical
+
+  // Anything else is treated as "no god" to avoid false positives from phrases like "lignification".
+  return "(no god)"
+}
 
 /**
  * Returns true if the raw morgue text is an abandoned-character file that should be skipped on import:
@@ -262,6 +282,7 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     const initiateMatch = text.match(/Was (?:an?|a) \w+ of ([^.]+)\./i)
     if (initiateMatch && initiateMatch[1]) god = initiateMatch[1].trim()
   }
+  god = normalizeGodNameFromMorgue(god)
 
   // Runes: "}: 2/15 runes: decaying, gossamer"
   const runesMatch = text.match(/\}:\s*(\d+)\/(\d+)\s+runes:\s*(.+?)(?:\n|$)/)
