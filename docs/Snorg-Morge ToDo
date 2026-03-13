@@ -7,6 +7,9 @@ Snorg-Morge ToDo
 - new section to show: best score, average score
 - Search Morgues is searching what exactly?
 - would be cool to have a Congrats modal after uploading/detecting a new Win 
+- the importers should enforce reasonable data min/max limits to prevent cheating or broken files
+
+- add a function to only show morgues from a range of game versions
 
 - connect to online game servers
 https://dcss-stats.com/players/dlwiii
