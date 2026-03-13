@@ -1,0 +1,31 @@
+name: Supabase Backup
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+    steps:
+      - name: Install pg_dump
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client gzip
+
+      - name: Create compressed backup
+        run: |
+          mkdir -p backups
+          pg_dump "$SUPABASE_DB_URL" | gzip > "backups/supabase-backup-$(date +%F-%H%M%S).sql.gz"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-backup
+          path: backups/*.sql.gz
+          retention-days: 60
