@@ -253,73 +253,23 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
   }
 
   return (
-    <div className={fillHeight ? "flex min-h-0 flex-1 flex-col gap-4" : "space-y-4"}>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-          {!hideBackButton && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2 rounded-none border-2 border-primary/50 hover:border-primary hover:bg-primary/10 hover:text-yellow-400 font-mono text-xs"
-              onClick={onBack}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Morgues
-            </Button>
-          )}
-          <div>
-            <h2 className="font-mono text-lg text-primary">{game.character}</h2>
-            <p className="text-sm text-muted-foreground">
-              {game.date}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge
-            className={
-              game.result === "win"
-                ? "rounded-none bg-green-500/20 text-green-400 border border-green-500/50"
-                : "rounded-none bg-red-500/20 text-red-400 border border-red-500/50"
-            }
-          >
-            {game.result === "win" ? "Victory" : "Death"} — XL {game.xl}
-          </Badge>
-          {canShare && (
-            <div className="relative">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 rounded-none border-2 border-primary/50 font-mono text-xs hover:text-yellow-400"
-                onClick={handleShare}
-              >
-                <Share2 className="h-4 w-4" />
-                Share
-              </Button>
-              <span className={`absolute left-1/2 top-full -translate-x-1/2 mt-0.5 text-xs font-mono whitespace-nowrap ${shareCopied ? "text-muted-foreground" : "invisible"}`}>
-                {shareCopied ? "URL copied" : "\u00A0"}
-              </span>
-            </div>
-          )}
-          {showDownloadButton && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 rounded-none border-2 border-primary/50 font-mono text-xs hover:text-yellow-400"
-            onClick={handleDownload}
-            disabled={!rawText}
-          >
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Download</span>
-          </Button>
-          )}
-        </div>
-      </div>
-
+    <div className={fillHeight ? "flex min-h-0 flex-1 flex-col" : "flex flex-col"}>
       <Card className={fillHeight ? "flex min-h-0 flex-1 flex-col overflow-hidden border-2 border-primary/30 rounded-none" : "border-2 border-primary/30 rounded-none"}>
-        <CardHeader className="flex-shrink-0 border-b-2 border-primary/20 py-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-mono text-lg sm:text-xl text-primary">
+        <CardHeader className="flex-shrink-0 border-b-2 border-primary/20 px-4 pt-2 pb-2">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
+            <div className="flex items-center gap-3 min-w-0">
+              {!hideBackButton && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 rounded-none border-2 border-primary/50 hover:border-primary hover:bg-primary/10 hover:text-yellow-400 font-mono text-xs shrink-0"
+                  onClick={onBack}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Morgues
+                </Button>
+              )}
+              <p className="font-mono text-lg sm:text-xl text-primary truncate">
                 {(() => {
                   const parts = [game.species, game.background].filter(Boolean)
                   const base = parts.join(" ") || "Character"
@@ -327,16 +277,65 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
                   return godName ? `${base} of ${godName}` : base
                 })()}
               </p>
-              <p className="font-mono text-xs sm:text-sm text-muted-foreground tracking-wide">
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Badge
+                className={
+                  game.result === "win"
+                    ? "rounded-none bg-green-500/20 text-green-400 border border-green-500/50"
+                    : "rounded-none bg-red-500/20 text-red-400 border border-red-500/50"
+                }
+              >
+                {game.result === "win" ? "Victory" : "Death"} — XL {game.xl}
+              </Badge>
+              {canShare && (
+                <div className="relative">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 rounded-none border-2 border-primary/50 font-mono text-xs hover:text-yellow-400"
+                    onClick={handleShare}
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Share
+                  </Button>
+                  <span className={`absolute left-1/2 top-full -translate-x-1/2 mt-0.5 text-xs font-mono whitespace-nowrap ${shareCopied ? "text-muted-foreground" : "invisible"}`}>
+                    {shareCopied ? "URL copied" : "\u00A0"}
+                  </span>
+                </div>
+              )}
+              {showDownloadButton && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 rounded-none border-2 border-primary/50 font-mono text-xs hover:text-yellow-400"
+                  onClick={handleDownload}
+                  disabled={!rawText}
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Download</span>
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
+              <p className="font-mono text-xs text-primary tracking-wide">
                 {`LEVEL ${game.xl}`}
+              </p>
+              <p className="font-mono text-sm text-muted-foreground">
+                {game.character}
+                {game.date && (
+                  <span className="ml-1.5 text-muted-foreground/90">— {game.date}</span>
+                )}
               </p>
             </div>
             {filename && (
-              <p className="text-xs text-muted-foreground">{filename}</p>
+              <p className="text-xs text-muted-foreground shrink-0 truncate max-w-[40%]">{filename}</p>
             )}
           </div>
           {sectionTitles.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-2 border-t border-primary/20 mt-2">
+            <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-primary/20 mt-1.5">
               {sectionTitles.map(({ id, title }) => (
                 <Button
                   key={id}
