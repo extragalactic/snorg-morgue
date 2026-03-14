@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null) as
-    | { userId?: string; dcssUsername?: string; maxGamesPerServer?: number }
+    | { userId?: string; dcssUsername?: string; maxGamesPerServer?: number; serverAbbreviations?: string[] }
     | null
 
   const userId = body?.userId?.trim()
@@ -27,6 +27,7 @@ export async function POST(request: Request) {
   try {
     const result = await scanOnlineGames(supabase, userId, dcssUsername, {
       maxGamesPerServer: body?.maxGamesPerServer,
+      serverAbbreviations: body?.serverAbbreviations,
     })
     return NextResponse.json(result)
   } catch (e) {

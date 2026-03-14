@@ -1,34 +1,25 @@
-"use client"
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
-import { DCSS_SERVERS } from "@/lib/dcss-public-sources"
-import { useAuth } from "@/contexts/auth-context"
-import { toast } from "@/hooks/use-toast"
-
-type ServerRow = {
-  abbreviation: string
-  name: string
-}
-
-const PRIMARY_SERVER_ABBR = "CDI"
-
-function getPrimaryServerRow(): ServerRow {
-  const server = DCSS_SERVERS.find((s) => s.abbreviation === PRIMARY_SERVER_ABBR)
-  if (!server) {
-    return { abbreviation: PRIMARY_SERVER_ABBR, name: PRIMARY_SERVER_ABBR }
-  }
-  return { abbreviation: server.abbreviation, name: server.name }
-}
+ "use client"
+ 
+ import { useState, useRef, useEffect } from "react"
+ import { Button } from "@/components/ui/button"
+ import {
+   Dialog,
+   DialogContent,
+   DialogHeader,
+   DialogTitle,
+   DialogDescription,
+ } from "@/components/ui/dialog"
+ import { Input } from "@/components/ui/input"
+ import { Card } from "@/components/ui/card"
+ import { Checkbox } from "@/components/ui/checkbox"
+ import { DCSS_SERVERS } from "@/lib/dcss-public-sources"
+ import { useAuth } from "@/contexts/auth-context"
+ import { toast } from "@/hooks/use-toast"
+ 
+ type ServerRow = {
+   abbreviation: string
+   name: string
+ }
 
 interface OnlineImportDialogProps {
   open: boolean
@@ -38,7 +29,7 @@ interface OnlineImportDialogProps {
 }
 
 interface ScanServerState {
-  status: "idle" | "scanning" | "done" | "error"
+  status: "idle" | "scanning" | "done" | "error" | "skipped"
   totalGamesFound: number
   totalGamesImported: number
   newGames: number
@@ -60,23 +51,81 @@ interface ImportSummary {
   lastErrors: number
 }
 
+interface UiServerState extends ServerRow {
+  checked: boolean
+  scan: ScanServerState
+}
+
+const STORAGE_KEY_SELECTED_SERVERS = "snorg-online-import-selected-servers"
+const SCAN_TIMEOUT_MS = 60_000
+const IMPORT_TIMEOUT_MS = 120_000
+
+function loadSelectedServerAbbreviations(): Set<string> {
+  if (typeof window === "undefined") return new Set()
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_SELECTED_SERVERS)
+    if (!raw) return new Set()
+    const arr = JSON.parse(raw) as unknown
+    if (!Array.isArray(arr)) return new Set()
+    return new Set((arr as string[]).filter((s) => typeof s === "string"))
+  } catch {
+    return new Set()
+  }
+}
+
+function saveSelectedServerAbbreviations(abbreviations: string[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY_SELECTED_SERVERS, JSON.stringify(abbreviations))
+  } catch {
+    // ignore
+  }
+}
+
 export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: OnlineImportDialogProps) {
   const { userId } = useAuth()
   const [dcssUsername, setDcssUsername] = useState("particleface")
   const [maxGames, setMaxGames] = useState<string>("3")
-  const [serverState, setServerState] = useState<ScanServerState>(initialServerState)
+  const [servers, setServers] = useState<UiServerState[]>(() => {
+    const saved = loadSelectedServerAbbreviations()
+    return DCSS_SERVERS.map((s, index) => ({
+      abbreviation: s.abbreviation,
+      name: s.name,
+      checked: saved.size > 0 ? saved.has(s.abbreviation) : index === 0,
+      scan: initialServerState,
+    })) as UiServerState[]
+  })
   const [isScanning, setIsScanning] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [lastScanUsername, setLastScanUsername] = useState<string | null>(null)
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null)
+  const [activeScanIndex, setActiveScanIndex] = useState<number | null>(null)
+  const scanAbortRef = useRef<AbortController | null>(null)
+  const importAbortRef = useRef<AbortController | null>(null)
 
-  const serverRow = getPrimaryServerRow()
-  const hasScan = serverState.status === "done" || serverState.status === "error"
-  const canScan = !!userId && dcssUsername.trim().length > 0 && !isScanning && !isImporting
+  // Persist selected servers to localStorage when checkboxes change.
+  useEffect(() => {
+    const selected = servers.filter((s) => s.checked).map((s) => s.abbreviation)
+    saveSelectedServerAbbreviations(selected)
+  }, [servers])
+
+  const hasScan = servers.some(
+    (s) => s.scan.status === "done" || s.scan.status === "error" || s.scan.status === "skipped",
+  )
+  const totalNewGamesForSelected = servers.reduce(
+    (sum, s) => (s.checked ? sum + s.scan.newGames : sum),
+    0,
+  )
+  const hasSelectedServer = servers.some((s) => s.checked)
+  const canScan =
+    !!userId &&
+    dcssUsername.trim().length > 0 &&
+    hasSelectedServer &&
+    !isScanning &&
+    !isImporting
   const canImport =
     !!userId &&
     hasScan &&
-    serverState.newGames > 0 &&
+    totalNewGamesForSelected > 0 &&
     !isImporting &&
     !isScanning &&
     lastScanUsername === dcssUsername.trim()
@@ -84,6 +133,7 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
   const handleClose = () => {
     if (isScanning || isImporting) return
     setImportSummary(null)
+    setActiveScanIndex(null)
     onOpenChange(false)
   }
 
@@ -92,61 +142,118 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
     const username = dcssUsername.trim()
 
     setIsScanning(true)
-    setServerState({ ...initialServerState, status: "scanning" })
+    setImportSummary(null)
+    // Reset all scan state to idle before starting a new pass.
+    setServers((prev) =>
+      prev.map((server) => ({
+        ...server,
+        scan: { ...initialServerState, status: "idle" },
+      })),
+    )
 
     try {
-      const res = await fetch("/api/online-import/scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          dcssUsername: username,
-        }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error((data.error as string) ?? `Scan failed with status ${res.status}`)
+      // Only scan servers that are selected (checked).
+      const indicesToScan = servers
+        .map((s, i) => (s.checked ? i : -1))
+        .filter((i) => i >= 0)
+      for (const index of indicesToScan) {
+        const server = servers[index]
+        const controller = new AbortController()
+        scanAbortRef.current = controller
+        const timeoutId = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS)
+
+        setActiveScanIndex(index)
+        setServers((prev) =>
+          prev.map((s, i) =>
+            i === index
+              ? {
+                  ...s,
+                  scan: {
+                    ...s.scan,
+                    status: "scanning",
+                    errorMessage: null,
+                  },
+                }
+              : s,
+          ),
+        )
+
+        try {
+          const res = await fetch("/api/online-import/scan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId,
+              dcssUsername: username,
+              serverAbbreviations: [server.abbreviation],
+            }),
+            signal: controller.signal,
+          })
+          clearTimeout(timeoutId)
+          scanAbortRef.current = null
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}))
+            throw new Error((data.error as string) ?? `Scan failed with status ${res.status}`)
+          }
+          const data = (await res.json()) as {
+            servers: {
+              serverAbbreviation: string
+              status: "ok" | "skipped" | "error"
+              totalGamesFound: number
+              totalGamesImported: number
+              newGames: number
+              errorMessage: string | null
+            }[]
+          }
+          const result = data.servers[0]
+          setServers((prev) =>
+            prev.map((s) =>
+              s.abbreviation === server.abbreviation
+                ? {
+                    ...s,
+                    scan: {
+                      status: result ? (result.status === "error" ? "error" : "done") : "error",
+                      totalGamesFound: result?.totalGamesFound ?? 0,
+                      totalGamesImported: result?.totalGamesImported ?? 0,
+                      newGames: result?.newGames ?? 0,
+                      errorMessage: result?.errorMessage ?? (result ? null : "No server data returned."),
+                    },
+                  }
+                : s,
+            ),
+          )
+        } catch (e) {
+          clearTimeout(timeoutId)
+          scanAbortRef.current = null
+          const isAbort = e instanceof Error && e.name === "AbortError"
+          setServers((prev) =>
+            prev.map((s) =>
+              s.abbreviation === server.abbreviation
+                ? {
+                    ...s,
+                    scan: {
+                      status: isAbort ? "skipped" : "error",
+                      totalGamesFound: 0,
+                      totalGamesImported: 0,
+                      newGames: 0,
+                      errorMessage: isAbort ? null : (e instanceof Error ? e.message : String(e)),
+                    },
+                  }
+                : s,
+            ),
+          )
+        }
       }
-      const data = (await res.json()) as {
-        servers: {
-          serverAbbreviation: string
-          status: "ok" | "skipped" | "error"
-          totalGamesFound: number
-          totalGamesImported: number
-          newGames: number
-          errorMessage: string | null
-        }[]
-      }
-      const primary = data.servers[0]
-      if (!primary) {
-        setServerState({
-          status: "error",
-          totalGamesFound: 0,
-          totalGamesImported: 0,
-          newGames: 0,
-          errorMessage: "No server data returned.",
-        })
-      } else {
-        setServerState({
-          status: primary.status === "error" ? "error" : "done",
-          totalGamesFound: primary.totalGamesFound,
-          totalGamesImported: primary.totalGamesImported,
-          newGames: primary.newGames,
-          errorMessage: primary.errorMessage,
-        })
-        setLastScanUsername(username)
-      }
-    } catch (e) {
-      setServerState({
-        status: "error",
-        totalGamesFound: 0,
-        totalGamesImported: 0,
-        newGames: 0,
-        errorMessage: e instanceof Error ? e.message : String(e),
-      })
+      setLastScanUsername(username)
     } finally {
       setIsScanning(false)
+      setActiveScanIndex(null)
+      scanAbortRef.current = null
     }
+  }
+
+  const handleSkipScan = () => {
+    scanAbortRef.current?.abort()
   }
 
   const handleImport = async () => {
@@ -154,6 +261,11 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
     const username = dcssUsername.trim()
     const max = Number.parseInt(maxGames, 10)
     const maxNewGamesPerServer = Number.isFinite(max) && max > 0 ? max : 3
+
+    const selectedServerAbbreviations = servers.filter((s) => s.checked).map((s) => s.abbreviation)
+    if (selectedServerAbbreviations.length === 0) {
+      return
+    }
 
     setIsImporting(true)
     // Seed summary so we can show the target count while the import runs.
@@ -163,6 +275,12 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
       lastDuplicates: 0,
       lastErrors: 0,
     })
+    const importController = new AbortController()
+    importAbortRef.current = importController
+    let importTimeoutId: ReturnType<typeof setTimeout> | null = setTimeout(
+      () => importController.abort(),
+      IMPORT_TIMEOUT_MS,
+    )
     try {
       const res = await fetch("/api/online-import/import", {
         method: "POST",
@@ -171,20 +289,33 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
           userId,
           dcssUsername: username,
           maxNewGamesPerServer,
+          serverAbbreviations: selectedServerAbbreviations,
         }),
+        signal: importController.signal,
       })
+      if (importTimeoutId != null) {
+        clearTimeout(importTimeoutId)
+        importTimeoutId = null
+      }
+      importAbortRef.current = null
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         throw new Error((data.error as string) ?? `Import failed with status ${res.status}`)
       }
       const data = (await res.json()) as {
         summary: { totalNewGamesImported: number; totalDuplicatesSkipped: number }
-        servers: { errors: string[] }[]
+        servers: {
+          serverAbbreviation: string
+          status: "ok" | "skipped" | "error"
+          newGamesImported: number
+          duplicatesSkipped: number
+          errors: string[]
+        }[]
       }
 
       const imported = data.summary.totalNewGamesImported
       const dupes = data.summary.totalDuplicatesSkipped
-      const primaryErrors = data.servers?.[0]?.errors ?? []
+      const allErrors = data.servers?.flatMap((s) => s.errors ?? []) ?? []
 
       toast({
         title: "Online import complete",
@@ -194,33 +325,51 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
             : `${imported} new game${imported === 1 ? "" : "s"} imported, ${dupes} duplicate${dupes === 1 ? "" : "s"} skipped.`,
       })
 
-      if (primaryErrors.length > 0) {
+      if (allErrors.length > 0) {
         // Log extra detail to console so we don't overwhelm the toast.
-        console.error("[snorg-morgue] Online import errors:", primaryErrors)
+        console.error("[snorg-morgue] Online import errors:", allErrors)
       }
 
-      // After a successful import, consider the "newGames" count consumed by the number of imported games.
-      setServerState((prev) => ({
-        ...prev,
-        newGames: Math.max(0, prev.newGames - imported),
-      }))
+      // After a successful import, consider the "newGames" count consumed per server.
+      setServers((prev) =>
+        prev.map((server) => {
+          const serverResult = data.servers.find((s) => s.serverAbbreviation === server.abbreviation)
+          if (!serverResult) return server
+          const importedForServer = serverResult.newGamesImported
+          return {
+            ...server,
+            scan: {
+              ...server.scan,
+              newGames: Math.max(0, server.scan.newGames - importedForServer),
+            },
+          }
+        }),
+      )
 
       setImportSummary({
         lastRequested: maxNewGamesPerServer,
         lastImported: imported,
         lastDuplicates: dupes,
-        lastErrors: primaryErrors.length,
+        lastErrors: allErrors.length,
       })
 
       onImportComplete?.()
     } catch (e) {
+      if (importTimeoutId != null) clearTimeout(importTimeoutId)
+      importAbortRef.current = null
+      const message =
+        e instanceof Error && e.name === "AbortError"
+          ? "Import timed out. The server may be slow or unresponsive."
+          : e instanceof Error ? e.message : String(e)
       toast({
         title: "Online import failed",
-        description: e instanceof Error ? e.message : String(e),
+        description: message,
         variant: "destructive",
       })
     } finally {
+      if (importTimeoutId != null) clearTimeout(importTimeoutId)
       setIsImporting(false)
+      importAbortRef.current = null
     }
   }
 
@@ -230,7 +379,7 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
         <DialogHeader>
           <DialogTitle className="font-mono text-sm text-primary">Online Import (Stage 1)</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Manually scan and import games from a DCSS online server into Snorg. For now this is limited to a single server
+            Manually scan and import games from DCSS online servers into Snorg. For now this is limited to a few servers
             and small test imports.
           </DialogDescription>
         </DialogHeader>
@@ -299,35 +448,90 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
             </p>
           </div>
 
-          <Card className="border-2 border-primary/30 rounded-none p-3">
-            <div className="flex items-center justify-between text-xs font-mono mb-2">
-              <span className="text-primary">{serverRow.name}</span>
-              <span className="text-muted-foreground">{serverRow.abbreviation}</span>
+          <div className="space-y-2">
+            <p className="text-xs font-mono text-primary">Servers</p>
+            <div className="space-y-2">
+              {servers.map((server, index) => {
+                const isActive = activeScanIndex === index && isScanning
+                const scan = server.scan
+                return (
+                  <Card
+                    key={server.abbreviation}
+                    className={`rounded-none p-3 border-2 ${
+                      isActive ? "border-primary bg-primary/5" : "border-primary/30"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-xs font-mono mb-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={server.checked}
+                          onCheckedChange={(checked) =>
+                            setServers((prev) =>
+                              prev.map((s) =>
+                                s.abbreviation === server.abbreviation
+                                  ? { ...s, checked: Boolean(checked) }
+                                  : s,
+                              ),
+                            )
+                          }
+                          disabled={isScanning || isImporting}
+                          className="mt-[1px]"
+                        />
+                        <span className="text-primary">{server.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">{server.abbreviation}</span>
+                        {isScanning && activeScanIndex === index && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-none border-2 border-amber-500/70 text-amber-700 dark:text-amber-400 font-mono text-[11px] h-7 px-2"
+                            onClick={handleSkipScan}
+                          >
+                            Skip
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-muted-foreground space-y-1">
+                      <p className="text-sm font-medium">
+                        Status:{" "}
+                        {scan.status === "idle" && "Not scanned yet"}
+                        {scan.status === "scanning" && (
+                          <span className="inline-flex items-center text-primary">
+                            Scanning
+                            <span className="animate-scan-dots inline-flex ml-0.5">
+                              <span>.</span>
+                              <span>.</span>
+                              <span>.</span>
+                            </span>
+                          </span>
+                        )}
+                        {scan.status === "done" && "Scan complete"}
+                        {scan.status === "error" && "Error"}
+                        {scan.status === "skipped" && "Skipped"}
+                      </p>
+                      {scan.status !== "idle" && (
+                        <p className="text-sm">
+                          Games found:{" "}
+                          <span
+                            className={`font-mono font-medium ${
+                              scan.totalGamesFound > 0 ? "text-green-600 dark:text-green-400" : ""
+                            }`}
+                          >
+                            {scan.totalGamesFound}{" "}
+                            {scan.totalGamesFound > 0 ? `(new: ${scan.newGames})` : ""}
+                          </span>
+                        </p>
+                      )}
+                      {scan.errorMessage && <p className="text-[11px] text-red-500">{scan.errorMessage}</p>}
+                    </div>
+                  </Card>
+                )
+              })}
             </div>
-            <div className="text-[11px] text-muted-foreground space-y-1">
-              <p>
-                Status:{" "}
-                {serverState.status === "idle" && "Not scanned yet"}
-                {serverState.status === "scanning" && "Scanning…"}
-                {serverState.status === "done" && "Scan complete"}
-                {serverState.status === "error" && "Error"}
-              </p>
-              {serverState.status !== "idle" && (
-                <p>
-                  Games found:{" "}
-                  <span className="font-mono">
-                    {serverState.totalGamesFound}{" "}
-                    {serverState.totalGamesFound > 0 ? `(new: ${serverState.newGames})` : ""}
-                  </span>
-                </p>
-              )}
-              {serverState.errorMessage && (
-                <p className="text-red-500">
-                  {serverState.errorMessage}
-                </p>
-              )}
-            </div>
-          </Card>
+          </div>
 
           <div className="flex justify-between pt-2">
             <Button

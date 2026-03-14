@@ -3,11 +3,21 @@ Snorg-Morge ToDo
 - enable Google auth
 - need to test logic for email/username duplicates on signup
 - need to test on older versions of morgue files
-- on the grid block out combos that are not possible
 - new section to show: best score, average score
 - Search Morgues is searching what exactly?
 - would be cool to have a Congrats modal after uploading/detecting a new Win 
 - the importers should enforce reasonable data min/max limits to prevent cheating or broken files
+- make a readme.md file for github
+- setup explicit style enums for the site like Primary, Secondary, PrimaryDark, PrimaryLight, etc.
+- on the grid block out combos that are not possible (copy the chart on https://dcss-stats.com/players/dlwiii)
+- when you rollover the hours played value it should open a popup with the hours in huge font and a funny subtitle
+- when you rollover a Snorg Award show a tooltip with a larger (pixelated) version of the image, and the font size increases with the award
+- make the primary 4 Great Player awards double size
+- need to test how the bottom grid reacts to more than 1 winner per box
+- reduce unnecessary height of the morgue details view header area
+- what's the proper terminology: Grand Player or Greater Player? And how is it defined?
+- increase size of titles and subtitles (and standardize the title sizes with an explicit enum)
+- rename the Online Upload button to something like Game Server Sync, or just Sync. Have a Help tooltip somewhere perhaps for help on first upload/sync
 
 - add a function to only show morgues from a range of game versions
 

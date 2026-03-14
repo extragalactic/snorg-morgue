@@ -15,7 +15,13 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null) as
-    | { userId?: string; dcssUsername?: string; maxGamesPerServer?: number; maxNewGamesPerServer?: number }
+    | {
+        userId?: string
+        dcssUsername?: string
+        maxGamesPerServer?: number
+        maxNewGamesPerServer?: number
+        serverAbbreviations?: string[]
+      }
     | null
 
   const userId = body?.userId?.trim()
@@ -29,6 +35,7 @@ export async function POST(request: Request) {
     const importResult = await runOnlineImport(supabase, userId, dcssUsername, {
       maxGamesPerServer: body?.maxGamesPerServer,
       maxNewGamesPerServer: body?.maxNewGamesPerServer,
+      serverAbbreviations: body?.serverAbbreviations,
     })
 
     if (importResult.summary.totalNewGamesImported > 0) {

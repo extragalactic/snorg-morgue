@@ -1,13 +1,11 @@
 import crypto from "crypto"
 
 import { DCSS_SERVERS } from "./dcss-public-sources"
+import type { DcssServerConfig } from "./dcss-public-sources"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { nanoid } from "nanoid"
 import { parseMorgue } from "./morgue-parser"
 import { parsedToRow } from "./morgue-db"
-
-// Only support a single server in Stage 1 to keep the implementation focused.
-const PRIMARY_SERVER_ABBR = "CDI"
 
 export type OnlineImportServerStatus = "ok" | "skipped" | "error"
 
@@ -46,14 +44,6 @@ export interface OnlineImportRunResult {
 
 type ParsedXlog = Record<string, string>
 
-function getPrimaryServerConfig() {
-  const server = DCSS_SERVERS.find((s) => s.abbreviation === PRIMARY_SERVER_ABBR)
-  if (!server) {
-    throw new Error(`Primary server with abbreviation ${PRIMARY_SERVER_ABBR} not found in DCSS_SERVERS`)
-  }
-  return server
-}
-
 function parseXlogLine(line: string): ParsedXlog | null {
   const trimmed = line.trim()
   if (!trimmed || trimmed.startsWith("#")) return null
@@ -74,13 +64,12 @@ function computeGameSignature(serverAbbr: string, name: string, end: string, ver
   return crypto.createHash("sha1").update(raw).digest("hex")
 }
 
-// CDI morgue URL pattern:
-// base: https://crawl.dcss.io/crawl/morgue
+// Generic morgue URL pattern used by the supported servers:
+// base: <server.morgueUrl> or a sensible default derived from baseUrl
 // path: /<Name>/morgue-Name-YYYYMMDD-HHMMSS.txt
 // The xlog "end" field sometimes contains trailing non-digit characters (e.g. timezone markers);
 // we strip everything but the first 14 digits (YYYYMMDDHHMMSS) before formatting.
-function buildCdiMorgueUrl(name: string, end: string) {
-  const server = getPrimaryServerConfig()
+function buildMorgueUrl(server: DcssServerConfig, name: string, end: string) {
   const base = server.morgueUrl ?? `${server.baseUrl}/crawl/morgue`
   const cleanName = name.trim()
   // Keep only digits from the end timestamp and use the first 14 (YYYYMMDDHHMMSS).
@@ -92,10 +81,9 @@ function buildCdiMorgueUrl(name: string, end: string) {
   return `${base}/${encodeURIComponent(cleanName)}/morgue-${encodeURIComponent(cleanName)}-${formatted}.txt`
 }
 
-// Fallback helper for CDI: if the naive URL 404s, look at the user's morgue directory and
+// Fallback helper: if the naive URL 404s, look at the user's morgue directory and
 // try to find a file whose HHMMSS segment matches the xlog "end" time.
-async function findCdiMorgueUrlByTime(name: string, end: string) {
-  const server = getPrimaryServerConfig()
+async function findMorgueUrlByTime(server: DcssServerConfig, name: string, end: string) {
   const base = server.morgueUrl ?? `${server.baseUrl}/crawl/morgue`
   const cleanName = name.trim()
   const digits = end.replace(/\D/g, "")
@@ -108,7 +96,8 @@ async function findCdiMorgueUrlByTime(name: string, end: string) {
     return null
   }
   const html = await res.text()
-  const regex = new RegExp(`morgue-${cleanName}-\\d{8}-${time}\\.txt`, "g")
+  const escapedName = cleanName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const regex = new RegExp(`morgue-${escapedName}-\\d{8}-${time}\\.txt`, "g")
   const match = regex.exec(html)
   if (!match || !match[0]) return null
   return `${base}/${encodeURIComponent(cleanName)}/${match[0]}`
@@ -121,7 +110,7 @@ function shortVersionFromFull(v: string | undefined): string | null {
 }
 
 async function collectMatchesForUsername(
-  server: ReturnType<typeof getPrimaryServerConfig>,
+  server: DcssServerConfig,
   dcssUsername: string,
   maxMatches: number,
 ): Promise<ParsedXlog[]> {
@@ -173,6 +162,8 @@ async function collectMatchesForUsername(
 interface ScanOptions {
   /** Maximum number of matching games to consider per server. Default: large enough to act as "all" for typical users. */
   maxGamesPerServer?: number
+  /** Optional allow-list of server abbreviations to scan. If omitted, all configured servers are scanned. */
+  serverAbbreviations?: string[]
 }
 
 // Stage 1: we infer "new" games by comparing game_signature values that already exist for this user + server.
@@ -185,61 +176,73 @@ export async function scanOnlineGames(
   // For scans, default to a high cap so counts represent "all" games for typical users.
   const maxGamesPerServer = options.maxGamesPerServer ?? 1000
   const results: OnlineImportScanServerResult[] = []
-  const server = getPrimaryServerConfig()
 
-  let status: OnlineImportServerStatus = "ok"
-  let errorMessage: string | null = null
-  let totalGamesFound = 0
-  let totalGamesImported = 0
-  let newGames = 0
+  const allowlist =
+    options.serverAbbreviations && options.serverAbbreviations.length > 0
+      ? new Set(options.serverAbbreviations)
+      : null
 
-  try {
-    const matches = await collectMatchesForUsername(server, dcssUsername, maxGamesPerServer)
+  const serversToScan = DCSS_SERVERS.filter((server) =>
+    allowlist ? allowlist.has(server.abbreviation) : true,
+  )
 
-    totalGamesFound = matches.length
+  for (const server of serversToScan) {
+    let status: OnlineImportServerStatus = "ok"
+    let errorMessage: string | null = null
+    let totalGamesFound = 0
+    let totalGamesImported = 0
+    let newGames = 0
 
-    // Fetch existing game_signatures for this user + server so we can compute "new" locally.
-    const { data: existingRows } = await supabase
-      .from("parsed_morgues")
-      .select("game_signature")
-      .eq("user_id", userId)
-      .eq("server_abbreviation", server.abbreviation)
-      .eq("dcss_username", dcssUsername)
-      .eq("source", "online_sync")
+    try {
+      const matches = await collectMatchesForUsername(server, dcssUsername, maxGamesPerServer)
 
-    const existingSet = new Set((existingRows ?? []).map((r) => (r.game_signature as string | null) ?? "").filter(Boolean))
-    let newCount = 0
+      totalGamesFound = matches.length
 
-    for (const row of matches) {
-      const version = (row.v ?? row.version ?? "").trim()
-      const end = (row.end ?? "").trim()
-      const score = (row.sc ?? "").trim()
-      const name = (row.name ?? "").trim()
-      if (!name || !end) continue
-      const signature = computeGameSignature(server.abbreviation, name, end, version, score)
-      if (!existingSet.has(signature)) {
-        newCount++
-      } else {
-        totalGamesImported++
+      // Fetch existing game_signatures for this user + server so we can compute "new" locally.
+      const { data: existingRows } = await supabase
+        .from("parsed_morgues")
+        .select("game_signature")
+        .eq("user_id", userId)
+        .eq("server_abbreviation", server.abbreviation)
+        .eq("dcss_username", dcssUsername)
+        .eq("source", "online_sync")
+
+      const existingSet = new Set(
+        (existingRows ?? []).map((r) => (r.game_signature as string | null) ?? "").filter(Boolean),
+      )
+      let newCount = 0
+
+      for (const row of matches) {
+        const version = (row.v ?? row.version ?? "").trim()
+        const end = (row.end ?? "").trim()
+        const score = (row.sc ?? "").trim()
+        const name = (row.name ?? "").trim()
+        if (!name || !end) continue
+        const signature = computeGameSignature(server.abbreviation, name, end, version, score)
+        if (!existingSet.has(signature)) {
+          newCount++
+        } else {
+          totalGamesImported++
+        }
       }
+
+      newGames = newCount
+    } catch (err) {
+      status = "error"
+      errorMessage = err instanceof Error ? err.message : String(err)
     }
 
-    newGames = newCount
-  } catch (err) {
-    status = "error"
-    errorMessage = err instanceof Error ? err.message : String(err)
+    results.push({
+      serverAbbreviation: server.abbreviation,
+      status,
+      totalGamesFound,
+      totalGamesImported,
+      newGames,
+      lastScanAt: new Date().toISOString(),
+      lastImportAt: null,
+      errorMessage,
+    })
   }
-
-  results.push({
-    serverAbbreviation: server.abbreviation,
-    status,
-    totalGamesFound,
-    totalGamesImported,
-    newGames,
-    lastScanAt: new Date().toISOString(),
-    lastImportAt: null,
-    errorMessage,
-  })
 
   return { dcssUsername, servers: results }
 }
@@ -260,139 +263,157 @@ export async function runOnlineImport(
   // Allow ourselves to examine more candidate games than we plan to import so that
   // duplicates and failures do not consume the "new games" quota.
   const maxGamesPerServer = options.maxGamesPerServer ?? requestedNew * 10
-  const server = getPrimaryServerConfig()
+  const allowlist =
+    options.serverAbbreviations && options.serverAbbreviations.length > 0
+      ? new Set(options.serverAbbreviations)
+      : null
 
-  let status: OnlineImportServerStatus = "ok"
-  const errors: string[] = []
-  let newGamesImported = 0
-  let duplicatesSkipped = 0
+  const serversToImport = DCSS_SERVERS.filter((server) =>
+    allowlist ? allowlist.has(server.abbreviation) : true,
+  )
 
-  try {
-    const matches = await collectMatchesForUsername(server, dcssUsername, maxGamesPerServer)
+  const perServerResults: OnlineImportRunServerResult[] = []
+  let totalImported = 0
+  let totalDuplicates = 0
 
-    const { data: existingRows } = await supabase
-      .from("parsed_morgues")
-      .select("game_signature")
-      .eq("user_id", userId)
-      .eq("server_abbreviation", server.abbreviation)
-      .eq("dcss_username", dcssUsername)
-      .eq("source", "online_sync")
+  for (const server of serversToImport) {
+    let status: OnlineImportServerStatus = "ok"
+    const errors: string[] = []
+    let newGamesImported = 0
+    let duplicatesSkipped = 0
 
-    const existingSet = new Set((existingRows ?? []).map((r) => (r.game_signature as string | null) ?? "").filter(Boolean))
+    try {
+      const matches = await collectMatchesForUsername(server, dcssUsername, maxGamesPerServer)
 
-    for (const row of matches) {
-      if (newGamesImported >= maxNewGamesPerServer) break
-      const version = (row.v ?? row.version ?? "").trim()
-      const end = (row.end ?? "").trim()
-      const score = (row.sc ?? "").trim()
-      const name = (row.name ?? "").trim()
-      if (!name || !end) continue
+      const { data: existingRows } = await supabase
+        .from("parsed_morgues")
+        .select("game_signature")
+        .eq("user_id", userId)
+        .eq("server_abbreviation", server.abbreviation)
+        .eq("dcss_username", dcssUsername)
+        .eq("source", "online_sync")
 
-      const signature = computeGameSignature(server.abbreviation, name, end, version, score)
-      if (existingSet.has(signature)) {
-        duplicatesSkipped++
-        continue
-      }
+      const existingSet = new Set(
+        (existingRows ?? []).map((r) => (r.game_signature as string | null) ?? "").filter(Boolean),
+      )
 
-      const morgueUrl = buildCdiMorgueUrl(name, end)
-      let rawMorgue: string
-      try {
-        let url = morgueUrl
-        let morgueRes = await fetch(url, { cache: "no-store" })
-        if (!morgueRes.ok) {
-          // Try a best-effort fallback by scanning the user's morgue directory.
-          const altUrl = await findCdiMorgueUrlByTime(name, end)
-          if (!altUrl) {
-            throw new Error(`Failed to fetch morgue from ${url}: ${morgueRes.status} ${morgueRes.statusText}`)
-          }
-          url = altUrl
-          morgueRes = await fetch(url, { cache: "no-store" })
-          if (!morgueRes.ok) {
-            throw new Error(`Failed to fetch morgue from ${url}: ${morgueRes.status} ${morgueRes.statusText}`)
-          }
+      for (const row of matches) {
+        if (newGamesImported >= maxNewGamesPerServer) break
+        const version = (row.v ?? row.version ?? "").trim()
+        const end = (row.end ?? "").trim()
+        const score = (row.sc ?? "").trim()
+        const name = (row.name ?? "").trim()
+        if (!name || !end) continue
+
+        const signature = computeGameSignature(server.abbreviation, name, end, version, score)
+        if (existingSet.has(signature)) {
+          duplicatesSkipped++
+          continue
         }
-        rawMorgue = await morgueRes.text()
-      } catch (e) {
-        errors.push(
-          `Failed to fetch morgue for ${name} (${server.abbreviation}): ${
-            e instanceof Error ? e.message : String(e)
-          }`,
-        )
-        continue
-      }
 
-      try {
-        const parsed = parseMorgue(rawMorgue)
-        // Save raw morgue so existing features (browser, download, refresh) work unchanged.
-        const { data: morgueFile, error: insertFileErr } = await supabase
-          .from("morgue_files")
-          .insert({
-            user_id: userId,
-            filename: `online-${server.abbreviation}-${name}-${end}.txt`,
-            raw_text: rawMorgue,
-          })
-          .select("id")
-          .single()
-
-        if (insertFileErr || !morgueFile) {
+        const morgueUrl = buildMorgueUrl(server, name, end)
+        let rawMorgue: string
+        try {
+          let url = morgueUrl
+          let morgueRes = await fetch(url, { cache: "no-store" })
+          if (!morgueRes.ok) {
+            // Try a best-effort fallback by scanning the user's morgue directory.
+            const altUrl = await findMorgueUrlByTime(server, name, end)
+            if (!altUrl) {
+              throw new Error(`Failed to fetch morgue from ${url}: ${morgueRes.status} ${morgueRes.statusText}`)
+            }
+            url = altUrl
+            morgueRes = await fetch(url, { cache: "no-store" })
+            if (!morgueRes.ok) {
+              throw new Error(`Failed to fetch morgue from ${url}: ${morgueRes.status} ${morgueRes.statusText}`)
+            }
+          }
+          rawMorgue = await morgueRes.text()
+        } catch (e) {
           errors.push(
-            `Failed to insert morgue_files row for ${name} (${server.abbreviation}): ${
-              insertFileErr?.message ?? "unknown error"
+            `Failed to fetch morgue for ${name} (${server.abbreviation}): ${
+              e instanceof Error ? e.message : String(e)
             }`,
           )
           continue
         }
 
-        const rowForDb = parsedToRow(morgueFile.id, userId, parsed)
-        const insertPayload = {
-          ...rowForDb,
-          source: "online_sync" as const,
-          server_abbreviation: server.abbreviation,
-          dcss_username: dcssUsername,
-          game_signature: signature,
-          short_id: nanoid(6),
-        }
+        try {
+          const parsed = parseMorgue(rawMorgue)
+          // Save raw morgue so existing features (browser, download, refresh) work unchanged.
+          const { data: morgueFile, error: insertFileErr } = await supabase
+            .from("morgue_files")
+            .insert({
+              user_id: userId,
+              filename: `online-${server.abbreviation}-${name}-${end}.txt`,
+              raw_text: rawMorgue,
+            })
+            .select("id")
+            .single()
 
-        const { error: insertParsedErr } = await supabase.from("parsed_morgues").insert(insertPayload)
-        if (insertParsedErr) {
+          if (insertFileErr || !morgueFile) {
+            errors.push(
+              `Failed to insert morgue_files row for ${name} (${server.abbreviation}): ${
+                insertFileErr?.message ?? "unknown error"
+              }`,
+            )
+            continue
+          }
+
+          const rowForDb = parsedToRow(morgueFile.id, userId, parsed)
+          const insertPayload = {
+            ...rowForDb,
+            source: "online_sync" as const,
+            server_abbreviation: server.abbreviation,
+            dcss_username: dcssUsername,
+            game_signature: signature,
+            short_id: nanoid(6),
+          }
+
+          const { error: insertParsedErr } = await supabase.from("parsed_morgues").insert(insertPayload)
+          if (insertParsedErr) {
+            errors.push(
+              `Failed to insert parsed_morgues row for ${name} (${server.abbreviation}): ${insertParsedErr.message}`,
+            )
+            // Best-effort cleanup of the orphaned morgue_files row.
+            await supabase.from("morgue_files").delete().eq("id", morgueFile.id)
+            continue
+          }
+
+          existingSet.add(signature)
+          newGamesImported++
+        } catch (e) {
           errors.push(
-            `Failed to insert parsed_morgues row for ${name} (${server.abbreviation}): ${insertParsedErr.message}`,
+            `Failed to parse/store morgue for ${name} (${server.abbreviation}): ${
+              e instanceof Error ? e.message : String(e)
+            }`,
           )
-          // Best-effort cleanup of the orphaned morgue_files row.
-          await supabase.from("morgue_files").delete().eq("id", morgueFile.id)
-          continue
         }
-
-        existingSet.add(signature)
-        newGamesImported++
-      } catch (e) {
-        errors.push(
-          `Failed to parse/store morgue for ${name} (${server.abbreviation}): ${
-            e instanceof Error ? e.message : String(e)
-          }`,
-        )
       }
+    } catch (e) {
+      status = "error"
+      errors.push(e instanceof Error ? e.message : String(e))
     }
-  } catch (e) {
-    status = "error"
-    errors.push(e instanceof Error ? e.message : String(e))
+
+    totalImported += newGamesImported
+    totalDuplicates += duplicatesSkipped
+
+    perServerResults.push({
+      serverAbbreviation: server.abbreviation,
+      status: errors.length > 0 && newGamesImported === 0 ? "error" : status,
+      newGamesImported,
+      duplicatesSkipped,
+      errors,
+    })
   }
 
   return {
     dcssUsername,
     summary: {
-      totalNewGamesImported: newGamesImported,
-      totalDuplicatesSkipped: duplicatesSkipped,
+      totalNewGamesImported: totalImported,
+      totalDuplicatesSkipped: totalDuplicates,
     },
-    servers: [
-      {
-        serverAbbreviation: server.abbreviation,
-        status: errors.length > 0 && newGamesImported === 0 ? "error" : status,
-        newGamesImported,
-        duplicatesSkipped,
-        errors,
-      },
-    ],
+    servers: perServerResults,
   }
 }
 

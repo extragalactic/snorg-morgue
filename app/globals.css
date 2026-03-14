@@ -308,6 +308,17 @@
   filter: brightness(1.1);
 }
 
+/* Online Import: animated "Scanning..." dots (bounce) */
+@keyframes scan-dot {
+  0%, 60%, 100% { opacity: 0.4; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+.animate-scan-dots span {
+  animation: scan-dot 0.8s ease-in-out infinite;
+}
+.animate-scan-dots span:nth-child(2) { animation-delay: 0.1s; }
+.animate-scan-dots span:nth-child(3) { animation-delay: 0.2s; }
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
