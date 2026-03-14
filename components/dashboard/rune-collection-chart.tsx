@@ -158,7 +158,26 @@ function RuneByTypeTooltip({
 
 export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) {
   const data = buildRuneData(morgues)
-  const runeByTypeData = buildRuneByTypeData(morgues)
+  const rawRuneByType = buildRuneByTypeData(morgues)
+  const runeByTypeData =
+    rawRuneByType.length === 0
+      ? []
+      : rawRuneByType.length >= 15
+        ? rawRuneByType.slice(0, 15)
+        : [
+            ...rawRuneByType,
+            ...Array.from(
+              { length: 15 - rawRuneByType.length },
+              () =>
+                ({
+                  runeType: "?",
+                  runeTypeSecondary: "",
+                  wins: 0,
+                  attemptsNonWin: 0,
+                  attemptsTotal: 0,
+                }) satisfies RuneByTypeDatum,
+            ),
+          ]
   const { themeStyle } = useTheme()
 
   const winsColor =
@@ -257,24 +276,35 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
           <CardHeader className={cn(colors.cardBorderBottom, "pb-3")}>
             <CardTitle>TOTAL RUNES BY TYPE</CardTitle>
           </CardHeader>
-          <CardContent className="pt-4">
+          <CardContent className="pt-1.5">
             <ResponsiveContainer width="100%" height={Math.max(260, runeByTypeData.length * 40)}>
               <BarChart
+                layout="vertical"
                 data={runeByTypeData}
-                margin={{ top: 10, right: 20, left: 0, bottom: 52 }}
+                margin={{ top: 10, right: 20, left: 8, bottom: 24 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" horizontal={false} />
                 <XAxis
-                  dataKey="runeType"
+                  type="number"
                   stroke="var(--muted-foreground)"
+                  fontSize={12}
                   tickLine={false}
-                  interval={0}
+                  allowDecimals={false}
                   label={{
                     value: "Total runes found",
                     position: "bottom",
-                    offset: 20,
+                    offset: 0,
                     style: { fill: "var(--muted-foreground)", fontSize: 12 },
                   }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="runeType"
+                  width={100}
+                  stroke="var(--muted-foreground)"
+                  tickLine={false}
+                  axisLine={false}
+                  interval={0}
                   tick={(props) => {
                     const { x, y, payload } = props
                     const value =
@@ -289,8 +319,9 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                         <text
                           x={0}
                           y={0}
-                          dy={10}
-                          textAnchor="middle"
+                          dx={-4}
+                          dy={4}
+                          textAnchor="end"
                           fill={fill}
                           fontSize={11}
                         >
@@ -299,8 +330,9 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                         <text
                           x={0}
                           y={0}
-                          dy={24}
-                          textAnchor="middle"
+                          dx={-4}
+                          dy={16}
+                          textAnchor="end"
                           fill={fill}
                           fontSize={10}
                           opacity={0.9}
@@ -311,18 +343,6 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                     )
                   }}
                 />
-                <YAxis
-                  stroke="var(--muted-foreground)"
-                  fontSize={12}
-                  tickLine={false}
-                  allowDecimals={false}
-                  label={{
-                    value: "Number of runes",
-                    angle: -90,
-                    position: "insideLeft",
-                    style: { fill: "var(--muted-foreground)", fontSize: 12, textAnchor: "middle" },
-                  }}
-                />
                 <Tooltip
                   content={<RuneByTypeTooltip />}
                   cursor={{ fill: "rgba(148, 163, 184, 0.06)", stroke: "transparent" }}
@@ -330,7 +350,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                 <Bar
                   dataKey="attemptsTotal"
                   fill={winsColor}
-                  radius={[2, 2, 0, 0]}
+                  radius={[0, 2, 2, 0]}
                   name="Total runes found"
                 />
               </BarChart>

@@ -38,7 +38,7 @@ export function Top10Killers({ morgues = [], loading }: { morgues?: GameRecord[]
         <CardHeader className="border-b-2 border-primary/20 pb-3">
           <CardTitle>TOP 10 KILLERS</CardTitle>
         </CardHeader>
-        <CardContent className="pt-4">
+        <CardContent className="pt-1.5">
           <div className={cn("h-20 flex items-center justify-center", typography.bodyMuted)}>Loading…</div>
         </CardContent>
       </Card>
@@ -51,7 +51,7 @@ export function Top10Killers({ morgues = [], loading }: { morgues?: GameRecord[]
         <CardHeader className="border-b-2 border-primary/20 pb-3">
           <CardTitle>TOP 10 KILLERS</CardTitle>
         </CardHeader>
-        <CardContent className="pt-4">
+        <CardContent className="pt-1.5">
           <p className={typography.bodyMuted}>No death data with killer information yet.</p>
         </CardContent>
       </Card>
@@ -63,7 +63,7 @@ export function Top10Killers({ morgues = [], loading }: { morgues?: GameRecord[]
       <CardHeader className="border-b-2 border-primary/20 pb-3">
         <CardTitle>TOP 10 KILLERS</CardTitle>
       </CardHeader>
-      <CardContent className="pt-4">
+      <CardContent className="pt-1.5">
         <ol className={cn("list-decimal list-inside space-y-1.5", typography.bodyMono)}>
           {top10.map(({ name, count }, i) => (
             <li key={`${name}-${i}`} className="text-foreground">

@@ -336,7 +336,7 @@ export function TestPerformanceChart({
       </CardHeader>
       <CardContent
         className={
-          fillHeight ? "flex min-h-0 flex-1 flex-col pt-4" : "pt-4"
+          fillHeight ? "flex min-h-0 flex-1 flex-col pt-1.5" : "pt-1.5"
         }
       >
         <div className={fillHeight ? "min-h-0 flex-1" : undefined}>
