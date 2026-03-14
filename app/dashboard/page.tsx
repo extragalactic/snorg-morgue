@@ -545,17 +545,20 @@ export default function DashboardPage({
                     icon={Timer}
                   />
                 </div>
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="space-y-4">
-                    <TestPerformanceChart
-                      speciesStats={stats?.species_stats ?? []}
-                      backgroundStats={stats?.background_stats ?? []}
-                      godStats={stats?.god_stats ?? []}
-                      showAverages={showGlobalAverages}
-                      averagePlayerCount={globalStats?.userCount}
-                    />
+                <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
+                  <div className="flex min-h-0 flex-1 flex-col">
+                    <div className="min-h-0 flex-1">
+                      <TestPerformanceChart
+                        speciesStats={stats?.species_stats ?? []}
+                        backgroundStats={stats?.background_stats ?? []}
+                        godStats={stats?.god_stats ?? []}
+                        showAverages={showGlobalAverages}
+                        averagePlayerCount={globalStats?.userCount}
+                        fillHeight
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-4">
+                  <div className="flex min-h-0 flex-col space-y-6">
                     <RuneCollectionChart morgues={morgues} />
                     <Top10Killers morgues={morgues} loading={statsLoading} />
                   </div>

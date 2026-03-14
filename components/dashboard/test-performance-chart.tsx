@@ -61,6 +61,8 @@ interface TestPerformanceChartProps {
   showAverages?: boolean
   /** Total players used for averages, e.g. 8 -> "Average (8 players)". */
   averagePlayerCount?: number
+  /** When true, card and chart expand to fill the container height (e.g. to align with adjacent column). */
+  fillHeight?: boolean
 }
 
 function buildCategoryTestData(
@@ -117,6 +119,7 @@ export function TestPerformanceChart({
   godAverages = [],
   showAverages = true,
   averagePlayerCount,
+  fillHeight = false,
 }: TestPerformanceChartProps) {
   const { themeStyle } = useTheme()
   const { settings, setSettings } = useSettings()
@@ -244,8 +247,14 @@ export function TestPerformanceChart({
   }
 
   return (
-    <Card className="border-2 border-primary/30 rounded-none">
-      <CardHeader className="border-b-2 border-primary/20 pb-3">
+    <Card
+      className={
+        fillHeight
+          ? "flex h-full min-h-0 flex-col border-2 border-primary/30 rounded-none"
+          : "border-2 border-primary/30 rounded-none"
+      }
+    >
+      <CardHeader className="flex-shrink-0 border-b-2 border-primary/20 pb-3">
         <CardTitle className="font-mono text-sm text-primary flex items-center gap-2">
           <Select value={chartType} onValueChange={(v: ChartType) => {
             setChartType(v)
@@ -325,8 +334,16 @@ export function TestPerformanceChart({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-4">
-        <ResponsiveContainer width="100%" height={chartHeight}>
+      <CardContent
+        className={
+          fillHeight ? "flex min-h-0 flex-1 flex-col pt-4" : "pt-4"
+        }
+      >
+        <div className={fillHeight ? "min-h-0 flex-1" : undefined}>
+          <ResponsiveContainer
+            width="100%"
+            height={fillHeight ? "100%" : chartHeight}
+          >
           <BarChart
             data={displayData}
             layout="vertical"
@@ -443,7 +460,8 @@ export function TestPerformanceChart({
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-4">
+        </div>
+        <div className="mt-4 flex flex-shrink-0 flex-wrap items-center justify-center gap-4">
           {showAverages && (
             <div className="flex items-center gap-2">
               <div className="h-3 w-6" style={{ backgroundColor: attemptsColor }} />

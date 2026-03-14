@@ -33,6 +33,8 @@ export interface GameRecord {
   date: string
   result: "win" | "death"
   runes: number
+  /** Comma-separated rune types collected (e.g. "serpentine, barnacled, slimy"). */
+  runesText?: string
   killer?: string
   god?: string
   /** True if player reached Lair:5 in this game. */
@@ -376,9 +378,9 @@ export async function fetchMorgues(
   userId: string
 ): Promise<GameRecord[]> {
   const withShortId =
-    "id, short_id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date, reached_lair_5"
+    "id, short_id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
   const withoutShortId =
-    "id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date, reached_lair_5"
+    "id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
 
   let { data, error } = await supabase
     .from("parsed_morgues")
@@ -413,6 +415,7 @@ export async function fetchMorgues(
       date: row.game_completion_date?.trim() ? row.game_completion_date : row.created_at.slice(0, 10),
       result: r.is_win ? ("win" as const) : ("death" as const),
       runes: r.runes_count,
+      runesText: (r as { runes_text?: string }).runes_text ?? undefined,
       killer: r.killer ?? undefined,
       god: r.god ?? undefined,
       reachedLair5: (r as { reached_lair_5?: boolean }).reached_lair_5 ?? false,
@@ -572,7 +575,7 @@ export async function fetchRawMorgue(
 }
 
 const PARSED_COLUMNS_NO_SHORT =
-  "id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date, reached_lair_5"
+  "id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
 
 /**
  * Fetch a single morgue by id for the current user (RLS). Returns null if not found or not allowed.
@@ -605,6 +608,7 @@ export async function fetchMorgueById(
     date: row.game_completion_date?.trim() ? row.game_completion_date : row.created_at.slice(0, 10),
     result: r.is_win ? ("win" as const) : ("death" as const),
     runes: r.runes_count,
+    runesText: (r as { runes_text?: string }).runes_text ?? undefined,
     killer: r.killer ?? undefined,
     god: r.god ?? undefined,
     reachedLair5: row.reached_lair_5 ?? false,

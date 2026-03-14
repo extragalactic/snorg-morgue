@@ -4,9 +4,9 @@ import { slugifyUsername } from "@/lib/slug"
 import type { GameRecord } from "@/lib/morgue-api"
 
 const SELECT_COLUMNS =
-  "id, short_id, morgue_file_id, user_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date, reached_lair_5"
+  "id, short_id, morgue_file_id, user_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
 const SELECT_COLUMNS_NO_SHORT_ID =
-  "id, morgue_file_id, user_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date, reached_lair_5"
+  "id, morgue_file_id, user_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
 
 export async function GET(
   _request: Request,
@@ -107,6 +107,7 @@ export async function GET(
     date: row.game_completion_date?.trim() ? row.game_completion_date : row.created_at.slice(0, 10),
     result: (parsed.is_win as boolean) ? "win" : "death",
     runes: parsed.runes_count as number,
+    runesText: (parsed.runes_text as string) ?? undefined,
     killer: (parsed.killer as string) ?? undefined,
     god: (parsed.god as string) ?? undefined,
     reachedLair5: row.reached_lair_5 ?? false,
