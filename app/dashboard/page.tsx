@@ -43,6 +43,7 @@ import {
 } from "@/lib/morgue-api"
 import { GOD_SHORT_FORMS } from "@/lib/dcss-constants"
 import { slugifyUsername } from "@/lib/slug"
+import { typography } from "@/lib/typography"
 
 function speciesCode(species: string): string {
   const s = (species ?? "").trim()
@@ -247,14 +248,14 @@ export default function DashboardPage({
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="font-mono text-lg text-primary">
+              <h1 className={typography.primaryTitle}>
                 {activeTab === "analysis" && "PERFORMANCE ANALYTICS"}
                 {activeTab === "achievements" && "OFFICIAL ACHIEVEMENTS"}
                 {activeTab === "morgues" && "MORGUE FILES"}
                 {activeTab === "extras" && "RESOURCES"}
               </h1>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className={typography.bodyMuted}>
               {activeTab === "analysis" && "Track and analyze your DCSS progress"}
               {activeTab === "achievements" && ""}
               {activeTab === "morgues" && "Upload and browse your morgue files"}
@@ -266,15 +267,15 @@ export default function DashboardPage({
               {activeTab === "analysis" && globalStats && globalStats.userCount > 0 && (
                 <div className="flex items-center gap-2 pr-5">
                   <div className="flex flex-col items-center">
-                    <span className="font-mono text-xs text-muted-foreground">Show averages</span>
-                    <span className="font-mono text-xs text-muted-foreground">
+                    <span className={typography.captionMono}>Show averages</span>
+                    <span className={typography.captionMono}>
                       ({globalStats.userCount} total players)
                     </span>
                   </div>
                   <Switch
                     checked={showGlobalAverages}
                     onCheckedChange={setShowGlobalAverages}
-                    className="data-[state=checked]:bg-[var(--average-color)] data-[state=checked]:border-[var(--average-color)]"
+                    className="data-[state=checked]:bg-average data-[state=checked]:border-average"
                   />
                 </div>
               )}
@@ -302,7 +303,7 @@ export default function DashboardPage({
               <div className="flex items-center gap-2">
                 <Button
                   variant="destructive"
-                  className="rounded-none border-2 bg-red-600 text-white hover:bg-red-700 font-mono text-xs"
+                  className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
                   onClick={() => setRefreshConfirmOpen(true)}
                   disabled={isRefreshing || isNuking}
                 >
@@ -338,7 +339,7 @@ export default function DashboardPage({
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                className="rounded-none border-2 bg-red-600 text-white hover:bg-red-700 font-mono text-xs"
+                className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
                 onClick={async (e) => {
                   e.preventDefault()
                   if (!userId) return
@@ -378,7 +379,7 @@ export default function DashboardPage({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel
-                className="rounded-none border-2 border-primary/50 font-mono text-xs hover:text-yellow-400"
+                className="rounded-none border-2 border-primary/50 font-mono text-xs hover:text-primary"
                 disabled={isDownloading}
               >
                 Cancel
@@ -413,7 +414,7 @@ export default function DashboardPage({
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                className="rounded-none border-2 bg-red-600 text-white hover:bg-red-700 font-mono text-xs"
+                className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
                 onClick={async (e) => {
                   e.preventDefault()
                   if (!userId) return
@@ -613,7 +614,7 @@ function AnalysisEmptyState() {
   return (
     <div className="rounded-none border-2 border-primary/30 bg-card p-8 text-center">
       <p className="font-mono text-primary mb-2">No morgue data yet</p>
-      <p className="text-sm text-muted-foreground">
+      <p className={typography.bodyMuted}>
         Upload morgue files from the &quot;Upload Morgue&quot; button to see your stats here.
       </p>
     </div>
@@ -624,7 +625,7 @@ function AnalysisLoadingState() {
   return (
     <div className="rounded-none border-2 border-primary/30 bg-card p-8 text-center">
       <div className="h-6 w-6 animate-spin border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
-      <p className="text-sm text-muted-foreground">Loading stats…</p>
+      <p className={typography.bodyMuted}>Loading stats…</p>
     </div>
   )
 }

@@ -186,7 +186,7 @@ export function TestPerformanceChart({
 
   const winsColor =
     themeStyle === "ascii" ? "oklch(0.8 0.2 145)" : "rgba(250, 204, 21, 0.9)"
-  const attemptsColor = "var(--average-color)"
+  const attemptsColor = "var(--average)"
 
   const averageAxisLabel =
     typeof averagePlayerCount === "number" && averagePlayerCount > 0
@@ -255,18 +255,18 @@ export function TestPerformanceChart({
       }
     >
       <CardHeader className="flex-shrink-0 border-b-2 border-primary/20 pb-3">
-        <CardTitle className="font-mono text-sm text-primary flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2">
           <Select value={chartType} onValueChange={(v: ChartType) => {
             setChartType(v)
             updatePerformanceSettings({ chartType: v })
           }}>
-            <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 hover:text-yellow-400">
+            <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 hover:text-primary">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="rounded-none border-2 border-primary/50">
-              <SelectItem value="species" className="font-mono text-sm cursor-pointer hover:text-yellow-400">Species</SelectItem>
-              <SelectItem value="background" className="font-mono text-sm cursor-pointer hover:text-yellow-400">Background</SelectItem>
-              <SelectItem value="gods" className="font-mono text-sm cursor-pointer hover:text-yellow-400">Gods</SelectItem>
+              <SelectItem value="species" className="font-mono text-sm cursor-pointer hover:text-primary">Species</SelectItem>
+              <SelectItem value="background" className="font-mono text-sm cursor-pointer hover:text-primary">Background</SelectItem>
+              <SelectItem value="gods" className="font-mono text-sm cursor-pointer hover:text-primary">Gods</SelectItem>
             </SelectContent>
           </Select>
           <span>PERFORMANCE</span>

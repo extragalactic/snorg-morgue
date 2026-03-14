@@ -59,7 +59,7 @@ function LeaderboardRow({ entry, showCharacter = false }: { entry: LeaderboardEn
         <div
           className={cn(
             "flex h-8 w-8 items-center justify-center border-2 font-mono text-sm",
-            entry.rank === 1 && "border-yellow-500 bg-yellow-500/20 text-yellow-500",
+            entry.rank === 1 && "border-primary bg-primary/20 text-primary",
             entry.rank === 2 && "border-gray-400 bg-gray-400/20 text-gray-400",
             entry.rank === 3 && "border-orange-500 bg-orange-500/20 text-orange-500",
             entry.rank > 3 && "border-primary/30 text-muted-foreground"
@@ -87,7 +87,7 @@ export function Leaderboard() {
   return (
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <CardTitle className="font-mono text-sm text-primary">
+        <CardTitle>
           LEADERBOARDS
         </CardTitle>
       </CardHeader>

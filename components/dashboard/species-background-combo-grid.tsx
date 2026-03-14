@@ -106,7 +106,7 @@ export function SpeciesBackgroundComboGrid({
       <div className="mx-auto max-w-7xl px-4 py-6">
         <Card className="border-2 border-primary/30 rounded-none">
           <CardHeader className="border-b-2 border-primary/20 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <CardTitle className="font-mono text-sm text-primary">
+            <CardTitle>
               SPECIES–BACKGROUND COMBO GRID
             </CardTitle>
             <div className="flex items-center gap-3">
@@ -218,7 +218,7 @@ export function SpeciesBackgroundComboGrid({
                           }
 
                           const colorClass =
-                            mode === "wins" ? "border-green-500 text-green-500" : "border-yellow-400 text-yellow-400"
+                            mode === "wins" ? "border-success text-success" : "border-primary text-primary"
 
                           return (
                             <Tooltip key={key}>

@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { typography } from "@/lib/typography"
 import { Check } from "lucide-react"
 import { useTheme } from "@/contexts/theme-context"
 import {
@@ -155,7 +156,7 @@ function computeGoals(morgues: GameRecord[]): {
     },
     {
       name: "Grand Player",
-      description: `Achieve Great Player +\nWin with all ${TOTAL_BACKGROUNDS} backgrounds`,
+      description: `Win with all ${TOTAL_BACKGROUNDS} backgrounds`,
       current: backgrounds.size,
       max: TOTAL_BACKGROUNDS,
     },
@@ -232,7 +233,7 @@ function computeGoals(morgues: GameRecord[]): {
 
   const defaultGoals: Goal[] = [
   { name: "Great Player", description: `Win with all ${TOTAL_SPECIES} species`, current: 0, max: TOTAL_SPECIES },
-  { name: "Grand Player", description: `Achieve Great Player +\nWin with all ${TOTAL_BACKGROUNDS} backgrounds`, current: 0, max: TOTAL_BACKGROUNDS },
+  { name: "Grand Player", description: `Win with all ${TOTAL_BACKGROUNDS} backgrounds`, current: 0, max: TOTAL_BACKGROUNDS },
   { name: "Polytheist", description: `Win with all ${TOTAL_GODS} gods`, current: 0, max: TOTAL_GODS },
   { name: "Tiamat", description: `Win with all ${TOTAL_DRACONIAN_COLOURS} colours of Draconian`, current: 0, max: TOTAL_DRACONIAN_COLOURS },
   ]
@@ -323,7 +324,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
     return (
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">ACHIEVEMENTS</CardTitle>
+          <CardTitle>ACHIEVEMENTS</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="h-20 flex items-center justify-center text-muted-foreground text-sm">
@@ -339,7 +340,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
       {/* Great Players card */}
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">GREAT PLAYERS</CardTitle>
+          <CardTitle>GREAT PLAYERS</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="grid grid-cols-2 gap-8">
@@ -414,7 +415,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
       {greaterSpeciesGoals.length > 0 && (
         <Card className="mt-6 border-2 border-primary/30 rounded-none">
           <CardHeader className="border-b-2 border-primary/20 pb-3">
-            <CardTitle className="font-mono text-sm text-primary">GREATER SPECIES</CardTitle>
+            <CardTitle>GREATER SPECIES</CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
             {hasGreaterSpeciesProgress ? (
@@ -485,12 +486,12 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
       {/* Snorg Awards card */}
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">PERSISTENT PLAYER</CardTitle>
+          <CardTitle>PERSISTENT PLAYER</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <p className="font-mono text-sm text-muted-foreground mb-4">
             Total Play Time:{" "}
-            <span className="font-mono text-base text-yellow-500">
+            <span className="font-mono text-base text-primary">
               {stats?.totalPlayTime ?? "0m"}
               {stats?.totalPlayTimeSeconds != null &&
                 ` (${(stats.totalPlayTimeSeconds / 3600).toFixed(1)} hours)`}
@@ -516,9 +517,13 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                             ? "/images/monster-orb-of-fire.png"
                             : null
 
-              return (
+              const hoursPlayed =
+                stats?.totalPlayTimeSeconds != null
+                  ? (stats.totalPlayTimeSeconds / 3600).toFixed(1)
+                  : "0"
+
+              const awardDiv = (
                 <div
-                  key={a.title}
                   className={`flex flex-1 flex-col items-center justify-center gap-1 min-w-[150px] p-2 rounded-none border-2 transition-colors ${
                     unlocked
                       ? "border-[3px] border-primary/60 bg-transparent"
@@ -550,11 +555,41 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                   </span>
                   <span
                     className={`font-mono text-base ${
-                      unlocked ? "text-yellow-500" : "text-muted-foreground"
+                      unlocked ? "text-primary" : "text-muted-foreground"
                     }`}
                   >
                     {a.hours}h+
                   </span>
+                </div>
+              )
+
+              if (!unlocked) {
+                return (
+                  <div key={a.title} className="flex flex-1 min-w-[150px]">
+                    {awardDiv}
+                  </div>
+                )
+              }
+
+              return (
+                <div key={a.title} className="flex flex-1 min-w-[150px]">
+                  <Tooltip>
+                    <TooltipTrigger asChild>{awardDiv}</TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className="flex flex-col items-center gap-0.5 p-4 bg-zinc-900 text-zinc-100 border-0"
+                    >
+                      <span className="font-mono text-sm text-zinc-400">
+                        You have played
+                      </span>
+                      <span className={`${typography.displayHours} text-zinc-100`}>
+                        {hoursPlayed} hours
+                      </span>
+                      <span className="font-mono text-sm text-zinc-400">
+                        of DCSS
+                      </span>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               )
             })}
@@ -566,7 +601,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
       {enthusiasticSpeciesGoals.length > 0 && (
         <Card className="mt-6 border-2 border-primary/30 rounded-none">
           <CardHeader className="border-b-2 border-primary/20 pb-3">
-            <CardTitle className="font-mono text-sm text-primary flex items-baseline gap-2">
+            <CardTitle className="flex items-baseline gap-2">
               <span>ENTHUSIASTIC SPECIES</span>
               <span className="text-xs text-muted-foreground">
                 …on the path to Greater Species
@@ -637,7 +672,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
       {/* Divine Disciples card */}
       <Card className="mt-6 border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">DIVINE DISCIPLES</CardTitle>
+          <CardTitle>DIVINE DISCIPLES</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           {hasDiscipleProgress ? (
@@ -723,7 +758,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
       {devotedSpeciesGoals.length > 0 && (
         <Card className="mt-6 border-2 border-primary/30 rounded-none">
           <CardHeader className="border-b-2 border-primary/20 pb-3">
-            <CardTitle className="font-mono text-sm text-primary">DEVOTED SPECIES</CardTitle>
+            <CardTitle>DEVOTED SPECIES</CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
             {hasDevotedSpeciesProgress ? (

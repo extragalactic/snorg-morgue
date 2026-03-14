@@ -14,6 +14,9 @@ import {
   TooltipProps,
 } from "recharts"
 import { useTheme } from "@/contexts/theme-context"
+import { cn } from "@/lib/utils"
+import { typography } from "@/lib/typography"
+import { colors } from "@/lib/colors"
 
 interface RuneCollectionChartProps {
   morgues?: GameRecord[]
@@ -69,6 +72,7 @@ const RUNE_TYPE_SECONDARY_LABEL: Record<string, string> = {
   Gossamer: "Spider",
   Decaying: "Swamp",
   Abyssal: "Abyss",
+  Silver: "Vaults",
 }
 
 /** Aggregate rune types from runesText (e.g. "serpentine, barnacled, slimy") across all games. */
@@ -126,9 +130,9 @@ function RuneTooltip({
 
   return (
     <div className="border-2 border-primary bg-card p-3">
-      <p className="font-mono text-sm text-primary">Runes: {p.runes}</p>
+      <p className={typography.bodyMono}>{`Runes: ${p.runes}`}</p>
       {showWins && (
-        <p className="text-base text-yellow-400">Wins: {p.wins}</p>
+        <p className={cn("text-base", colors.success)}>Wins: {p.wins}</p>
       )}
       <p className="text-base text-muted-foreground">
         Attempts (wins + deaths): {p.attemptsTotal}
@@ -146,7 +150,7 @@ function RuneByTypeTooltip({
   if (!p) return null
   return (
     <div className="border-2 border-primary bg-card p-3">
-      <p className="font-mono text-sm text-primary">{p.runeType}</p>
+      <p className={typography.bodyMono}>{p.runeType}</p>
       <p className="text-base text-muted-foreground">Total runes found: {p.attemptsTotal}</p>
     </div>
   )
@@ -172,9 +176,9 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
   return (
     <div className="flex flex-col gap-6">
       {hasTotalRunes && (
-        <Card className="border-2 border-primary/30 rounded-none">
-          <CardHeader className="border-b-2 border-primary/20 pb-3">
-            <CardTitle className="font-mono text-sm text-primary">RUNES COLLECTED PER GAME</CardTitle>
+        <Card className={cn(colors.cardBorder, "rounded-none")}>
+          <CardHeader className={cn(colors.cardBorderBottom, "pb-3")}>
+            <CardTitle>RUNES COLLECTED PER GAME</CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
             <ResponsiveContainer width="100%" height={260}>
@@ -249,9 +253,9 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
         </Card>
       )}
       {hasRuneByType && (
-        <Card className="border-2 border-primary/30 rounded-none">
-          <CardHeader className="border-b-2 border-primary/20 pb-3">
-            <CardTitle className="font-mono text-sm text-primary">TOTAL RUNES BY TYPE</CardTitle>
+        <Card className={cn(colors.cardBorder, "rounded-none")}>
+          <CardHeader className={cn(colors.cardBorderBottom, "pb-3")}>
+            <CardTitle>TOTAL RUNES BY TYPE</CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
             <ResponsiveContainer width="100%" height={Math.max(260, runeByTypeData.length * 40)}>

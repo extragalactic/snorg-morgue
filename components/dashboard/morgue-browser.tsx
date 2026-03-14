@@ -5,10 +5,13 @@ import { ArrowLeft, Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
 import { fetchRawMorgue } from "@/lib/morgue-api"
 import type { GameRecord } from "@/lib/morgue-api"
 import { useTheme } from "@/contexts/theme-context"
+import { typography } from "@/lib/typography"
+import { colors } from "@/lib/colors"
 
 /** Section titles as they appear in morgue files (order = typical appearance). Match with line.trim().startsWith(title). */
 const MORGUE_SECTION_TITLES = [
@@ -262,14 +265,14 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="gap-2 rounded-none border-2 border-primary/50 hover:border-primary hover:bg-primary/10 hover:text-yellow-400 font-mono text-xs shrink-0"
+                  className={cn("gap-2 rounded-none font-mono text-xs shrink-0", colors.inputBorder, colors.highlightHover)}
                   onClick={onBack}
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Back to Morgues
                 </Button>
               )}
-              <p className="font-mono text-lg sm:text-xl text-primary truncate">
+              <p className={cn(typography.primaryTitle, "sm:text-xl truncate")}>
                 {(() => {
                   const parts = [game.species, game.background].filter(Boolean)
                   const base = parts.join(" ") || "Character"
@@ -282,8 +285,8 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
               <Badge
                 className={
                   game.result === "win"
-                    ? "rounded-none bg-green-500/20 text-green-400 border border-green-500/50"
-                    : "rounded-none bg-red-500/20 text-red-400 border border-red-500/50"
+                    ? cn("rounded-none", colors.successBadge)
+                    : cn("rounded-none", colors.destructiveBadge)
                 }
               >
                 {game.result === "win" ? "Victory" : "Death"} — XL {game.xl}
@@ -293,7 +296,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-2 rounded-none border-2 border-primary/50 font-mono text-xs hover:text-yellow-400"
+                    className={cn("gap-2 rounded-none font-mono text-xs", colors.inputBorder, colors.highlightHoverText)}
                     onClick={handleShare}
                   >
                     <Share2 className="h-4 w-4" />
@@ -308,7 +311,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-2 rounded-none border-2 border-primary/50 font-mono text-xs hover:text-yellow-400"
+                  className={cn("gap-2 rounded-none font-mono text-xs", colors.inputBorder, colors.highlightHoverText)}
                   onClick={handleDownload}
                   disabled={!rawText}
                 >
@@ -320,10 +323,10 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
           </div>
           <div className="flex items-center justify-between gap-2 mt-1">
             <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
-              <p className="font-mono text-xs text-primary tracking-wide">
+              <p className={cn(typography.subtitle, "tracking-wide")}>
                 {`LEVEL ${game.xl}`}
               </p>
-              <p className="font-mono text-sm text-muted-foreground">
+              <p className={typography.bodyMonoMuted}>
                 {game.character}
                 {game.date && (
                   <span className="ml-1.5 text-muted-foreground/90">— {game.date}</span>
@@ -331,7 +334,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
               </p>
             </div>
             {filename && (
-              <p className="text-xs text-muted-foreground shrink-0 truncate max-w-[40%]">{filename}</p>
+              <p className={cn(typography.caption, "shrink-0 truncate max-w-[40%]")}>{filename}</p>
             )}
           </div>
           {sectionTitles.length > 0 && (
@@ -364,7 +367,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
               <div className="p-8 text-center text-destructive text-sm">{error}</div>
             )}
             {rawText && !loading && segments.length > 0 && (
-              <div className="font-mono text-base leading-relaxed">
+              <div className={typography.bodyLg}>
                 {segments.map((seg) => (
                   <div key={seg.id} id={seg.id} className="p-4">
                     {seg.text.split(/\n/).map((line, i) => (

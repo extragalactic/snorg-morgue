@@ -129,7 +129,7 @@ function CategoryCard({ category }: { category: LinkCategory }) {
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
         <div className="flex items-baseline justify-between gap-2">
-          <CardTitle className="flex items-center gap-2 font-mono text-sm text-primary">
+          <CardTitle className="flex items-center gap-2">
             <Icon className="h-4 w-4" />
             {category.title.toUpperCase()}
           </CardTitle>

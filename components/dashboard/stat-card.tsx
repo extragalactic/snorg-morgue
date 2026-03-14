@@ -1,5 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { typography } from "@/lib/typography"
+import { colors } from "@/lib/colors"
 import type { LucideIcon } from "lucide-react"
 
 interface StatCardProps {
@@ -28,32 +30,29 @@ export function StatCard({
   className,
 }: StatCardProps) {
   return (
-    <Card className={cn("border-2 border-primary/30 rounded-none bg-card", className)}>
+    <Card className={cn(colors.cardBorder, "rounded-none bg-card", className)}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">{title}</p>
-            <p className="font-mono text-2xl text-primary">
+            <p className={cn(typography.caption, "uppercase tracking-wider")}>{title}</p>
+            <p className={typography.statValue}>
               {value}
               {secondaryValue !== undefined && (
-                <span
-                  className="ml-2 text-sm"
-                  style={{ color: "var(--average-color)" }}
-                >
+                <span className={cn("ml-2 text-sm", colors.average)}>
                   ({secondaryValue})
                 </span>
               )}
             </p>
             {valueSubtext && (
-              <p className="text-sm text-yellow-500 font-mono">{valueSubtext}</p>
+              <p className="text-sm font-mono text-primary">{valueSubtext}</p>
             )}
-            {subtitle && <p className="text-sm text-muted-foreground whitespace-pre-line">{subtitle}</p>}
+            {subtitle && <p className={cn(typography.bodyMuted, "whitespace-pre-line")}>{subtitle}</p>}
             {trend && trendValue && (
               <p
                 className={cn(
                   "text-xs",
-                  trend === "up" && "text-green-500",
-                  trend === "down" && "text-red-500",
+                  trend === "up" && colors.success,
+                  trend === "down" && colors.destructive,
                   trend === "neutral" && "text-muted-foreground"
                 )}
               >
@@ -61,7 +60,7 @@ export function StatCard({
               </p>
             )}
           </div>
-          <div className="flex h-10 w-10 items-center justify-center border-2 border-primary/50 bg-primary/10">
+          <div className={cn("flex h-10 w-10 items-center justify-center", colors.inputBorder, "bg-primary/10")}>
             <Icon className="h-5 w-5 text-primary" />
           </div>
         </div>

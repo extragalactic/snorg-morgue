@@ -12,7 +12,9 @@
  import { Input } from "@/components/ui/input"
  import { Card } from "@/components/ui/card"
  import { Checkbox } from "@/components/ui/checkbox"
- import { DCSS_SERVERS } from "@/lib/dcss-public-sources"
+ import { cn } from "@/lib/utils"
+import { colors } from "@/lib/colors"
+import { DCSS_SERVERS } from "@/lib/dcss-public-sources"
  import { useAuth } from "@/contexts/auth-context"
  import { toast } from "@/hooks/use-toast"
  
@@ -529,7 +531,7 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
                           Games found:{" "}
                           <span
                             className={`font-mono font-medium ${
-                              scan.totalGamesFound > 0 ? "text-green-600 dark:text-green-400" : ""
+                              scan.totalGamesFound > 0 ? colors.success : ""
                             }`}
                           >
                             {scan.totalGamesFound}{" "}
@@ -537,7 +539,7 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
                           </span>
                         </p>
                       )}
-                      {scan.errorMessage && <p className="text-[11px] text-red-500">{scan.errorMessage}</p>}
+                      {scan.errorMessage && <p className={cn("text-[11px]", colors.destructive)}>{scan.errorMessage}</p>}
                     </div>
                   </Card>
                 )

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+import { colors } from "@/lib/colors"
 import {
   Table,
   TableBody,
@@ -36,7 +38,6 @@ import { MorgueBrowser } from "./morgue-browser"
 import { supabase } from "@/lib/supabase"
 import { deleteMorgue } from "@/lib/morgue-api"
 import { useAuth } from "@/contexts/auth-context"
-import { useTheme } from "@/contexts/theme-context"
 import { toast } from "@/hooks/use-toast"
 import { DRACONIAN_COLOUR_NAMES, GOD_SHORT_FORMS, ALL_SPECIES_NAMES, ALL_BACKGROUND_NAMES, ALL_GOD_NAMES } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
@@ -68,7 +69,6 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
   const router = useRouter()
   const searchParams = useSearchParams()
   const { userId } = useAuth()
-  const { themeStyle } = useTheme()
   const { settings, setSettings } = useSettings()
   const [searchQuery, setSearchQuery] = useState(settings.morguesTable.searchQuery)
   const [currentPage, setCurrentPage] = useState(1)
@@ -325,7 +325,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
     return (
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">Morgue Files</CardTitle>
+          <CardTitle>Morgue Files</CardTitle>
         </CardHeader>
         <CardContent className="p-8">
           <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
@@ -341,7 +341,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
     return (
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">0 Morgue Files</CardTitle>
+          <CardTitle>0 Morgue Files</CardTitle>
         </CardHeader>
         <CardContent className="p-8 text-center">
           <p className="font-mono text-primary mb-2">No morgue files yet</p>
@@ -358,7 +358,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="font-mono text-sm text-primary">
+          <CardTitle>
             {titleText}
           </CardTitle>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto sm:justify-end">
@@ -550,7 +550,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                   onClick={() => setViewingMorgue(game)}
                 >
                   <TableCell className="font-medium">{game.character}</TableCell>
-                  <TableCell className={`text-sm ${themeStyle === "ascii" ? "text-green-300" : "text-white"}`}>
+                  <TableCell className="text-sm text-foreground">
                     {getCombo(game)}
                   </TableCell>
                   <TableCell className="font-mono text-xs">
@@ -568,12 +568,12 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                   <TableCell className="text-muted-foreground">{game.date}</TableCell>
                   <TableCell>
                     {game.result === "win" ? (
-                      <Badge className="rounded-none bg-green-500/20 text-green-500 border border-green-500/50 hover:bg-green-500/30">
+                      <Badge className={cn("rounded-none hover:bg-success/30", colors.successBadge)}>
                         <Trophy className="mr-1 h-3 w-3" />
                         Win
                       </Badge>
                     ) : (
-                      <Badge className="rounded-none bg-red-500/20 text-red-500 border border-red-500/50 hover:bg-red-500/30">
+                      <Badge className={cn("rounded-none hover:bg-destructive/30", colors.destructiveBadge)}>
                         <Skull className="mr-1 h-3 w-3" />
                         Death
                       </Badge>
@@ -595,7 +595,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-none hover:bg-red-500/20 text-red-500"
+                        className={cn("h-8 w-8 rounded-none hover:bg-destructive/20", colors.destructive)}
                         onClick={(e) => {
                           e.stopPropagation()
                           setDeleteConfirmGame(game)
@@ -627,7 +627,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                className="rounded-none border-2 bg-red-600 text-white hover:bg-red-700 font-mono text-xs"
+                className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
                 onClick={(e) => {
                   e.preventDefault()
                   handleDeleteConfirm()
@@ -659,7 +659,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                 })
               }}
             >
-              <ChevronLeft className={`h-5 w-5 ${themeStyle === "ascii" ? "group-hover:text-green-400" : "group-hover:text-yellow-400"}`} />
+              <ChevronLeft className="h-5 w-5 group-hover:text-primary" />
             </Button>
             <span className="text-sm text-muted-foreground">
               {currentPage} / {totalPages}
@@ -676,7 +676,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                 })
               }}
             >
-              <ChevronRight className={`h-5 w-5 ${themeStyle === "ascii" ? "group-hover:text-green-400" : "group-hover:text-yellow-400"}`} />
+              <ChevronRight className="h-5 w-5 group-hover:text-primary" />
             </Button>
           </div>
         </div>
@@ -700,7 +700,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
             <Button
               variant="ghost"
               size="sm"
-              className="gap-2 rounded-none border-2 border-primary/50 hover:border-primary hover:bg-primary/10 hover:text-yellow-400 font-mono text-xs"
+              className={cn("gap-2 rounded-none font-mono text-xs", colors.inputBorder, colors.highlightHover)}
               onClick={() => {
                 setViewingMorgue(null)
                 if (usernameSlug) router.replace(`/${usernameSlug}/morgues`)
