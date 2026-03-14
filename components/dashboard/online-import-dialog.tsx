@@ -19,6 +19,10 @@
  type ServerRow = {
    abbreviation: string
    name: string
+   country?: string
+   gameCount?: number
+   userCount?: number
+   isDormant?: boolean
  }
 
 interface OnlineImportDialogProps {
@@ -87,9 +91,14 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
   const [maxGames, setMaxGames] = useState<string>("3")
   const [servers, setServers] = useState<UiServerState[]>(() => {
     const saved = loadSelectedServerAbbreviations()
-    return DCSS_SERVERS.map((s, index) => ({
+    const activeServers = DCSS_SERVERS.filter((s) => !s.isDormant)
+    return activeServers.map((s, index) => ({
       abbreviation: s.abbreviation,
       name: s.name,
+      country: s.country,
+      gameCount: s.gameCount,
+      userCount: s.userCount,
+      isDormant: s.isDormant,
       checked: saved.size > 0 ? saved.has(s.abbreviation) : index === 0,
       scan: initialServerState,
     })) as UiServerState[]
@@ -375,7 +384,7 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-xl rounded-none border-2 border-primary/30">
+      <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-[56.7rem] rounded-none border-2 border-primary/30">
         <DialogHeader>
           <DialogTitle className="font-mono text-sm text-primary">Online Import (Stage 1)</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
@@ -450,7 +459,7 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
 
           <div className="space-y-2">
             <p className="text-xs font-mono text-primary">Servers</p>
-            <div className="space-y-2">
+            <div className="grid grid-cols-3 gap-2">
               {servers.map((server, index) => {
                 const isActive = activeScanIndex === index && isScanning
                 const scan = server.scan
@@ -462,7 +471,7 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
                     }`}
                   >
                     <div className="flex items-center justify-between text-xs font-mono mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Checkbox
                           checked={server.checked}
                           onCheckedChange={(checked) =>
@@ -478,6 +487,9 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
                           className="mt-[1px]"
                         />
                         <span className="text-primary">{server.name}</span>
+                        {server.country && (
+                          <span className="text-muted-foreground">({server.country})</span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">{server.abbreviation}</span>
@@ -549,7 +561,11 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
               onClick={handleImport}
               disabled={!canImport}
             >
-              {isImporting ? "Importing…" : "Import"}
+              {isImporting
+                ? "Importing…"
+                : totalNewGamesForSelected > 0
+                  ? `Import ${totalNewGamesForSelected} Game${totalNewGamesForSelected === 1 ? "" : "s"}`
+                  : "Import"}
             </Button>
           </div>
         </div>
