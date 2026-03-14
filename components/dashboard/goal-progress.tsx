@@ -342,7 +342,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           <CardTitle className="font-mono text-sm text-primary">GREAT PLAYERS</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
-          <div className="grid gap-6 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-8">
           {coreGoals.map((goal) => {
             const percentage = (goal.current / goal.max) * 100
             const isComplete = goal.current >= goal.max
@@ -362,20 +362,20 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
             return (
               <Tooltip key={goal.name}>
                 <TooltipTrigger asChild>
-                  <div className="space-y-2 cursor-default">
+                  <div className="space-y-3 cursor-default">
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1 font-mono text-sm text-foreground">
+                      <span className="flex items-center gap-1.5 font-mono text-base text-foreground">
                         {goal.name}
                         {isComplete && (
                           <Check
-                            className={`h-3.5 w-3.5 ${
+                            className={`h-5 w-5 ${
                               themeStyle === "ascii" ? "text-emerald-300" : "text-emerald-400"
                             }`}
                           />
                         )}
                       </span>
                       <span
-                        className={`font-mono text-sm ${
+                        className={`font-mono text-base ${
                           isComplete
                             ? themeStyle === "ascii"
                               ? "text-emerald-300"
@@ -388,10 +388,10 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                     </div>
                     <Progress
                       value={percentage}
-                      className="h-3 rounded-none bg-secondary border border-primary/30"
+                      className="h-6 rounded-none bg-secondary border border-primary/30"
                       indicatorClassName={isComplete ? completeIndicatorClass : undefined}
                     />
-                    <p className="text-xs text-muted-foreground whitespace-pre-line">
+                    <p className="text-sm text-muted-foreground whitespace-pre-line">
                       {goal.description}
                     </p>
                   </div>
