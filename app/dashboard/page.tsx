@@ -24,6 +24,7 @@ import { TestPerformanceChart } from "@/components/dashboard/test-performance-ch
 import { Top10Killers } from "@/components/dashboard/top-10-killers"
 import { SpeciesBackgroundComboGrid } from "@/components/dashboard/species-background-combo-grid"
 import { UploadDialog } from "@/components/dashboard/upload-dialog"
+import { OnlineImportDialog } from "@/components/dashboard/online-import-dialog"
 import { UploadsTable } from "@/components/dashboard/uploads-table"
 import { Extras } from "@/components/dashboard/extras"
 import { useAuth } from "@/contexts/auth-context"
@@ -116,6 +117,7 @@ export default function DashboardPage({
   const [refreshConfirmOpen, setRefreshConfirmOpen] = useState(false)
   const [downloadConfirmOpen, setDownloadConfirmOpen] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [onlineImportOpen, setOnlineImportOpen] = useState(false)
 
   const loadData = useCallback(async () => {
     setMorguesLoading(true)
@@ -277,6 +279,15 @@ export default function DashboardPage({
                 </div>
               )}
               <UploadDialog onUploadComplete={loadData} />
+              {activeTab === "morgues" && (
+                <Button
+                  className="gap-2 rounded-none border-2 border-primary bg-background text-primary hover:bg-primary/10 font-mono text-xs"
+                  onClick={() => setOnlineImportOpen(true)}
+                  disabled={!userId}
+                >
+                  Online Import
+                </Button>
+              )}
               {activeTab === "morgues" && morgues.length > 0 && (
                 <Button
                   className="gap-2 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs"
@@ -577,6 +588,12 @@ export default function DashboardPage({
           <Extras />
         )}
       </main>
+
+      <OnlineImportDialog
+        open={onlineImportOpen}
+        onOpenChange={setOnlineImportOpen}
+        onImportComplete={loadData}
+      />
 
       <footer className="border-t-4 border-primary/30 bg-card mt-8">
         <div className="mx-auto max-w-7xl px-4 py-6">

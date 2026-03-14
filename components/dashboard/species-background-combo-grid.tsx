@@ -9,7 +9,28 @@ import type { GameRecord } from "@/lib/morgue-api"
 
 type Mode = "wins" | "attempts"
 
-const TOTAL_COMBOS = ALL_SPECIES_NAMES.length * ALL_BACKGROUND_NAMES.length
+/**
+ * Impossible species–background combinations (e.g. Felid Berserker, Demigod Brigand).
+ * These cells are shown as disabled with a grey X.
+ */
+const DISABLED_COMBOS = new Set<string>([
+  "Demigod|||Brigand",
+  "Demigod|||Cinder Acolyte",
+  "Demigod|||Chaos Knight",
+  "Demigod|||Ice Elementalist",
+  "Felid|||Brigand",
+  "Felid|||Gladiator",
+  "Felid|||Hedge Wizard",
+  "Felid|||Hexslinger",
+  "Gargoyle|||Shapeshifter",
+  "Gargoyle|||Summoner",
+  "Mummy|||Shapeshifter",
+  "Mummy|||Summoner",
+  "Poltergeist|||Shapeshifter",
+  "Revenant|||Shapeshifter",
+])
+
+const TOTAL_COMBOS = ALL_SPECIES_NAMES.length * ALL_BACKGROUND_NAMES.length - DISABLED_COMBOS.size
 
 function speciesCode(species: string): string {
   const s = species.trim()
@@ -49,6 +70,13 @@ export function SpeciesBackgroundComboGrid({
   morgues?: GameRecord[]
 }) {
   const [mode, setMode] = useState<Mode>("wins")
+  const [hoveredSpecies, setHoveredSpecies] = useState<string | null>(null)
+  const [hoveredBackground, setHoveredBackground] = useState<string | null>(null)
+
+  const clearHover = () => {
+    setHoveredSpecies(null)
+    setHoveredBackground(null)
+  }
 
   const { comboCounts, winComboCount, attemptComboCount } = useMemo(() => {
     const map = new Map<string, { wins: number; attempts: number }>()
@@ -102,7 +130,10 @@ export function SpeciesBackgroundComboGrid({
                 Upload morgues to see your species–background grid.
               </div>
             ) : (
-              <div className="overflow-auto">
+              <div
+                className="overflow-auto"
+                onMouseLeave={clearHover}
+              >
                 <p className="mb-4 ml-20 font-mono text-sm text-muted-foreground">
                   You have{" "}
                   {mode === "wins" ? "won with" : "attempted"}{" "}
@@ -122,7 +153,9 @@ export function SpeciesBackgroundComboGrid({
                   {ALL_BACKGROUND_NAMES.map((bg) => (
                     <div
                       key={bg}
-                      className="aspect-square w-full flex items-end justify-center text-sm font-mono text-muted-foreground rotate-[-60deg] origin-bottom mb-2"
+                      className={`aspect-square w-full flex items-end justify-center text-sm font-mono text-muted-foreground rotate-[-60deg] origin-bottom mb-2 transition-colors ${
+                        hoveredBackground === bg ? "bg-muted/40" : ""
+                      }`}
                     >
                       {backgroundCode(bg)}
                     </div>
@@ -131,24 +164,54 @@ export function SpeciesBackgroundComboGrid({
                   {/* Rows: species labels + grid cells */}
                   {ALL_SPECIES_NAMES.map((sp) => {
                     const spCode = speciesCode(sp)
+                    const isRowHovered = hoveredSpecies === sp
                     return (
                       <Fragment key={sp}>
-                        <div className="flex items-center justify-end pr-2 font-mono text-sm text-muted-foreground h-full">
+                        <div
+                          className={`flex items-center justify-end pr-2 font-mono text-sm text-muted-foreground h-full transition-colors ${
+                            isRowHovered ? "bg-muted/40" : ""
+                          }`}
+                        >
                           {spCode}
                         </div>
                         {ALL_BACKGROUND_NAMES.map((bg) => {
+                          const isColHovered = hoveredBackground === bg
+                          const isCellHighlighted = isRowHovered || isColHovered
+                          const onCellHover = () => {
+                            setHoveredSpecies(sp)
+                            setHoveredBackground(bg)
+                          }
                           const key = `${sp}|||${bg}`
+                          const disabled = DISABLED_COMBOS.has(key)
                           const counts = comboCounts.get(key) ?? { wins: 0, attempts: 0 }
                           const active =
                             mode === "wins" ? counts.wins > 0 : counts.attempts > 0
                           const comboCode = `${speciesCode(sp)}${backgroundCode(bg)}`
                           const value = mode === "wins" ? counts.wins : counts.attempts
 
+                          if (disabled) {
+                            return (
+                              <div
+                                key={key}
+                                className={`aspect-square w-full border border-primary/20 flex items-center justify-center text-muted-foreground font-mono text-lg select-none transition-colors ${
+                                  isCellHighlighted ? "bg-muted/60" : "bg-muted/50"
+                                }`}
+                                onMouseEnter={onCellHover}
+                                aria-label={`${sp} ${bg} (impossible)`}
+                              >
+                                ×
+                              </div>
+                            )
+                          }
+
                           if (!active) {
                             return (
                               <div
                                 key={key}
-                                className="aspect-square w-full border border-primary/20 bg-background"
+                                className={`aspect-square w-full border border-primary/20 transition-colors ${
+                                  isCellHighlighted ? "bg-muted/40" : "bg-background"
+                                }`}
+                                onMouseEnter={onCellHover}
                                 aria-label={`${sp} ${bg} ${mode}`}
                               />
                             )
@@ -161,7 +224,10 @@ export function SpeciesBackgroundComboGrid({
                             <Tooltip key={key}>
                               <TooltipTrigger asChild>
                                 <div
-                                  className={`aspect-square w-full border-2 bg-background flex items-center justify-center font-mono text-sm ${colorClass}`}
+                                  className={`aspect-square w-full border-2 flex items-center justify-center font-mono text-sm transition-colors ${colorClass} ${
+                                    isCellHighlighted ? "bg-muted/40" : "bg-background"
+                                  }`}
+                                  onMouseEnter={onCellHover}
                                   aria-label={`${sp} ${bg} ${mode}`}
                                 >
                                   {value}

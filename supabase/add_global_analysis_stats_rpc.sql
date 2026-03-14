@@ -39,6 +39,15 @@ with base as (
   select *
   from public.parsed_morgues
 ),
+per_user_fastest as (
+  -- Per-user fastest win and smallest-turncount win, used for global averages.
+  select
+    user_id,
+    min(duration_seconds) filter (where is_win) as fastest_win_seconds,
+    min(turns)          filter (where is_win) as smallest_turncount_win
+  from base
+  group by user_id
+),
 games_agg as (
   select
     count(*)::bigint                           as total_games,
@@ -47,16 +56,18 @@ games_agg as (
     avg(xl::numeric) filter (where not is_win) as avg_xl_at_death,
     avg(duration_seconds::numeric)             as avg_play_time_seconds,
     avg(runes_count::numeric)                  as avg_runes_per_game,
-    min(duration_seconds) filter (where is_win) as fastest_win_seconds,
+    -- Average of each user's fastest win duration.
+    avg(fastest_win_seconds::numeric)          as fastest_win_seconds,
     -- Global Lair:5 reach rate across all games (0–100)
     case
       when count(*) > 0
       then (count(*) filter (where reached_lair_5)::numeric / count(*)::numeric) * 100
       else 0
     end                                        as lair5_reach_rate,
-    -- Smallest turncount win across all games
-    min(turns) filter (where is_win)          as smallest_turncount_win
+    -- Average of each user's smallest-turncount win.
+    avg(smallest_turncount_win::numeric)       as smallest_turncount_win
   from base
+  left join per_user_fastest using (user_id)
 ),
 user_best_streaks as (
   -- Average of each user's best streak, considering only users with at least one game.
