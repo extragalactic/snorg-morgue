@@ -15,6 +15,14 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { typography } from "@/lib/typography"
 
 interface ImportEvent {
@@ -74,6 +82,8 @@ export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [emailSearch, setEmailSearch] = useState("")
+  const [serverFilter, setServerFilter] = useState<string>("all")
 
   useEffect(() => {
     if (authLoading) return
@@ -257,6 +267,52 @@ export default function AdminPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {((stats.importEvents ?? []).length) > 0 && (
+                  <div className="flex flex-wrap items-center gap-3 mb-4">
+                    <Input
+                      type="search"
+                      placeholder="Search by email"
+                      value={emailSearch}
+                      onChange={(e) => setEmailSearch(e.target.value)}
+                      className="font-mono text-sm max-w-xs rounded-none border-2 border-primary/30"
+                    />
+                    <Select value={serverFilter} onValueChange={setServerFilter}>
+                      <SelectTrigger className="font-mono text-sm w-[180px] rounded-none border-2 border-primary/30">
+                        <SelectValue placeholder="Server" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-none border-2 border-primary/30">
+                        <SelectItem value="all" className="font-mono text-sm">
+                          All servers
+                        </SelectItem>
+                        {[
+                          ...new Set(
+                            (stats.importEvents ?? [])
+                              .map((e) => e.serverAbbreviation)
+                              .filter((s): s is string => s != null && s !== "")
+                          ),
+                        ]
+                          .sort()
+                          .map((abbr) => (
+                            <SelectItem key={abbr} value={abbr} className="font-mono text-sm">
+                              {abbr}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {(() => {
+                  const events = stats.importEvents ?? []
+                  const emailTrim = emailSearch.trim().toLowerCase()
+                  const filtered = events.filter((e) => {
+                    const matchEmail =
+                      !emailTrim ||
+                      (e.userEmail?.toLowerCase().includes(emailTrim) ?? false)
+                    const matchServer =
+                      serverFilter === "all" || e.serverAbbreviation === serverFilter
+                    return matchEmail && matchServer
+                  })
+                  return (
                 <Table>
                   <TableHeader>
                     <TableRow className="border-primary/20">
@@ -267,14 +323,20 @@ export default function AdminPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {!((stats.importEvents ?? []).length) ? (
+                    {!events.length ? (
                       <TableRow>
                         <TableCell colSpan={4} className="text-muted-foreground font-mono text-sm">
                           No import events yet. Manual uploads and online syncs will appear here after you run the import_events migration.
                         </TableCell>
                       </TableRow>
+                    ) : !filtered.length ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-muted-foreground font-mono text-sm">
+                          No events match the current filters.
+                        </TableCell>
+                      </TableRow>
                     ) : (
-                      (stats.importEvents ?? []).map((e) => (
+                      filtered.map((e) => (
                         <TableRow key={e.id} className="border-primary/10">
                           <TableCell className="font-mono text-sm">
                             {e.userEmail ?? (
@@ -297,6 +359,8 @@ export default function AdminPage() {
                     )}
                   </TableBody>
                 </Table>
+                  )
+                })()}
               </CardContent>
             </Card>
           </div>

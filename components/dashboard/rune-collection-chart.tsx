@@ -181,9 +181,9 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
   const { themeStyle } = useTheme()
 
   const winsColor =
-    themeStyle === "ascii" ? "oklch(0.8 0.2 145)" : "rgba(250, 204, 21, 0.9)"
+    themeStyle === "ascii" ? "oklch(0.62 0.2 145)" : "rgba(250, 204, 21, 0.9)"
   const attemptsColor =
-    themeStyle === "ascii" ? "oklch(0.5 0.1 145)" : "rgba(148, 163, 184, 0.6)"
+    themeStyle === "ascii" ? "oklch(0.42 0.1 145)" : "rgba(100, 116, 139, 0.55)"
 
   const hasTotalRunes = data.length > 0
   const hasRuneByType = runeByTypeData.length > 0
@@ -201,7 +201,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
           </CardHeader>
           <CardContent className="pt-4">
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 40 }}>
+              <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 40 }} barCategoryGap="30%">
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
                 <XAxis
                   dataKey="runes"
@@ -282,6 +282,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                 layout="vertical"
                 data={runeByTypeData}
                 margin={{ top: 10, right: 20, left: 8, bottom: 24 }}
+                barCategoryGap="30%"
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" horizontal={false} />
                 <XAxis

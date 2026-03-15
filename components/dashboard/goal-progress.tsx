@@ -38,6 +38,16 @@ const PLAY_TIME_ACHIEVEMENTS = [
   { title: SNORG_TITLES.NERD_GOD_KING, hours: 4000 },
 ].map((a) => ({ ...a, thresholdSeconds: a.hours * 3600 }))
 
+/** Font size for hours-played tooltip by achievement index (D1 Padawan → Nerd God-King) */
+const TOOLTIP_HOURS_FONT_CLASSES = [
+  "font-mono text-2xl leading-none",       // D1 Padawan – smaller
+  "font-mono text-[2.5rem] leading-none",  // Lair Initiate – current
+  "font-mono text-[3rem] leading-none",    // S-Branch Assassin – larger
+  "font-mono text-[3.5rem] leading-none",  // Vault Mercenary
+  "font-mono text-[4rem] leading-none",    // Zot Special Ops – very large
+  "font-mono text-[5rem] leading-none",    // Nerd God-King – huge
+]
+
 interface Goal {
   name: string
   description: string
@@ -498,7 +508,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
             </span>
           </p>
           <div className="flex flex-wrap gap-2 min-w-0">
-            {PLAY_TIME_ACHIEVEMENTS.map((a) => {
+            {PLAY_TIME_ACHIEVEMENTS.map((a, achievementIndex) => {
               const unlocked =
                 (stats?.totalPlayTimeSeconds ?? 0) >= a.thresholdSeconds
 
@@ -519,7 +529,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
 
               const hoursPlayed =
                 stats?.totalPlayTimeSeconds != null
-                  ? (stats.totalPlayTimeSeconds / 3600).toFixed(1)
+                  ? String(Math.ceil(stats.totalPlayTimeSeconds / 3600))
                   : "0"
 
               const awardDiv = (
@@ -582,7 +592,9 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                       <span className="font-mono text-sm text-zinc-400">
                         You have played
                       </span>
-                      <span className={`${typography.displayHours} text-zinc-100`}>
+                      <span
+                        className={`${TOOLTIP_HOURS_FONT_CLASSES[achievementIndex]} text-zinc-100`}
+                      >
                         {hoursPlayed} hours
                       </span>
                       <span className="font-mono text-sm text-zinc-400">

@@ -427,7 +427,7 @@ export default function DashboardPage({
             <AlertDialogHeader>
               <AlertDialogTitle className="font-mono">Download all morgues?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will download all of your original morgue files in a single ZIP archive. Large collections may take a little while to prepare.
+                This will download all of your original morgue files in a single ZIP archive. Only morgues you uploaded yourself are included; nothing is fetched from the DCSS servers. Large collections may take a little while to prepare.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
