@@ -1,24 +1,5 @@
 import { NextResponse } from "next/server"
-import { DCSS_SERVERS } from "@/lib/dcss-public-sources"
-
-/** Allowed morgue URL prefixes (from known DCSS servers). Used to avoid SSRF. */
-const ALLOWED_MORGUE_PREFIXES = DCSS_SERVERS.filter((s) => s.morgueUrl).map(
-  (s) => s.morgueUrl!.toLowerCase().replace(/\/$/, "")
-)
-
-function isAllowedUrl(href: string): boolean {
-  try {
-    const url = new URL(href)
-    const origin = `${url.protocol}//${url.host}`.toLowerCase()
-    const path = url.pathname || "/"
-    const full = (origin + path).toLowerCase().replace(/\/$/, "")
-    return ALLOWED_MORGUE_PREFIXES.some(
-      (prefix) => full === prefix || full.startsWith(prefix + "/")
-    )
-  } catch {
-    return false
-  }
-}
+import { isAllowedMorgueUrl } from "@/lib/morgue-url-allowlist"
 
 /**
  * Proxy fetch for raw morgue text from DCSS servers. Used when the viewer has
@@ -30,7 +11,7 @@ export async function GET(request: Request) {
   if (!url) {
     return NextResponse.json({ error: "Missing url parameter" }, { status: 400 })
   }
-  if (!isAllowedUrl(url)) {
+  if (!isAllowedMorgueUrl(url)) {
     return NextResponse.json({ error: "URL not allowed" }, { status: 403 })
   }
   try {

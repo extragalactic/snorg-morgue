@@ -140,7 +140,7 @@ function CategoryCard({ category }: { category: LinkCategory }) {
           )}
         </div>
       </CardHeader>
-      <CardContent className="pt-4">
+      <CardContent className="pt-px">
         <ul className="space-y-3">
           {category.links.map((link) => (
             <li key={link.url}>

@@ -46,7 +46,7 @@ const asciiGreenShades = [
   "#dcfce7", // green-100
 ]
 
-// Species colors
+// Species colors (primary bars; Monitor bright, Terminal uses theme)
 const tierColors = [
   "#d4a574", "#7eb8a2", "#b8a07e", "#8fb8c9", "#c9a08f",
   "#a0c98f", "#c9c98f", "#8f9fc9", "#c98fa0", "#c9b88f",
@@ -469,7 +469,7 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
       <CardContent className="pt-4">
         {hasData ? (
           <ResponsiveContainer width="100%" height={chartHeight}>
-            <BarChart data={currentChartData} layout="vertical" barGap={0} barCategoryGap="20%">
+            <BarChart data={currentChartData} layout="vertical" barGap={0} barCategoryGap="30%">
               <defs>
                 {currentChartData.map((entry, index) => {
                   const origIndex = currentAllData.findIndex((d: { name: string }) => d.name === entry.name)

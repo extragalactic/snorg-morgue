@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef } from "react"
-import { Upload, X, FileText, CheckCircle, AlertCircle } from "lucide-react"
+import { Upload, X, FileText, CheckCircle, AlertCircle, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -357,6 +357,18 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
             </div>
             </>
           )}
+
+          <div className="rounded-none border-2 border-primary/20 bg-muted/30 p-3 space-y-2">
+            <p className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
+              <Info className="h-3.5 w-3.5 shrink-0" />
+              Where to find morgue files on your computer:
+            </p>
+            <ul className="font-mono text-xs text-muted-foreground space-y-1 pl-5">
+              <li><span className="text-foreground/80">Windows:</span> <code className="break-all">%USERPROFILE%\AppData\Local\crawl\morgue</code></li>
+              <li><span className="text-foreground/80">Linux:</span> <code className="break-all">~/.crawl/morgue</code></li>
+              <li><span className="text-foreground/80">Mac:</span> <code className="break-all">~/Library/Application Support/Crawl/morgue</code></li>
+            </ul>
+          </div>
 
           <div className="flex justify-end gap-2 border-t-2 border-primary/30 pt-4">
             <Button

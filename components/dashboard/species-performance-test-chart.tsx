@@ -49,9 +49,9 @@ export function SpeciesPerformanceTestChart({
   const { themeStyle } = useTheme()
 
   const winsColor =
-    themeStyle === "ascii" ? "oklch(0.8 0.2 145)" : "rgba(250, 204, 21, 0.9)"
+    themeStyle === "ascii" ? "oklch(0.62 0.2 145)" : "rgba(250, 204, 21, 0.9)"
   const attemptsColor =
-    themeStyle === "ascii" ? "oklch(0.5 0.1 145)" : "rgba(148, 163, 184, 0.6)"
+    themeStyle === "ascii" ? "oklch(0.42 0.1 145)" : "rgba(100, 116, 139, 0.55)"
 
   if (data.length === 0) {
     return null
@@ -70,6 +70,7 @@ export function SpeciesPerformanceTestChart({
             data={data}
             layout="vertical"
             margin={{ top: 10, right: 20, left: 100, bottom: 20 }}
+            barCategoryGap="30%"
           >
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
             <XAxis

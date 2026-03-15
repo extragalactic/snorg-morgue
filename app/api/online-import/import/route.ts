@@ -56,6 +56,20 @@ export async function POST(request: Request) {
     if (importResult.summary.totalNewGamesImported > 0) {
       // Keep stats in sync after new games arrive.
       await recalcUserStats(supabase, userId)
+      // Log one row per server that had new imports (for admin activity summaries).
+      for (const server of importResult.servers) {
+        if (server.newGamesImported > 0) {
+          await supabase.from("import_events").insert({
+            user_id: userId,
+            event_type: "online_sync",
+            morgue_count: server.newGamesImported,
+            server_abbreviation: server.serverAbbreviation,
+            dcss_username: dcssUsername,
+          }).then(({ error }) => {
+            if (error) console.warn("[snorg-morgue] Failed to log import event:", error.message)
+          })
+        }
+      }
     }
 
     return NextResponse.json(importResult)

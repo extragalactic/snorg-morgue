@@ -185,7 +185,7 @@ export function TestPerformanceChart({
   }, [data, sortMethod, chartType])
 
   const winsColor =
-    themeStyle === "ascii" ? "oklch(0.8 0.2 145)" : "rgba(250, 204, 21, 0.9)"
+    themeStyle === "ascii" ? "oklch(0.62 0.2 145)" : "rgba(250, 204, 21, 0.9)"
   const attemptsColor = "var(--average)"
 
   const averageAxisLabel =
@@ -348,7 +348,8 @@ export function TestPerformanceChart({
             data={displayData}
             layout="vertical"
             barGap={0}
-            barCategoryGap="20%"
+            barCategoryGap="30%"
+            margin={{ top: 5, right: 5, bottom: 36, left: 5 }}
           >
             <XAxis
               type="number"
@@ -357,6 +358,12 @@ export function TestPerformanceChart({
               tickLine={false}
               domain={[0, xDomainMax]}
               allowDecimals={false}
+              label={{
+                value: showMode === "wins" ? "Number of Wins" : "Number of Attempts",
+                position: "bottom",
+                style: { fill: "var(--muted-foreground)", fontSize: 12 },
+                offset: 0,
+              }}
             />
             <YAxis
               type="category"
@@ -461,19 +468,21 @@ export function TestPerformanceChart({
           </BarChart>
         </ResponsiveContainer>
         </div>
-        <div className="mt-4 flex flex-shrink-0 flex-wrap items-center justify-center gap-4">
+        <div className="mt-[31px] flex flex-shrink-0 flex-wrap items-center justify-center gap-4">
           {showAverages && (
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-6" style={{ backgroundColor: attemptsColor }} />
-              <span className="text-sm text-muted-foreground">{averageAxisLabel}</span>
-            </div>
+            <>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-6" style={{ backgroundColor: attemptsColor }} />
+                <span className="text-sm text-muted-foreground">{averageAxisLabel}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-6" style={{ backgroundColor: winsColor }} />
+                <span className="text-sm text-muted-foreground">
+                  You
+                </span>
+              </div>
+            </>
           )}
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-6" style={{ backgroundColor: winsColor }} />
-            <span className="text-sm text-muted-foreground">
-              You
-            </span>
-          </div>
           {/* {showAverages && data.some((d) => d.avgIsEstimated) && (
             <span className="text-xs text-muted-foreground">Avg shown as estimated until global data is loaded</span>
           )} */}

@@ -181,9 +181,9 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
   const { themeStyle } = useTheme()
 
   const winsColor =
-    themeStyle === "ascii" ? "oklch(0.8 0.2 145)" : "rgba(250, 204, 21, 0.9)"
+    themeStyle === "ascii" ? "oklch(0.62 0.2 145)" : "rgba(250, 204, 21, 0.9)"
   const attemptsColor =
-    themeStyle === "ascii" ? "oklch(0.5 0.1 145)" : "rgba(148, 163, 184, 0.6)"
+    themeStyle === "ascii" ? "oklch(0.42 0.1 145)" : "rgba(100, 116, 139, 0.55)"
 
   const hasTotalRunes = data.length > 0
   const hasRuneByType = runeByTypeData.length > 0
@@ -201,7 +201,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
           </CardHeader>
           <CardContent className="pt-4">
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 40 }}>
+              <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 40 }} barCategoryGap="30%">
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
                 <XAxis
                   dataKey="runes"
@@ -282,19 +282,20 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                 layout="vertical"
                 data={runeByTypeData}
                 margin={{ top: 10, right: 20, left: 8, bottom: 24 }}
+                barCategoryGap="30%"
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" horizontal={false} />
                 <XAxis
                   type="number"
                   stroke="var(--muted-foreground)"
-                  fontSize={12}
+                  fontSize={14}
                   tickLine={false}
                   allowDecimals={false}
                   label={{
                     value: "Total runes found",
                     position: "bottom",
                     offset: 0,
-                    style: { fill: "var(--muted-foreground)", fontSize: 12 },
+                    style: { fill: "var(--muted-foreground)", fontSize: 14 },
                   }}
                 />
                 <YAxis
@@ -323,7 +324,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                           dy={4}
                           textAnchor="end"
                           fill={fill}
-                          fontSize={11}
+                          fontSize={14}
                         >
                           {value}
                         </text>
@@ -331,10 +332,10 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                           x={0}
                           y={0}
                           dx={-4}
-                          dy={16}
+                          dy={18}
                           textAnchor="end"
                           fill={fill}
-                          fontSize={10}
+                          fontSize={12}
                           opacity={0.9}
                         >
                           {secondary ? `(${secondary})` : "\u00A0"}
