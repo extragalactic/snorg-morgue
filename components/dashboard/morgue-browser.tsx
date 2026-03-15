@@ -314,7 +314,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
   return (
     <div className={fillHeight ? "flex min-h-0 flex-1 flex-col" : "flex flex-col"}>
       <Card className={cn(fillHeight && "flex min-h-0 flex-1 flex-col overflow-hidden", "gap-0 border-2 border-primary/30 rounded-none")}>
-        <CardHeader className="flex-shrink-0 border-b-2 border-primary/20 px-4 pt-2 pb-2">
+        <CardHeader className="flex-shrink-0 border-b-2 border-primary/20 px-4 pt-2 pb-2 -mt-[15px]">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
             <div className="flex items-center gap-3 min-w-0">
               {!hideBackButton && (

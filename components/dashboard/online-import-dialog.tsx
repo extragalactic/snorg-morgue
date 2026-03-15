@@ -484,6 +484,41 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
             </p>
           </div>
 
+          <div className="flex items-center justify-between gap-3 pt-2">
+            <div className="w-28 shrink-0">
+              {!isImporting && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-none border-2 border-primary/60 font-mono text-xs w-full"
+                  onClick={handleScan}
+                  disabled={!canScan}
+                >
+                  {isScanning ? "Scanning…" : hasScan ? "Refresh" : "Scan"}
+                </Button>
+              )}
+            </div>
+            <div className="flex-1 min-w-0" />
+            <Button
+              type="button"
+              className={cn(
+                "rounded-none border-2 font-mono text-xs min-w-[10rem] shrink-0",
+                isImporting && "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+              )}
+              variant={isImporting ? "outline" : "default"}
+              onClick={
+                isImporting
+                  ? handleCancelImport
+                  : importJustCompleted
+                    ? () => setImportJustCompleted(false)
+                    : handleImport
+              }
+              disabled={!isImporting && !importJustCompleted && !canImport}
+            >
+              {isImporting ? "Cancel" : importJustCompleted ? "OK" : totalNewGamesForSelected > 0 ? `Import ${totalNewGamesForSelected} Game${totalNewGamesForSelected === 1 ? "" : "s"}` : "Import"}
+            </Button>
+          </div>
+
           <div className="space-y-2">
             <p className="text-xs font-mono text-primary">Servers</p>
             <div className="grid grid-cols-3 gap-2 items-stretch">
@@ -613,40 +648,6 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 pt-2">
-            <div className="w-28 shrink-0">
-              {!isImporting && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-none border-2 border-primary/60 font-mono text-xs w-full"
-                  onClick={handleScan}
-                  disabled={!canScan}
-                >
-                  {isScanning ? "Scanning…" : hasScan ? "Refresh" : "Scan"}
-                </Button>
-              )}
-            </div>
-            <div className="flex-1 min-w-0" />
-            <Button
-              type="button"
-              className={cn(
-                "rounded-none border-2 font-mono text-xs min-w-[10rem] shrink-0",
-                isImporting && "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
-              )}
-              variant={isImporting ? "outline" : "default"}
-              onClick={
-                isImporting
-                  ? handleCancelImport
-                  : importJustCompleted
-                    ? () => setImportJustCompleted(false)
-                    : handleImport
-              }
-              disabled={!isImporting && !importJustCompleted && !canImport}
-            >
-              {isImporting ? "Cancel" : importJustCompleted ? "OK" : totalNewGamesForSelected > 0 ? `Import ${totalNewGamesForSelected} Game${totalNewGamesForSelected === 1 ? "" : "s"}` : "Import"}
-            </Button>
-          </div>
           <div className="min-h-[1.5rem] flex items-center justify-center pt-1">
             {isImporting ? (
               <p className="font-mono text-xs text-primary animate-pulse">

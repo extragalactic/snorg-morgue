@@ -288,14 +288,14 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                 <XAxis
                   type="number"
                   stroke="var(--muted-foreground)"
-                  fontSize={12}
+                  fontSize={14}
                   tickLine={false}
                   allowDecimals={false}
                   label={{
                     value: "Total runes found",
                     position: "bottom",
                     offset: 0,
-                    style: { fill: "var(--muted-foreground)", fontSize: 12 },
+                    style: { fill: "var(--muted-foreground)", fontSize: 14 },
                   }}
                 />
                 <YAxis
@@ -324,7 +324,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                           dy={4}
                           textAnchor="end"
                           fill={fill}
-                          fontSize={11}
+                          fontSize={14}
                         >
                           {value}
                         </text>
@@ -332,10 +332,10 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                           x={0}
                           y={0}
                           dx={-4}
-                          dy={16}
+                          dy={18}
                           textAnchor="end"
                           fill={fill}
-                          fontSize={10}
+                          fontSize={12}
                           opacity={0.9}
                         >
                           {secondary ? `(${secondary})` : "\u00A0"}
