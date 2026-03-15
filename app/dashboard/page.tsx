@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Trophy, Skull, Target, Flame, Zap, Timer, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -80,6 +80,59 @@ function formatComboSubtitle(species: string, background: string, god?: string):
   const line1 = `${species} ${background}${god ? ` of ${god}` : ""}`
   const line2 = `(${speciesCode(species)}${backgroundCode(background)}${god ? `^${GOD_SHORT_FORMS[god] ?? god}` : ""})`
   return `${line1}\n${line2}`
+}
+
+function PerformanceAndRunesLayout({
+  stats,
+  statsLoading,
+  morgues,
+  showGlobalAverages,
+  globalStats,
+}: {
+  stats: Awaited<ReturnType<typeof fetchUserStats>>
+  statsLoading: boolean
+  morgues: GameRecord[]
+  showGlobalAverages: boolean
+  globalStats: GlobalAnalysisStats | null
+}) {
+  const rightRef = useRef<HTMLDivElement>(null)
+  const [rightHeight, setRightHeight] = useState<number | null>(null)
+
+  useEffect(() => {
+    const el = rightRef.current
+    if (!el) return
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) setRightHeight(entry.contentRect.height)
+    })
+    ro.observe(el)
+    setRightHeight(el.getBoundingClientRect().height)
+    return () => ro.disconnect()
+  }, [morgues, statsLoading])
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
+      <div
+        className="flex min-h-0 flex-1 flex-col"
+        style={rightHeight != null ? { height: rightHeight } : undefined}
+      >
+        <div className="min-h-0 flex-1">
+          <TestPerformanceChart
+            speciesStats={stats?.species_stats ?? []}
+            backgroundStats={stats?.background_stats ?? []}
+            godStats={stats?.god_stats ?? []}
+            showAverages={showGlobalAverages}
+            averagePlayerCount={globalStats?.userCount}
+            fillHeight
+          />
+        </div>
+      </div>
+      <div ref={rightRef} className="flex min-h-0 flex-col space-y-6">
+        <RuneCollectionChart morgues={morgues} />
+        <Top10Killers morgues={morgues} loading={statsLoading} />
+      </div>
+    </div>
+  )
 }
 
 export default function DashboardPage({
@@ -546,24 +599,13 @@ export default function DashboardPage({
                     icon={Timer}
                   />
                 </div>
-                <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
-                  <div className="flex min-h-0 flex-1 flex-col">
-                    <div className="min-h-0 flex-1">
-                      <TestPerformanceChart
-                        speciesStats={stats?.species_stats ?? []}
-                        backgroundStats={stats?.background_stats ?? []}
-                        godStats={stats?.god_stats ?? []}
-                        showAverages={showGlobalAverages}
-                        averagePlayerCount={globalStats?.userCount}
-                        fillHeight
-                      />
-                    </div>
-                  </div>
-                  <div className="flex min-h-0 flex-col space-y-6">
-                    <RuneCollectionChart morgues={morgues} />
-                    <Top10Killers morgues={morgues} loading={statsLoading} />
-                  </div>
-                </div>
+                <PerformanceAndRunesLayout
+                  stats={stats}
+                  statsLoading={statsLoading}
+                  morgues={morgues}
+                  showGlobalAverages={showGlobalAverages}
+                  globalStats={globalStats}
+                />
                 </>
               )}
             </div>
