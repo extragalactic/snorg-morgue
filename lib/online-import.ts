@@ -256,6 +256,8 @@ export async function scanOnlineGames(
 interface ImportOptions extends ScanOptions {
   /** Maximum number of new games to import per server in a single run. Default: 3, capped by MAX_NEW_GAMES_PER_SERVER_PER_RUN. */
   maxNewGamesPerServer?: number
+  /** Called after each game is successfully imported (cumulative count). Used for streaming progress. */
+  onProgress?: (importedSoFar: number) => void
 }
 
 export async function runOnlineImport(
@@ -378,6 +380,7 @@ export async function runOnlineImport(
 
           existingSet.add(signature)
           newGamesImported++
+          options.onProgress?.(totalImported + newGamesImported)
         } catch (e) {
           errors.push(
             `Failed to parse/store morgue for ${name} (${server.abbreviation}): ${

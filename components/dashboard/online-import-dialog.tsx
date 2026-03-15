@@ -114,6 +114,8 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
   const [importProgressTarget, setImportProgressTarget] = useState(0)
   const [importJustCompleted, setImportJustCompleted] = useState(false)
   const [activeScanIndex, setActiveScanIndex] = useState<number | null>(null)
+  /** When true, use streaming API for accurate progress bar; when false, use legacy timer-based progress. */
+  const [useStreamingProgress, setUseStreamingProgress] = useState(true)
   const scanAbortRef = useRef<AbortController | null>(null)
   const importAbortRef = useRef<AbortController | null>(null)
   const importProgressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -293,13 +295,15 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
     setImportProgressTarget(totalSlots)
     setImportProgressDisplay(0)
     if (importProgressIntervalRef.current) clearInterval(importProgressIntervalRef.current)
-    importProgressIntervalRef.current = setInterval(() => {
-      setImportProgressDisplay((prev) => {
-        const cap = Math.floor(totalSlots * 0.9)
-        if (prev >= cap) return cap
-        return prev + 1
-      })
-    }, 800)
+    if (!useStreamingProgress) {
+      importProgressIntervalRef.current = setInterval(() => {
+        setImportProgressDisplay((prev) => {
+          const cap = Math.floor(totalSlots * 0.9)
+          if (prev >= cap) return cap
+          return prev + 1
+        })
+      }, 800)
+    }
     setImportSummary({
       lastRequested: maxNewGamesPerServer,
       lastImported: 0,
@@ -312,55 +316,28 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
       () => importController.abort(),
       IMPORT_TIMEOUT_MS,
     )
-    try {
-      const res = await fetch("/api/online-import/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          dcssUsername: username,
-          maxNewGamesPerServer,
-          serverAbbreviations: selectedServerAbbreviations,
-        }),
-        signal: importController.signal,
-      })
-      if (importTimeoutId != null) {
-        clearTimeout(importTimeoutId)
-        importTimeoutId = null
-      }
-      importAbortRef.current = null
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error((data.error as string) ?? `Import failed with status ${res.status}`)
-      }
-      const data = (await res.json()) as {
-        summary: { totalNewGamesImported: number; totalDuplicatesSkipped: number }
-        servers: {
-          serverAbbreviation: string
-          status: "ok" | "skipped" | "error"
-          newGamesImported: number
-          duplicatesSkipped: number
-          errors: string[]
-        }[]
-      }
-
+    const applyImportResult = (data: {
+      summary: { totalNewGamesImported: number; totalDuplicatesSkipped: number }
+      servers: {
+        serverAbbreviation: string
+        status: "ok" | "skipped" | "error"
+        newGamesImported: number
+        duplicatesSkipped: number
+        errors: string[]
+      }[]
+    }) => {
       const imported = data.summary.totalNewGamesImported
       const dupes = data.summary.totalDuplicatesSkipped
       const allErrors = data.servers?.flatMap((s) => s.errors ?? []) ?? []
-
       if (importProgressIntervalRef.current) {
         clearInterval(importProgressIntervalRef.current)
         importProgressIntervalRef.current = null
       }
       setImportProgressDisplay(imported)
       setImportProgressTarget(totalSlots)
-
       if (allErrors.length > 0) {
-        // Log extra detail to console so we don't overwhelm the toast.
         console.error("[snorg-morgue] Online import errors:", allErrors)
       }
-
-      // After a successful import, consider the "newGames" count consumed per server.
       setServers((prev) =>
         prev.map((server) => {
           const serverResult = data.servers.find((s) => s.serverAbbreviation === server.abbreviation)
@@ -375,7 +352,6 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
           }
         }),
       )
-
       setImportSummary({
         lastRequested: maxNewGamesPerServer,
         lastImported: imported,
@@ -383,8 +359,115 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
         lastErrors: allErrors.length,
       })
       setImportJustCompleted(true)
-
       onImportComplete?.()
+    }
+    try {
+      if (useStreamingProgress) {
+        const res = await fetch("/api/online-import/import-stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            dcssUsername: username,
+            maxNewGamesPerServer,
+            serverAbbreviations: selectedServerAbbreviations,
+          }),
+          signal: importController.signal,
+        })
+        if (importTimeoutId != null) {
+          clearTimeout(importTimeoutId)
+          importTimeoutId = null
+        }
+        importAbortRef.current = null
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error((data.error as string) ?? `Import failed with status ${res.status}`)
+        }
+        const reader = res.body?.getReader()
+        if (!reader) {
+          throw new Error("Streaming response has no body")
+        }
+        const decoder = new TextDecoder()
+        let buffer = ""
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split("\n")
+          buffer = lines.pop() ?? ""
+          for (const line of lines) {
+            const trimmed = line.trim()
+            if (!trimmed) continue
+            try {
+              const event = JSON.parse(trimmed) as
+                | { type: "progress"; imported: number }
+                | { type: "done"; result: { summary: { totalNewGamesImported: number; totalDuplicatesSkipped: number }; servers: { serverAbbreviation: string; status: "ok" | "skipped" | "error"; newGamesImported: number; duplicatesSkipped: number; errors: string[] }[] } }
+                | { type: "error"; error: string }
+              if (event.type === "progress") {
+                setImportProgressDisplay(event.imported)
+              } else if (event.type === "done") {
+                applyImportResult(event.result)
+              } else if (event.type === "error") {
+                throw new Error(event.error)
+              }
+            } catch (parseErr) {
+              if (parseErr instanceof SyntaxError) continue
+              throw parseErr
+            }
+          }
+        }
+        if (buffer.trim()) {
+          try {
+            const event = JSON.parse(buffer.trim()) as
+              | { type: "progress"; imported: number }
+              | { type: "done"; result: unknown }
+              | { type: "error"; error: string }
+            if (event.type === "done") {
+              applyImportResult((event as { type: "done"; result: Parameters<typeof applyImportResult>[0] }).result)
+            } else if (event.type === "error") {
+              throw new Error(event.error)
+            }
+          } catch (parseErr) {
+            if (parseErr instanceof SyntaxError) {
+              // ignore trailing partial line
+            } else {
+              throw parseErr
+            }
+          }
+        }
+      } else {
+        const res = await fetch("/api/online-import/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            dcssUsername: username,
+            maxNewGamesPerServer,
+            serverAbbreviations: selectedServerAbbreviations,
+          }),
+          signal: importController.signal,
+        })
+        if (importTimeoutId != null) {
+          clearTimeout(importTimeoutId)
+          importTimeoutId = null
+        }
+        importAbortRef.current = null
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error((data.error as string) ?? `Import failed with status ${res.status}`)
+        }
+        const data = (await res.json()) as {
+          summary: { totalNewGamesImported: number; totalDuplicatesSkipped: number }
+          servers: {
+            serverAbbreviation: string
+            status: "ok" | "skipped" | "error"
+            newGamesImported: number
+            duplicatesSkipped: number
+            errors: string[]
+          }[]
+        }
+        applyImportResult(data)
+      }
     } catch (e) {
       if (importTimeoutId != null) clearTimeout(importTimeoutId)
       importAbortRef.current = null
@@ -482,6 +565,22 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
             <p className="text-[11px] text-muted-foreground">
               The initial scan will count all matching games. This limit only caps how many new games are imported per run so tests stay fast.
             </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="use-streaming-progress"
+              checked={useStreamingProgress}
+              onCheckedChange={(checked) => setUseStreamingProgress(Boolean(checked))}
+              disabled={isImporting}
+              className="rounded border-2 border-primary/50 size-4"
+            />
+            <label
+              htmlFor="use-streaming-progress"
+              className="text-xs font-mono text-muted-foreground cursor-pointer select-none"
+            >
+              Use accurate progress (streaming) — uncheck to compare with legacy timer
+            </label>
           </div>
 
           <div className="flex items-center justify-between gap-3 pt-2">
