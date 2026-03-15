@@ -13,6 +13,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { colors } from "@/lib/colors"
 import { supabase } from "@/lib/supabase"
 import { uploadMorgues } from "@/lib/morgue-api"
 import { useAuth } from "@/contexts/auth-context"
@@ -314,7 +315,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
                   className={cn(
                     "flex items-center justify-between border-2 bg-secondary/50 p-3",
                     file.status === "error"
-                      ? "border-red-500/50"
+                      ? "border-destructive/50"
                       : "border-primary/30"
                   )}
                 >
@@ -336,10 +337,10 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
                       <div className="h-4 w-4 animate-spin border-2 border-primary border-t-transparent rounded-full" />
                     )}
                     {file.status === "complete" && (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <CheckCircle className={cn("h-4 w-4", colors.success)} />
                     )}
                     {file.status === "error" && (
-                      <AlertCircle className="h-4 w-4 text-red-500" />
+                      <AlertCircle className={cn("h-4 w-4", colors.destructive)} />
                     )}
                     <Button
                       variant="ghost"
@@ -365,7 +366,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
                 setFiles([])
               }}
               disabled={isProcessing}
-              className="rounded-none border-2 border-primary/50 font-mono text-xs hover:text-yellow-400"
+              className={cn("rounded-none font-mono text-xs", colors.inputBorder, colors.highlightHoverText)}
             >
               Cancel
             </Button>

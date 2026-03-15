@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server"
 import { createServerSupabase } from "@/lib/supabase-server"
 import { runOnlineImport } from "@/lib/online-import"
+import {
+  MAX_GAMES_PER_SERVER_PER_RUN,
+  MAX_NEW_GAMES_PER_SERVER_PER_RUN,
+} from "@/lib/online-import-limits"
 import { recalcUserStats } from "@/lib/morgue-api"
 
 export async function POST(request: Request) {
@@ -31,10 +35,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing userId or dcssUsername" }, { status: 400 })
   }
 
+  const rawNew = body?.maxNewGamesPerServer
+  const maxNewGamesPerServer =
+    typeof rawNew === "number" && Number.isFinite(rawNew) && rawNew > 0
+      ? Math.min(Math.floor(rawNew), MAX_NEW_GAMES_PER_SERVER_PER_RUN)
+      : undefined
+  const rawScan = body?.maxGamesPerServer
+  const maxGamesPerServer =
+    typeof rawScan === "number" && Number.isFinite(rawScan) && rawScan > 0
+      ? Math.min(Math.floor(rawScan), MAX_GAMES_PER_SERVER_PER_RUN)
+      : undefined
+
   try {
     const importResult = await runOnlineImport(supabase, userId, dcssUsername, {
-      maxGamesPerServer: body?.maxGamesPerServer,
-      maxNewGamesPerServer: body?.maxNewGamesPerServer,
+      maxGamesPerServer: maxGamesPerServer ?? undefined,
+      maxNewGamesPerServer: maxNewGamesPerServer ?? undefined,
       serverAbbreviations: body?.serverAbbreviations,
     })
 

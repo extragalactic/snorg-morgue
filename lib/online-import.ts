@@ -1,6 +1,11 @@
 import crypto from "crypto"
 
 import { DCSS_SERVERS } from "./dcss-public-sources"
+import {
+  MAX_GAMES_PER_SERVER_PER_RUN,
+  MAX_NEW_GAMES_PER_SERVER_PER_RUN,
+  MAX_TOTAL_MORGUE_FETCHES_PER_RUN,
+} from "./online-import-limits"
 import type { DcssServerConfig } from "./dcss-public-sources"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { nanoid } from "nanoid"
@@ -248,7 +253,7 @@ export async function scanOnlineGames(
 }
 
 interface ImportOptions extends ScanOptions {
-  /** Maximum number of new games to import per server in a single run. Default: 10. */
+  /** Maximum number of new games to import per server in a single run. Default: 3, capped by MAX_NEW_GAMES_PER_SERVER_PER_RUN. */
   maxNewGamesPerServer?: number
 }
 
@@ -259,10 +264,15 @@ export async function runOnlineImport(
   options: ImportOptions = {},
 ): Promise<OnlineImportRunResult> {
   const requestedNew = options.maxNewGamesPerServer ?? 3
-  const maxNewGamesPerServer = requestedNew
-  // Allow ourselves to examine more candidate games than we plan to import so that
-  // duplicates and failures do not consume the "new games" quota.
-  const maxGamesPerServer = options.maxGamesPerServer ?? requestedNew * 10
+  const maxNewGamesPerServer = Math.min(
+    Math.max(1, Math.floor(requestedNew)),
+    MAX_NEW_GAMES_PER_SERVER_PER_RUN,
+  )
+  const requestedScan = options.maxGamesPerServer ?? maxNewGamesPerServer * 10
+  const maxGamesPerServer = Math.min(
+    Math.max(maxNewGamesPerServer, Math.floor(requestedScan)),
+    MAX_GAMES_PER_SERVER_PER_RUN,
+  )
   const allowlist =
     options.serverAbbreviations && options.serverAbbreviations.length > 0
       ? new Set(options.serverAbbreviations)
@@ -275,6 +285,7 @@ export async function runOnlineImport(
   const perServerResults: OnlineImportRunServerResult[] = []
   let totalImported = 0
   let totalDuplicates = 0
+  let totalFetchedThisRun = 0
 
   for (const server of serversToImport) {
     let status: OnlineImportServerStatus = "ok"
@@ -299,6 +310,7 @@ export async function runOnlineImport(
 
       for (const row of matches) {
         if (newGamesImported >= maxNewGamesPerServer) break
+        if (totalFetchedThisRun >= MAX_TOTAL_MORGUE_FETCHES_PER_RUN) break
         const version = (row.v ?? row.version ?? "").trim()
         const end = (row.end ?? "").trim()
         const score = (row.sc ?? "").trim()
@@ -311,8 +323,10 @@ export async function runOnlineImport(
           continue
         }
 
+        totalFetchedThisRun++
         const morgueUrl = buildMorgueUrl(server, name, end)
         let rawMorgue: string
+        let resolvedMorgueUrl = morgueUrl
         try {
           let url = morgueUrl
           let morgueRes = await fetch(url, { cache: "no-store" })
@@ -327,6 +341,7 @@ export async function runOnlineImport(
             if (!morgueRes.ok) {
               throw new Error(`Failed to fetch morgue from ${url}: ${morgueRes.status} ${morgueRes.statusText}`)
             }
+            resolvedMorgueUrl = altUrl
           }
           rawMorgue = await morgueRes.text()
         } catch (e) {
@@ -340,27 +355,8 @@ export async function runOnlineImport(
 
         try {
           const parsed = parseMorgue(rawMorgue)
-          // Save raw morgue so existing features (browser, download, refresh) work unchanged.
-          const { data: morgueFile, error: insertFileErr } = await supabase
-            .from("morgue_files")
-            .insert({
-              user_id: userId,
-              filename: `online-${server.abbreviation}-${name}-${end}.txt`,
-              raw_text: rawMorgue,
-            })
-            .select("id")
-            .single()
-
-          if (insertFileErr || !morgueFile) {
-            errors.push(
-              `Failed to insert morgue_files row for ${name} (${server.abbreviation}): ${
-                insertFileErr?.message ?? "unknown error"
-              }`,
-            )
-            continue
-          }
-
-          const rowForDb = parsedToRow(morgueFile.id, userId, parsed)
+          // Sync-imported: store only parsed data and morgue_url; raw text is fetched from server when viewing.
+          const rowForDb = parsedToRow(null, userId, parsed)
           const insertPayload = {
             ...rowForDb,
             source: "online_sync" as const,
@@ -368,6 +364,7 @@ export async function runOnlineImport(
             dcss_username: dcssUsername,
             game_signature: signature,
             short_id: nanoid(6),
+            morgue_url: resolvedMorgueUrl,
           }
 
           const { error: insertParsedErr } = await supabase.from("parsed_morgues").insert(insertPayload)
@@ -375,8 +372,6 @@ export async function runOnlineImport(
             errors.push(
               `Failed to insert parsed_morgues row for ${name} (${server.abbreviation}): ${insertParsedErr.message}`,
             )
-            // Best-effort cleanup of the orphaned morgue_files row.
-            await supabase.from("morgue_files").delete().eq("id", morgueFile.id)
             continue
           }
 

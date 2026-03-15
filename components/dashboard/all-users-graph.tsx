@@ -78,7 +78,7 @@ export function AllUsersGraph() {
     <div className="grid gap-4 lg:grid-cols-3">
       <Card className="border-2 border-primary/30 rounded-none lg:col-span-2">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">
+          <CardTitle>
             GLOBAL ACTIVITY
           </CardTitle>
         </CardHeader>
@@ -134,7 +134,7 @@ export function AllUsersGraph() {
 
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">
+          <CardTitle>
             SPECIES POPULARITY
           </CardTitle>
         </CardHeader>

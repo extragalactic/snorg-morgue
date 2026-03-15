@@ -82,14 +82,14 @@ export function LevelAtDeathChart({
   
   // Line color based on theme
   const lineColor = themeStyle === "ascii" ? "#22c55e" : "#d4a574"
-  const globalLineColor = themeStyle === "ascii" ? "#38bdf8" : "#60a5fa"
+  const globalLineColor = "var(--average)"
   const gridColor = themeStyle === "ascii" ? "rgba(34,197,94,0.2)" : "rgba(212,165,116,0.2)"
 
   if (loading) {
     return (
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">LEVEL AT DEATH</CardTitle>
+          <CardTitle>LEVEL AT DEATH</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm">Loading…</div>
@@ -101,7 +101,7 @@ export function LevelAtDeathChart({
   return (
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <CardTitle className="font-mono text-sm text-primary flex items-center justify-between gap-2">
+        <CardTitle className="flex items-center justify-between gap-2">
           <span>LEVEL AT DEATH</span>
           {morgues.length > 0 && (() => {
             const deaths = morgues.filter((m) => m.result === "death").length

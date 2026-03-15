@@ -3,7 +3,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Dark Dungeon Theme for DCSS */
+/*
+ * Global color theming (Monitor, Terminal, etc.)
+ * - Semantic vars (--primary, --success, --destructive, --average) are set per theme.
+ * - @theme maps them to Tailwind (--color-*) so use text-primary, text-success, etc.
+ * - UI should use lib/colors.ts or these tokens; avoid raw palette (e.g. text-yellow-400).
+ */
+/* Dark Dungeon Theme (Monitor) */
 :root {
   --background: oklch(0.12 0.01 260);
   --foreground: oklch(0.9 0.02 90);
@@ -29,6 +35,9 @@
   --chart-3: oklch(0.6 0.15 140);
   --chart-4: oklch(0.55 0.2 25);
   --chart-5: oklch(0.65 0.1 280);
+  /* Semantic UI colors – use for consistent theming across Monitor/Terminal/etc. */
+  --success: oklch(0.55 0.2 145);
+  --average: #60a5fa;
   --radius: 0.125rem;
   --sidebar: oklch(0.14 0.01 260);
   --sidebar-foreground: oklch(0.9 0.02 90);
@@ -74,8 +83,8 @@
   --sidebar-accent-foreground: oklch(0.9 0.02 90);
   --sidebar-border: oklch(0.28 0.02 260);
   --sidebar-ring: oklch(0.75 0.15 85);
-  /* Default averages color (matches Level at Death global line in tiles theme) */
-  --average-color: #60a5fa;
+  --success: oklch(0.55 0.2 145);
+  --average: #60a5fa;
 }
 
 @theme inline {
@@ -106,6 +115,8 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-success: var(--success);
+  --color-average: var(--average);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -155,91 +166,32 @@
   --sidebar-accent-foreground: oklch(0.75 0.18 145);
   --sidebar-border: oklch(0.25 0.08 145);
   --sidebar-ring: oklch(0.65 0.2 145);
+  /* Semantic UI colors – Terminal theme */
+  --success: oklch(0.65 0.2 145);
+  --average: #38bdf8;
   /* Yellow utilities (e.g. play time hours) → green in ASCII theme */
   --color-yellow-400: oklch(0.8 0.2 145);
   --color-yellow-500: oklch(0.8 0.2 145);
   /* Chart-specific tokens for ASCII theme */
   --chart-wins-bright: oklch(0.8 0.2 145);
   --chart-attempts-muted: oklch(0.5 0.1 145);
-  /* Averages color in ASCII theme (matches Level at Death global line) */
-  --average-color: #38bdf8;
 }
 
-/* ASCII theme specific overrides */
-.theme-ascii .text-green-300 {
-  color: oklch(0.75 0.2 145) !important;
-}
-
-.theme-ascii .text-green-400,
-.theme-ascii .text-green-500 {
-  color: oklch(0.65 0.2 145) !important;
-}
-
-.theme-ascii .border-green-500,
-.theme-ascii .border-green-500\/20,
-.theme-ascii .border-green-500\/30,
-.theme-ascii .border-green-500\/50 {
-  border-color: oklch(0.35 0.12 145) !important;
-}
-
-.theme-ascii .bg-green-500\/10,
-.theme-ascii .bg-green-500\/20,
-.theme-ascii .bg-green-950\/50 {
-  background-color: oklch(0.12 0.04 145) !important;
-}
-
-.theme-ascii .text-red-400,
-.theme-ascii .text-red-500 {
-  color: oklch(0.5 0.12 145) !important;
-}
-
-.theme-ascii .border-red-500,
-.theme-ascii .border-red-500\/50 {
-  border-color: oklch(0.3 0.08 145) !important;
-}
-
-.theme-ascii .text-yellow-400,
-.theme-ascii .text-yellow-500 {
-  color: oklch(0.8 0.2 145) !important;
-}
-
-.theme-ascii .text-cyan-300,
-.theme-ascii .text-blue-300,
-.theme-ascii .text-purple-300,
-.theme-ascii .text-pink-300,
-.theme-ascii .text-orange-300,
-.theme-ascii .text-amber-300 {
-  color: oklch(0.65 0.16 145) !important;
-}
-
-.theme-ascii .bg-cyan-500\/10,
-.theme-ascii .bg-blue-500\/10,
-.theme-ascii .bg-purple-500\/10,
-.theme-ascii .bg-pink-500\/10,
-.theme-ascii .bg-orange-500\/15,
-.theme-ascii .bg-amber-500\/15,
-.theme-ascii .bg-yellow-500\/10 {
-  background-color: oklch(0.12 0.03 145) !important;
-}
+/* ASCII theme: semantic overrides only. UI uses text-primary, text-success, etc., so theme vars in .theme-ascii handle most colors. */
 
 .theme-ascii .drop-shadow-\[0_0_8px_rgba\(34\,197\,94\,0\.5\)\],
 .theme-ascii .drop-shadow-\[0_0_10px_rgba\(34\,197\,94\,0\.6\)\] {
   filter: drop-shadow(0 0 8px oklch(0.5 0.15 145));
 }
 
-/* ASCII theme button hover - green instead of yellow */
-.theme-ascii .hover\:text-yellow-400:hover {
-  color: oklch(0.8 0.25 145) !important;
-}
-
-/* Nav: Sign Out base & hover text bright green (Tiles + ASCII) */
+/* Nav: Sign Out – emphasis color (green in both themes) */
 .nav-signout,
 .nav-signout:hover {
   color: oklch(0.8 0.25 145) !important;
 }
 
-/* ASCII theme death badge - striped green */
-.theme-ascii .bg-red-500\/20 {
+/* ASCII theme death badge – striped green (semantic destructive badge) */
+.theme-ascii .bg-destructive\/20 {
   background: repeating-linear-gradient(
     45deg,
     oklch(0.15 0.06 145),
@@ -249,7 +201,7 @@
   ) !important;
 }
 
-.theme-ascii .bg-red-500\/30 {
+.theme-ascii .bg-destructive\/30 {
   background: repeating-linear-gradient(
     45deg,
     oklch(0.18 0.07 145),
@@ -325,5 +277,24 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  /* Hand cursor on interactive elements */
+  button,
+  a[href],
+  select,
+  input[type="checkbox"],
+  input[type="radio"],
+  [role="button"],
+  [role="tab"],
+  [role="option"],
+  [role="menuitem"],
+  [role="link"],
+  [role="switch"],
+  [type="button"],
+  [type="submit"],
+  [type="reset"],
+  label[for],
+  summary {
+    cursor: pointer;
   }
 }

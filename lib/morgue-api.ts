@@ -20,7 +20,10 @@ export interface GameRecord {
   id: string
   /** Short unique id for public URL (e.g. /username/morgues/abc12XYz90). */
   shortId: string
-  morgueFileId: string
+  /** Set for manually uploaded morgues; null for sync-imported (raw text fetched from morgueUrl). */
+  morgueFileId?: string
+  /** When set (sync-imported morgues), viewer fetches raw text from this URL. */
+  morgueUrl?: string
   character: string
   species: string
   background: string
@@ -33,6 +36,8 @@ export interface GameRecord {
   date: string
   result: "win" | "death"
   runes: number
+  /** Comma-separated rune types collected (e.g. "serpentine, barnacled, slimy"). */
+  runesText?: string
   killer?: string
   god?: string
   /** True if player reached Lair:5 in this game. */
@@ -226,8 +231,8 @@ export async function recalcUserStats(
 
   const list = (rows ?? []) as ParsedMorgueRow[]
 
-  // Order by game play date (from morgue filename) so best_streak = consecutive wins chronologically.
-  const fileIds = [...new Set(list.map((r) => r.morgue_file_id))]
+  // Order by game play date (from morgue filename or game_completion_date) so best_streak = consecutive wins chronologically.
+  const fileIds = [...new Set(list.map((r) => r.morgue_file_id).filter(Boolean))] as string[]
   const filenameByFileId = new Map<string, string>()
   const everIgnisByFileId = new Map<string, boolean>()
   if (fileIds.length > 0) {
@@ -244,12 +249,15 @@ export async function recalcUserStats(
       everIgnisByFileId.set(row.id, /Ignis/i.test(raw))
     }
   }
-  // DCSS filenames: morgue-Name-YYYYMMDD-HHMMSS.txt; use as sort key for chronological order
+  // DCSS filenames: morgue-Name-YYYYMMDD-HHMMSS.txt; use as sort key for chronological order. Sync-imported rows have no file, use game_completion_date or created_at.
   const sortKey = (r: ParsedMorgueRow) => {
-    const filename = filenameByFileId.get(r.morgue_file_id) ?? ""
-    const match = filename.match(/-(\d{8})-(\d{6})/)
-    if (match) return `${match[1]}${match[2]}`
-    return r.created_at
+    const fileId = r.morgue_file_id
+    if (fileId) {
+      const filename = filenameByFileId.get(fileId) ?? ""
+      const match = filename.match(/-(\d{8})-(\d{6})/)
+      if (match) return `${match[1]}${match[2]}`
+    }
+    return (r.game_completion_date && r.game_completion_date.trim()) || r.created_at
   }
   const listByPlayDate = [...list].sort((a, b) => {
     const ka = sortKey(a)
@@ -310,7 +318,7 @@ export async function recalcUserStats(
   for (const r of normalizedList) {
     const finalGod = normalizeGodName(r.god || "(no god)")
     bumpGod(finalGod, r.is_win)
-    const everIgnis = everIgnisByFileId.get(r.morgue_file_id) ?? false
+    const everIgnis = r.morgue_file_id ? everIgnisByFileId.get(r.morgue_file_id) ?? false : false
     if (everIgnis && finalGod !== ignisName) {
       bumpGod(ignisName, r.is_win)
     }
@@ -376,9 +384,9 @@ export async function fetchMorgues(
   userId: string
 ): Promise<GameRecord[]> {
   const withShortId =
-    "id, short_id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date, reached_lair_5"
+    "id, short_id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
   const withoutShortId =
-    "id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date, reached_lair_5"
+    "id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
 
   let { data, error } = await supabase
     .from("parsed_morgues")
@@ -397,11 +405,12 @@ export async function fetchMorgues(
   }
 
   return (data ?? []).map((r) => {
-    const row = r as { game_completion_date?: string | null; created_at: string; short_id?: string; [k: string]: unknown }
+    const row = r as { game_completion_date?: string | null; created_at: string; short_id?: string; morgue_url?: string | null; [k: string]: unknown }
     return {
       id: r.id,
       shortId: row.short_id ?? "",
-      morgueFileId: r.morgue_file_id,
+      morgueFileId: (r.morgue_file_id as string | null) ?? undefined,
+      morgueUrl: row.morgue_url?.trim() || undefined,
       character: r.character_name,
       species: r.species,
       background: r.background,
@@ -413,6 +422,7 @@ export async function fetchMorgues(
       date: row.game_completion_date?.trim() ? row.game_completion_date : row.created_at.slice(0, 10),
       result: r.is_win ? ("win" as const) : ("death" as const),
       runes: r.runes_count,
+      runesText: (r as { runes_text?: string }).runes_text ?? undefined,
       killer: r.killer ?? undefined,
       god: r.god ?? undefined,
       reachedLair5: (r as { reached_lair_5?: boolean }).reached_lair_5 ?? false,
@@ -572,7 +582,7 @@ export async function fetchRawMorgue(
 }
 
 const PARSED_COLUMNS_NO_SHORT =
-  "id, morgue_file_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, killer, god, game_completion_date, reached_lair_5"
+  "id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
 
 /**
  * Fetch a single morgue by id for the current user (RLS). Returns null if not found or not allowed.
@@ -589,11 +599,12 @@ export async function fetchMorgueById(
     .maybeSingle()
 
   if (error || !r) return null
-  const row = r as { game_completion_date?: string | null; created_at: string; reached_lair_5?: boolean }
+  const row = r as { game_completion_date?: string | null; created_at: string; reached_lair_5?: boolean; morgue_url?: string | null }
   return {
     id: r.id,
     shortId: (r as { short_id?: string }).short_id ?? "",
-    morgueFileId: r.morgue_file_id,
+    morgueFileId: (r.morgue_file_id as string | null) ?? undefined,
+    morgueUrl: row.morgue_url?.trim() || undefined,
     character: r.character_name,
     species: r.species,
     background: r.background,
@@ -605,6 +616,7 @@ export async function fetchMorgueById(
     date: row.game_completion_date?.trim() ? row.game_completion_date : row.created_at.slice(0, 10),
     result: r.is_win ? ("win" as const) : ("death" as const),
     runes: r.runes_count,
+    runesText: (r as { runes_text?: string }).runes_text ?? undefined,
     killer: r.killer ?? undefined,
     god: r.god ?? undefined,
     reachedLair5: row.reached_lair_5 ?? false,
@@ -612,61 +624,75 @@ export async function fetchMorgueById(
 }
 
 /**
- * Delete a morgue file (and its parsed row via cascade), then recalc user stats.
+ * Delete a morgue (parsed row; if manually uploaded, also delete the morgue_files row), then recalc user stats.
  */
 export async function deleteMorgue(
   supabase: SupabaseClient,
   userId: string,
-  morgueFileId: string
+  game: { id: string; morgueFileId?: string }
 ): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from("morgue_files")
+  const { error: parsedErr } = await supabase
+    .from("parsed_morgues")
     .delete()
-    .eq("id", morgueFileId)
+    .eq("id", game.id)
     .eq("user_id", userId)
 
-  if (error) return { error: error.message }
+  if (parsedErr) return { error: parsedErr.message }
+  if (game.morgueFileId) {
+    const { error: fileErr } = await supabase
+      .from("morgue_files")
+      .delete()
+      .eq("id", game.morgueFileId)
+      .eq("user_id", userId)
+    if (fileErr) return { error: fileErr.message }
+  }
   await recalcUserStats(supabase, userId)
   return { error: null }
 }
 
 /**
- * Delete all morgue files for the user (and clear their stats). For testing / clean re-upload.
+ * Delete all morgues for the user (parsed rows + morgue files) and clear their stats. For testing / clean re-upload.
  */
 export async function deleteAllMorgues(
   supabase: SupabaseClient,
   userId: string
 ): Promise<{ error: string | null }> {
-  const { error } = await supabase
+  const { error: parsedErr } = await supabase
+    .from("parsed_morgues")
+    .delete()
+    .eq("user_id", userId)
+  if (parsedErr) return { error: parsedErr.message }
+  const { error: fileErr } = await supabase
     .from("morgue_files")
     .delete()
     .eq("user_id", userId)
-
-  if (error) return { error: error.message }
+  if (fileErr) return { error: fileErr.message }
   await recalcUserStats(supabase, userId)
   return { error: null }
 }
 
 /**
  * Re-parse all stored morgue_files for the user into parsed_morgues and rebuild stats.
- * Does not touch the raw morgue_files, only clears/recreates parsed data + user_stats.
+ * Only affects manually uploaded morgues (sync-imported rows are left unchanged).
  */
 export async function refreshMorguesFromRaw(
   supabase: SupabaseClient,
   userId: string
 ): Promise<{ error: string | null }> {
-  // Clear existing parsed data and stats for this user.
-  const { error: deleteParsedErr } = await supabase
+  // Delete only parsed rows that have a morgue_file_id (manual uploads); leave sync-imported rows.
+  const { data: toDelete } = await supabase
     .from("parsed_morgues")
-    .delete()
+    .select("id")
     .eq("user_id", userId)
-  if (deleteParsedErr) return { error: deleteParsedErr.message }
-
-  const { error: deleteStatsErr } = await supabase
-    .from("user_stats")
-    .delete()
-    .eq("user_id", userId)
-  if (deleteStatsErr) return { error: deleteStatsErr.message }
+    .not("morgue_file_id", "is", null)
+  const ids = (toDelete ?? []).map((r) => r.id)
+  if (ids.length > 0) {
+    const { error: deleteParsedErr } = await supabase
+      .from("parsed_morgues")
+      .delete()
+      .in("id", ids)
+    if (deleteParsedErr) return { error: deleteParsedErr.message }
+  }
 
   // Fetch all raw morgue files for the user.
   const { data: files, error: filesErr } = await supabase

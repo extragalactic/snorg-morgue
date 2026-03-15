@@ -21,7 +21,7 @@ export function FilterToggleButton({
       variant={selected ? "default" : "outline"}
       size="sm"
       className={cn(
-        "rounded-none border-2 font-mono text-xs hover:text-yellow-400",
+        "rounded-none border-2 font-mono text-xs hover:text-primary",
         className
       )}
       onClick={onClick}

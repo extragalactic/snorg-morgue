@@ -2,6 +2,8 @@
 
 import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+import { typography } from "@/lib/typography"
 import type { GameRecord } from "@/lib/morgue-api"
 
 /** Combine all N-headed hydra variants into a single bucket for counting. */
@@ -34,10 +36,10 @@ export function Top10Killers({ morgues = [], loading }: { morgues?: GameRecord[]
     return (
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">TOP 10 KILLERS</CardTitle>
+          <CardTitle>TOP 10 KILLERS</CardTitle>
         </CardHeader>
-        <CardContent className="pt-4">
-          <div className="h-20 flex items-center justify-center text-muted-foreground text-sm">Loading…</div>
+        <CardContent className="pt-1.5">
+          <div className={cn("h-20 flex items-center justify-center", typography.bodyMuted)}>Loading…</div>
         </CardContent>
       </Card>
     )
@@ -47,10 +49,10 @@ export function Top10Killers({ morgues = [], loading }: { morgues?: GameRecord[]
     return (
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className="font-mono text-sm text-primary">TOP 10 KILLERS</CardTitle>
+          <CardTitle>TOP 10 KILLERS</CardTitle>
         </CardHeader>
-        <CardContent className="pt-4">
-          <p className="text-sm text-muted-foreground">No death data with killer information yet.</p>
+        <CardContent className="pt-1.5">
+          <p className={typography.bodyMuted}>No death data with killer information yet.</p>
         </CardContent>
       </Card>
     )
@@ -59,10 +61,10 @@ export function Top10Killers({ morgues = [], loading }: { morgues?: GameRecord[]
   return (
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <CardTitle className="font-mono text-sm text-primary">TOP 10 KILLERS</CardTitle>
+        <CardTitle>TOP 10 KILLERS</CardTitle>
       </CardHeader>
-      <CardContent className="pt-4">
-        <ol className="list-decimal list-inside space-y-1.5 font-mono text-sm">
+      <CardContent className="pt-1.5">
+        <ol className={cn("list-decimal list-inside space-y-1.5", typography.bodyMono)}>
           {top10.map(({ name, count }, i) => (
             <li key={`${name}-${i}`} className="text-foreground">
               <span className="text-primary">{name}</span>
