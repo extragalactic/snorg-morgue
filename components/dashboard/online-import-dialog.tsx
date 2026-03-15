@@ -116,15 +116,29 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
   const [activeScanIndex, setActiveScanIndex] = useState<number | null>(null)
   /** When true, use streaming API for accurate progress bar; when false, use legacy timer-based progress. */
   const [useStreamingProgress, setUseStreamingProgress] = useState(true)
+  /** Shown after import completes: main dialog closes and this modal shows imported count. */
+  const [successModalOpen, setSuccessModalOpen] = useState(false)
+  const [successImportedCount, setSuccessImportedCount] = useState(0)
   const scanAbortRef = useRef<AbortController | null>(null)
   const importAbortRef = useRef<AbortController | null>(null)
   const importProgressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const successDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Persist selected servers to localStorage when checkboxes change.
   useEffect(() => {
     const selected = servers.filter((s) => s.checked).map((s) => s.abbreviation)
     saveSelectedServerAbbreviations(selected)
   }, [servers])
+
+  // Clear success-delay timeout on unmount.
+  useEffect(() => {
+    return () => {
+      if (successDelayRef.current) {
+        clearTimeout(successDelayRef.current)
+        successDelayRef.current = null
+      }
+    }
+  }, [])
 
   const hasScan = servers.some(
     (s) => s.scan.status === "done" || s.scan.status === "error" || s.scan.status === "skipped",
@@ -150,6 +164,11 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
 
   const handleClose = () => {
     if (isScanning || isImporting) return
+    if (successDelayRef.current) {
+      clearTimeout(successDelayRef.current)
+      successDelayRef.current = null
+    }
+    setSuccessModalOpen(false)
     setImportSummary(null)
     setActiveScanIndex(null)
     onOpenChange(false)
@@ -290,6 +309,11 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
     }
 
     setImportJustCompleted(false)
+    if (successDelayRef.current) {
+      clearTimeout(successDelayRef.current)
+      successDelayRef.current = null
+    }
+    setSuccessModalOpen(false)
     setIsImporting(true)
     const totalSlots = maxNewGamesPerServer * selectedServerAbbreviations.length
     setImportProgressTarget(totalSlots)
@@ -360,6 +384,13 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
       })
       setImportJustCompleted(true)
       onImportComplete?.()
+      if (imported >= 1) {
+        setSuccessImportedCount(imported)
+        successDelayRef.current = setTimeout(() => {
+          successDelayRef.current = null
+          setSuccessModalOpen(true)
+        }, 1500)
+      }
     }
     try {
       if (useStreamingProgress) {
@@ -496,9 +527,38 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
     }
   }
 
+  const handleSuccessOk = () => {
+    setSuccessModalOpen(false)
+    onOpenChange(false)
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-[56.7rem] rounded-none border-2 border-primary/30">
+      <DialogContent
+        className={cn(
+          "rounded-none border-2 border-primary/30",
+          successModalOpen ? "sm:max-w-md" : "max-w-[calc(100%-2rem)] sm:max-w-[56.7rem]",
+        )}
+      >
+        {successModalOpen ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="font-mono text-lg text-primary">Import complete</DialogTitle>
+            </DialogHeader>
+            <p className="font-mono text-sm text-muted-foreground">
+              Successfully imported {successImportedCount} game{successImportedCount === 1 ? "" : "s"}.
+            </p>
+            <div className="flex justify-end pt-2">
+              <Button
+                className="rounded-none border-2 border-primary/60 font-mono text-xs"
+                onClick={handleSuccessOk}
+              >
+                OK
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
         <DialogHeader>
           <DialogTitle className="font-mono text-xl text-primary">Game Server Import (Stage 1)</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
@@ -525,15 +585,22 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
                 </p>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-none border border-primary/40 bg-background">
-                <div
-                  className="h-full bg-primary/70 transition-all duration-300"
-                  style={{
-                    width:
-                      importProgressTarget > 0
-                        ? `${Math.min(100, Math.round((importProgressDisplay / importProgressTarget) * 100))}%`
-                        : "0%",
-                  }}
-                />
+                {isImporting && importProgressDisplay === 0 ? (
+                  <div
+                    className="h-full w-full animate-import-shimmer bg-gradient-to-r from-primary/20 via-primary/70 to-primary/20"
+                    style={{ backgroundPosition: "0% 50%" }}
+                  />
+                ) : (
+                  <div
+                    className="h-full bg-primary/70 transition-all duration-300"
+                    style={{
+                      width:
+                        importProgressTarget > 0
+                          ? `${Math.min(100, Math.round((importProgressDisplay / importProgressTarget) * 100))}%`
+                          : "0%",
+                    }}
+                  />
+                )}
               </div>
             </div>
           )}
@@ -757,6 +824,8 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
             )}
           </div>
         </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   )
