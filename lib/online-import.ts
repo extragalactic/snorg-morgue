@@ -126,6 +126,9 @@ async function collectMatchesForUsername(
   // a "trunk"/git logfile. This allows us to include trunk builds that correspond to those versions.
   const allowedShortVersions = new Set(["0.33", "0.34"])
 
+  /** Timeout per logfile fetch so one slow/unreachable server (e.g. over VPN) doesn't hang the whole scan. */
+  const LOGFILE_FETCH_MS = 18_000
+
   // Prefer newer logfiles first by iterating in reverse order.
   const logfiles = [...server.logfiles].reverse()
 
@@ -137,7 +140,13 @@ async function collectMatchesForUsername(
 
     let text: string
     try {
-      const res = await fetch(logfileUrl, { cache: "no-store" })
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), LOGFILE_FETCH_MS)
+      const res = await fetch(logfileUrl, {
+        cache: "no-store",
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
       if (!res.ok) {
         continue
       }
