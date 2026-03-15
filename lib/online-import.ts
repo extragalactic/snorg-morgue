@@ -11,6 +11,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { nanoid } from "nanoid"
 import { parseMorgue } from "./morgue-parser"
 import { parsedToRow } from "./morgue-db"
+import { validateAndSanitizeParsedMorgue } from "./morgue-validation"
 
 export type OnlineImportServerStatus = "ok" | "skipped" | "error"
 
@@ -354,7 +355,7 @@ export async function runOnlineImport(
         }
 
         try {
-          const parsed = parseMorgue(rawMorgue)
+          const parsed = validateAndSanitizeParsedMorgue(parseMorgue(rawMorgue))
           // Sync-imported: store only parsed data and morgue_url; raw text is fetched from server when viewing.
           const rowForDb = parsedToRow(null, userId, parsed)
           const insertPayload = {
