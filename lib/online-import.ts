@@ -115,17 +115,24 @@ function shortVersionFromFull(v: string | undefined): string | null {
   return m ? m[1] : null
 }
 
+/** Normalize username for matching: lowercase and treat digit 0 as letter o, 1 as l, so "0cean" matches "Ocean". */
+function normalizeUsernameForMatch(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/0/g, "o")
+    .replace(/1/g, "l")
+}
+
 async function collectMatchesForUsername(
   server: DcssServerConfig,
   dcssUsername: string,
   maxMatches: number,
 ): Promise<ParsedXlog[]> {
-  const nameLower = dcssUsername.toLowerCase()
+  const inputNormalized = normalizeUsernameForMatch(dcssUsername.trim())
   const matches: ParsedXlog[] = []
 
-  // Stage 1: only ingest games whose short version is 0.33 or 0.34, even if they come from
-  // a "trunk"/git logfile. This allows us to include trunk builds that correspond to those versions.
-  const allowedShortVersions = new Set(["0.33", "0.34"])
+  // Include 0.32+ so games from older versions (e.g. 0.32) are found when their logfile is fetched.
+  const allowedShortVersions = new Set(["0.32", "0.33", "0.34"])
 
   // Prefer newer logfiles first by iterating in reverse order.
   const logfiles = [...server.logfiles].reverse()
@@ -153,7 +160,7 @@ async function collectMatchesForUsername(
       if (!parsed) continue
       const name = (parsed.name ?? "").trim()
       if (!name) continue
-      if (name.toLowerCase() !== nameLower) continue
+      if (normalizeUsernameForMatch(name) !== inputNormalized) continue
       const v = (parsed.v ?? parsed.version) as string | undefined
       const short = shortVersionFromFull(v)
       if (!short || !allowedShortVersions.has(short)) continue

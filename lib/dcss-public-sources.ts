@@ -47,6 +47,8 @@ const SERVERS_UNSORTED: DcssServerConfig[] = [
     gameCount: 495_992,
     logfiles: [
       { path: "/crawl/meta/crawl-0.34/logfile", version: "0.34" },
+      { path: "/crawl/meta/crawl-0.33/logfile", version: "0.33" },
+      { path: "/crawl/meta/crawl-0.32/logfile", version: "0.32" },
       { path: "/crawl/meta/crawl-git/logfile", version: "git" },
     ],
   },
