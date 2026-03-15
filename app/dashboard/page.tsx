@@ -339,7 +339,7 @@ export default function DashboardPage({
                   onClick={() => setOnlineImportOpen(true)}
                   disabled={!userId}
                 >
-                  Online Import
+                  Server Import
                 </Button>
               )}
               {activeTab === "morgues" && morgues.length > 0 && (

@@ -7,11 +7,6 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { ALL_SPECIES_NAMES, ALL_BACKGROUND_NAMES, GOD_SHORT_FORMS } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 
-/** Temporary: inject test wins for Troll Fighter to test tooltip with multiple gods. Remove later. */
-const TEST_COMBO_TOOLTIP = true
-const TEST_COMBO_KEY = "Troll|||Fighter"
-const TEST_WIN_GODS = ["Dithmenos", "Dithmenos", "Okawaru", "Okawaru", "Makhleb"]
-
 type Mode = "wins" | "attempts"
 
 /**
@@ -153,16 +148,6 @@ export function SpeciesBackgroundComboGrid({
         winsMap.set(key, list)
       }
       map.set(key, entry)
-    }
-    if (TEST_COMBO_TOOLTIP) {
-      const entry = map.get(TEST_COMBO_KEY) ?? { wins: 0, attempts: 0 }
-      const list = winsMap.get(TEST_COMBO_KEY) ?? []
-      for (const god of TEST_WIN_GODS) {
-        entry.wins += 1
-        list.push({ god })
-      }
-      map.set(TEST_COMBO_KEY, entry)
-      winsMap.set(TEST_COMBO_KEY, list)
     }
     let winCombos = 0
     let attemptCombos = 0

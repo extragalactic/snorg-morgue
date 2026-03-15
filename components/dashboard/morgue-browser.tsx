@@ -12,6 +12,7 @@ import type { GameRecord } from "@/lib/morgue-api"
 import { useTheme } from "@/contexts/theme-context"
 import { typography } from "@/lib/typography"
 import { colors } from "@/lib/colors"
+import { parseMorgue } from "@/lib/morgue-parser"
 
 /** Section titles as they appear in morgue files (order = typical appearance). Match with line.trim().startsWith(title). */
 const MORGUE_SECTION_TITLES = [
@@ -149,8 +150,10 @@ function parseMorgueSections(rawText: string): { segments: MorgueSegment[]; sect
 interface MorgueBrowserProps {
   game: GameRecord
   onBack: () => void
-  /** When true, hide the "Back to Morgues" button (e.g. when used inside a modal that has its own back button). */
+  /** When true, hide the back button (e.g. when used inside a modal that has its own back button). */
   hideBackButton?: boolean
+  /** Label for the back button. Default: "Back to Morgues". */
+  backButtonLabel?: string
   /** When false, hide the Download button (e.g. for public non-owner view). Default true. */
   showDownloadButton?: boolean
   /** When provided (e.g. from public API), use this instead of fetching raw morgue. */
@@ -163,6 +166,12 @@ interface MorgueBrowserProps {
   shareUrl?: string
   /** When provided (and shareUrl not set), show Share button that copies origin + this path. Use so the button appears on first paint. */
   sharePath?: string
+  /** When true, hide the win/death badge in the header. */
+  hideResultBadge?: boolean
+  /** When true, hide the LEVEL N and character/date subtitle row. */
+  hideLevelTitle?: boolean
+  /** When true, parse raw morgue text when loaded and use species/background/god for the title (for URL viewer). */
+  useParsedHeaderFromRaw?: boolean
 }
 
 function formatGodName(god: string | null | undefined): string {
@@ -174,13 +183,28 @@ function formatGodName(god: string | null | undefined): string {
   return name
 }
 
-export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton = true, initialRawText, initialFilename, fillHeight, shareUrl, sharePath }: MorgueBrowserProps) {
+export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton = true, backButtonLabel = "Back to Morgues", initialRawText, initialFilename, fillHeight, shareUrl, sharePath, hideResultBadge, hideLevelTitle, useParsedHeaderFromRaw }: MorgueBrowserProps) {
   const [rawText, setRawText] = useState<string | null>(initialRawText ?? null)
   const [filename, setFilename] = useState<string>(initialFilename ?? "")
   const [loading, setLoading] = useState(!initialRawText)
   const [error, setError] = useState<string | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
   const { themeStyle } = useTheme()
+
+  const parsedFromRaw = useMemo(() => {
+    if (!useParsedHeaderFromRaw || !rawText) return null
+    try {
+      return parseMorgue(rawText)
+    } catch {
+      return null
+    }
+  }, [useParsedHeaderFromRaw, rawText])
+
+  const headerSpecies = parsedFromRaw?.species ?? game.species
+  const headerBackground = parsedFromRaw?.background ?? game.background
+  const headerGod = parsedFromRaw?.god ?? game.god
+  const headerCharacter = parsedFromRaw?.characterName ?? game.character
+  const headerDate = parsedFromRaw?.gameCompletionDate ?? game.date
 
   const canShare = !!(shareUrl || sharePath)
   /** Sync-imported morgues: fetch from DCSS server. Manual uploads: fetch from DB. */
@@ -289,7 +313,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
 
   return (
     <div className={fillHeight ? "flex min-h-0 flex-1 flex-col" : "flex flex-col"}>
-      <Card className={fillHeight ? "flex min-h-0 flex-1 flex-col overflow-hidden border-2 border-primary/30 rounded-none" : "border-2 border-primary/30 rounded-none"}>
+      <Card className={cn(fillHeight && "flex min-h-0 flex-1 flex-col overflow-hidden", "gap-0 border-2 border-primary/30 rounded-none")}>
         <CardHeader className="flex-shrink-0 border-b-2 border-primary/20 px-4 pt-2 pb-2">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
             <div className="flex items-center gap-3 min-w-0">
@@ -301,28 +325,30 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
                   onClick={onBack}
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Back to Morgues
+                  {backButtonLabel}
                 </Button>
               )}
               <p className={cn(typography.primaryTitle, "sm:text-xl truncate")}>
                 {(() => {
-                  const parts = [game.species, game.background].filter(Boolean)
+                  const parts = [headerSpecies, headerBackground].filter(Boolean)
                   const base = parts.join(" ") || "Character"
-                  const godName = formatGodName(game.god)
+                  const godName = formatGodName(headerGod)
                   return godName ? `${base} of ${godName}` : base
                 })()}
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <Badge
-                className={
-                  game.result === "win"
-                    ? cn("rounded-none", colors.successBadge)
-                    : cn("rounded-none", colors.destructiveBadge)
-                }
-              >
-                {game.result === "win" ? "Victory" : "Death"} — XL {game.xl}
-              </Badge>
+              {!hideResultBadge && (
+                <Badge
+                  className={
+                    game.result === "win"
+                      ? cn("rounded-none", colors.successBadge)
+                      : cn("rounded-none", colors.destructiveBadge)
+                  }
+                >
+                  {game.result === "win" ? "Victory" : "Death"} — XL {game.xl}
+                </Badge>
+              )}
               {canShare && (
                 <div className="relative">
                   <Button
@@ -353,22 +379,24 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
               )}
             </div>
           </div>
-          <div className="flex items-center justify-between gap-2 mt-1">
-            <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
-              <p className={cn(typography.subtitle, "tracking-wide")}>
-                {`LEVEL ${game.xl}`}
-              </p>
-              <p className={typography.bodyMonoMuted}>
-                {game.character}
-                {game.date && (
-                  <span className="ml-1.5 text-muted-foreground/90">— {game.date}</span>
-                )}
-              </p>
+          {!hideLevelTitle && (
+            <div className="flex items-center justify-between gap-2 mt-1">
+              <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
+                <p className={cn(typography.subtitle, "tracking-wide")}>
+                  {`LEVEL ${game.xl}`}
+                </p>
+                <p className={typography.bodyMonoMuted}>
+                  {headerCharacter}
+                  {headerDate && (
+                    <span className="ml-1.5 text-muted-foreground/90">— {headerDate}</span>
+                  )}
+                </p>
+              </div>
+              {filename && (
+                <p className={cn(typography.caption, "shrink-0 truncate max-w-[40%]")}>{filename}</p>
+              )}
             </div>
-            {filename && (
-              <p className={cn(typography.caption, "shrink-0 truncate max-w-[40%]")}>{filename}</p>
-            )}
-          </div>
+          )}
           {sectionTitles.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-primary/20 mt-1.5">
               {sectionTitles.map(({ id, title }) => (

@@ -417,7 +417,7 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-[56.7rem] rounded-none border-2 border-primary/30">
         <DialogHeader>
-          <DialogTitle className="font-mono text-sm text-primary">Online Import (Stage 1)</DialogTitle>
+          <DialogTitle className="font-mono text-xl text-primary">Game Server Import (Stage 1)</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             Manually scan and import games from DCSS online servers into Snorg. For now this is limited to a few servers
             and small test imports.
@@ -490,30 +490,55 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
               {servers.map((server, index) => {
                 const isActive = activeScanIndex === index && isScanning
                 const scan = server.scan
+                const canToggle = !isScanning && !isImporting
+                const toggleServer = () => {
+                  if (!canToggle) return
+                  setServers((prev) =>
+                    prev.map((s) =>
+                      s.abbreviation === server.abbreviation
+                        ? { ...s, checked: !s.checked }
+                        : s,
+                    ),
+                  )
+                }
                 return (
                   <Card
                     key={server.abbreviation}
+                    role={canToggle ? "button" : undefined}
+                    tabIndex={canToggle ? 0 : undefined}
+                    onClick={canToggle ? (e: React.MouseEvent) => { if (!(e.target as HTMLElement).closest("[data-server-control]")) toggleServer() } : undefined}
+                    onKeyDown={(e) => {
+                      if (canToggle && (e.key === "Enter" || e.key === " ")) {
+                        e.preventDefault()
+                        toggleServer()
+                      }
+                    }}
                     className={cn(
-                      "rounded-none p-3 border-2 min-h-[132px] min-w-0 flex flex-col",
-                      isActive ? "border-primary bg-primary/5" : "border-primary/30",
+                      "rounded-none p-3 border-2 min-w-0 flex flex-col h-[156px] overflow-hidden",
+                      canToggle && "cursor-pointer transition-colors hover:border-primary/60 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
+                      isActive && "border-primary bg-primary/5",
+                      !isActive && server.checked && "border-primary",
+                      !isActive && !server.checked && "border-primary/30",
                     )}
                   >
-                    <div className="flex items-center justify-between text-xs font-mono mb-2 min-h-8 shrink-0">
+                    <div className="flex items-center justify-between text-xs font-mono mb-2 h-11 shrink-0">
                       <div className="flex items-center gap-2 flex-wrap min-w-0">
-                        <Checkbox
-                          checked={server.checked}
-                          onCheckedChange={(checked) =>
-                            setServers((prev) =>
-                              prev.map((s) =>
-                                s.abbreviation === server.abbreviation
-                                  ? { ...s, checked: Boolean(checked) }
-                                  : s,
-                              ),
-                            )
-                          }
-                          disabled={isScanning || isImporting}
-                          className="mt-[1px] shrink-0 size-6"
-                        />
+                        <span data-server-control>
+                          <Checkbox
+                            checked={server.checked}
+                            onCheckedChange={(checked) =>
+                              setServers((prev) =>
+                                prev.map((s) =>
+                                  s.abbreviation === server.abbreviation
+                                    ? { ...s, checked: Boolean(checked) }
+                                    : s,
+                                ),
+                              )
+                            }
+                            disabled={isScanning || isImporting}
+                            className="mt-[1px] shrink-0 size-6"
+                          />
+                        </span>
                         <span className="text-primary truncate text-base font-medium">{server.name}</span>
                         {server.country && (
                           <span className="text-muted-foreground shrink-0 text-sm">({server.country})</span>
@@ -527,7 +552,11 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
                             variant="outline"
                             size="sm"
                             className="rounded-none border-2 border-amber-500/70 text-amber-700 dark:text-amber-400 font-mono text-[11px] h-7 px-2"
-                            onClick={handleSkipScan}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleSkipScan()
+                            }}
+                            data-server-control
                           >
                             Skip
                           </Button>

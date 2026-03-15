@@ -16,9 +16,12 @@ Snorg-Morge ToDo
 - what's the proper terminology: Grand Player or Greater Player? And how is it defined?
 
 - rename the Online Upload button to something like Game Server Sync, or just Sync. Have a Help tooltip somewhere perhaps for help on first upload/sync
+
 - need a morgue "character sheet" exporter (to resemble a D&D sheet)
 
 - add a function to only show morgues from a range of game versions
+
+- server import cards have wobbly text when you click
 
 - connect to online game servers
 https://dcss-stats.com/players/dlwiii
@@ -26,6 +29,5 @@ https://dcss-stats.com/players/dlwiii
 ...hey, buy more vape bags!
 
 We have server download caps in place, edit them here: lib/online-import-limits.ts
-
 
 Streaming (alternative): We could keep one request and stream progress (e.g. SSE or chunked) so the client gets “imported 1”, “imported 2”, … as each morgue is processed. Then the bar could reflect real progress with no extra round-trips. That would require changing the import API to a streaming response.
