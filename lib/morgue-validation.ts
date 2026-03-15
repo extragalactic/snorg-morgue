@@ -59,19 +59,17 @@ function truncate(s: string, maxLen: number): string {
 
 /**
  * Validates and sanitizes a parsed morgue before insert.
- * - Rejects invalid XL (throws).
- * - Clamps numeric fields to allowed ranges.
+ * - Clamps all numeric fields (including XL) to allowed ranges so we never throw and break import.
  * - Truncates strings to max lengths.
  * - Normalizes game_completion_date (empty or YYYY-MM-DD).
  * Returns a new object; does not mutate input.
  */
 export function validateAndSanitizeParsedMorgue(p: ParsedMorgue): ParsedMorgue {
-  const xl = typeof p.xl === "number" && Number.isFinite(p.xl) ? p.xl : 1
-  if (xl < XL_MIN || xl > XL_MAX) {
-    throw new Error(
-      `Invalid XL: ${xl}. Must be between ${XL_MIN} and ${XL_MAX}.`
-    )
-  }
+  const xl = clamp(
+    typeof p.xl === "number" && Number.isFinite(p.xl) ? Math.floor(p.xl) : 1,
+    XL_MIN,
+    XL_MAX,
+  )
 
   const runesCount = clamp(
     typeof p.runesCount === "number" && Number.isFinite(p.runesCount)
