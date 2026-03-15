@@ -210,7 +210,18 @@ export async function uploadMorgues(
     }
   }
 
-  if (success > 0) await recalcUserStats(supabase, userId)
+  if (success > 0) {
+    await recalcUserStats(supabase, userId)
+    await supabase.from("import_events").insert({
+      user_id: userId,
+      event_type: "manual_upload",
+      morgue_count: success,
+      server_abbreviation: null,
+      dcss_username: null,
+    }).then(({ error }) => {
+      if (error) console.warn("[snorg-morgue] Failed to log import event:", error.message)
+    })
+  }
   return { success, failed }
 }
 

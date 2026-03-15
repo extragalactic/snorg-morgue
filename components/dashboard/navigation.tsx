@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { BarChart3, ScrollText, Menu, X, LogOut, ExternalLink, Monitor, Terminal, Trophy } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { BarChart3, ScrollText, Menu, X, LogOut, ExternalLink, Monitor, Terminal, Trophy, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -13,12 +15,16 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { useAuth } from "@/contexts/auth-context"
 import { useTheme } from "@/contexts/theme-context"
+import { isAdminEmail } from "@/lib/admin-auth"
+import { slugifyUsername, TAB_TO_PAGE } from "@/lib/slug"
 
 interface NavigationProps {
   activeTab: string
   onTabChange: (tab: string) => void
   /** When set, tab clicks only update client state + URL (replaceState); no Next.js navigation to avoid full refresh. */
   usernameSlug?: string
+  /** When true, show Admin link as active (e.g. on admin page). */
+  adminActive?: boolean
 }
 
 const navItems = [
@@ -28,10 +34,15 @@ const navItems = [
   { id: "extras", label: "Resources", icon: ExternalLink },
 ]
 
-export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationProps) {
+export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }: NavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const pathname = usePathname()
   const { user, signOut } = useAuth()
   const { themeStyle, setThemeStyle } = useTheme()
+  const showAdmin = isAdminEmail(user?.email)
+  const isAdminPage = adminActive ?? pathname === "/dashboard/admin"
+  const slugFromUser = user?.name ? slugifyUsername(user.name) : null
+  const useNavLinks = !usernameSlug && slugFromUser && isAdminPage
 
   const renderNavItem = (item: (typeof navItems)[0], mobile = false) => {
     const Icon = item.icon
@@ -43,6 +54,28 @@ export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationP
         : "border-transparent hover:border-primary/50 hover:bg-primary/10 hover:text-primary",
       mobile && "w-full justify-start mb-1"
     )
+    const pagePath = TAB_TO_PAGE[item.id]
+    const href = pagePath && slugFromUser ? `/${slugFromUser}/${pagePath}` : undefined
+
+    if (useNavLinks && href) {
+      return (
+        <Link
+          key={item.id}
+          href={href}
+          onClick={() => mobile && setMobileMenuOpen(false)}
+        >
+          <Button
+            variant="ghost"
+            size="default"
+            className={cn(buttonClass, mobile && "w-full justify-start")}
+          >
+            <Icon className="h-4 w-4" />
+            {item.label}
+          </Button>
+        </Link>
+      )
+    }
+
     return (
       <Button
         key={item.id}
@@ -100,6 +133,23 @@ export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationP
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
             {navItems.map((item) => renderNavItem(item))}
+            {showAdmin && (
+              <Link href="/dashboard/admin">
+                <Button
+                  variant={isAdminPage ? "default" : "ghost"}
+                  size="default"
+                  className={cn(
+                    "rounded-none border-2 font-mono text-xs",
+                    isAdminPage
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-transparent hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
+                  )}
+                >
+                  <Shield className="h-4 w-4" />
+                  Admin
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* User Info, Theme Selector & Sign Out */}
@@ -172,6 +222,23 @@ export function Navigation({ activeTab, onTabChange, usernameSlug }: NavigationP
         {mobileMenuOpen && (
           <div className="md:hidden border-t-2 border-primary/30 py-2">
             {navItems.map((item) => renderNavItem(item, true))}
+            {showAdmin && (
+              <Link href="/dashboard/admin" className="block mb-1" onClick={() => setMobileMenuOpen(false)}>
+                <Button
+                  variant={isAdminPage ? "default" : "ghost"}
+                  size="default"
+                  className={cn(
+                    "w-full justify-start rounded-none border-2 font-mono text-xs",
+                    isAdminPage
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-transparent hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
+                  )}
+                >
+                  <Shield className="h-4 w-4" />
+                  Admin
+                </Button>
+              </Link>
+            )}
             {/* Mobile Theme Selector & Sign Out */}
             <div className="mt-2 pt-2 border-t border-primary/30">
               {user && (
