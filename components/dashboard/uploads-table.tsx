@@ -310,7 +310,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
     const game = deleteConfirmGame
     if (!game || !userId) return
     setIsDeleting(true)
-    const { error } = await deleteMorgue(supabase, userId, game.morgueFileId)
+    const { error } = await deleteMorgue(supabase, userId, { id: game.id, morgueFileId: game.morgueFileId })
     setIsDeleting(false)
     setDeleteConfirmGame(null)
     if (error) {

@@ -461,19 +461,20 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
 
           <div className="space-y-2">
             <p className="text-xs font-mono text-primary">Servers</p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2 items-stretch">
               {servers.map((server, index) => {
                 const isActive = activeScanIndex === index && isScanning
                 const scan = server.scan
                 return (
                   <Card
                     key={server.abbreviation}
-                    className={`rounded-none p-3 border-2 ${
-                      isActive ? "border-primary bg-primary/5" : "border-primary/30"
-                    }`}
+                    className={cn(
+                      "rounded-none p-3 border-2 min-h-[132px] min-w-0 flex flex-col",
+                      isActive ? "border-primary bg-primary/5" : "border-primary/30",
+                    )}
                   >
-                    <div className="flex items-center justify-between text-xs font-mono mb-2">
-                      <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center justify-between text-xs font-mono mb-2 min-h-8 shrink-0">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
                         <Checkbox
                           checked={server.checked}
                           onCheckedChange={(checked) =>
@@ -486,16 +487,16 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
                             )
                           }
                           disabled={isScanning || isImporting}
-                          className="mt-[1px]"
+                          className="mt-[1px] shrink-0 size-6"
                         />
-                        <span className="text-primary">{server.name}</span>
+                        <span className="text-primary truncate text-base font-medium">{server.name}</span>
                         {server.country && (
-                          <span className="text-muted-foreground">({server.country})</span>
+                          <span className="text-muted-foreground shrink-0 text-sm">({server.country})</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0 w-14 justify-end">
                         <span className="text-muted-foreground">{server.abbreviation}</span>
-                        {isScanning && activeScanIndex === index && (
+                        {isScanning && activeScanIndex === index ? (
                           <Button
                             type="button"
                             variant="outline"
@@ -505,10 +506,12 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
                           >
                             Skip
                           </Button>
+                        ) : (
+                          <span className="inline-block w-10" aria-hidden />
                         )}
                       </div>
                     </div>
-                    <div className="text-muted-foreground space-y-1">
+                    <div className="text-muted-foreground space-y-1 min-h-[3.5rem]">
                       <p className="text-sm font-medium">
                         Status:{" "}
                         {scan.status === "idle" && "Not scanned yet"}
@@ -526,20 +529,29 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
                         {scan.status === "error" && "Error"}
                         {scan.status === "skipped" && "Skipped"}
                       </p>
-                      {scan.status !== "idle" && (
-                        <p className="text-sm">
-                          Games found:{" "}
+                      <p className="text-sm">
+                        Games found:{" "}
+                        {scan.status === "idle" ? (
+                          <span className="font-mono font-medium">—</span>
+                        ) : (
                           <span
-                            className={`font-mono font-medium ${
-                              scan.totalGamesFound > 0 ? colors.success : ""
-                            }`}
+                            className={cn(
+                              "font-mono font-medium",
+                              scan.totalGamesFound > 0 && colors.success,
+                            )}
                           >
                             {scan.totalGamesFound}{" "}
                             {scan.totalGamesFound > 0 ? `(new: ${scan.newGames})` : ""}
                           </span>
+                        )}
+                      </p>
+                      {scan.errorMessage ? (
+                        <p className={cn("text-[11px]", colors.destructive)}>{scan.errorMessage}</p>
+                      ) : (
+                        <p className="text-[11px] invisible" aria-hidden>
+                          &#8203;
                         </p>
                       )}
-                      {scan.errorMessage && <p className={cn("text-[11px]", colors.destructive)}>{scan.errorMessage}</p>}
                     </div>
                   </Card>
                 )

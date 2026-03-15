@@ -14,7 +14,8 @@ export interface MorgueFileRow {
 
 export interface ParsedMorgueRow {
   id: string
-  morgue_file_id: string
+  /** Null for sync-imported morgues (raw text fetched from server). */
+  morgue_file_id: string | null
   user_id: string
   version: string
   game_seed: string
@@ -68,7 +69,7 @@ export interface UserStatsRow {
 }
 
 export function parsedToRow(
-  morgueFileId: string,
+  morgueFileId: string | null,
   userId: string,
   p: ParsedMorgue
 ): Omit<ParsedMorgueRow, "id" | "created_at"> {

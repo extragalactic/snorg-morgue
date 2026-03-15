@@ -183,6 +183,9 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
   const { themeStyle } = useTheme()
 
   const canShare = !!(shareUrl || sharePath)
+  /** Sync-imported morgues: fetch from DCSS server. Manual uploads: fetch from DB. */
+  const fetchFromServer = !!game.morgueUrl
+  const canDownload = showDownloadButton && !!game.morgueFileId
   const getShareUrl = () => {
     const base =
       shareUrl ||
@@ -200,7 +203,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
   }
 
   useEffect(() => {
-    if (initialRawText !== undefined) {
+    if (initialRawText !== undefined && !fetchFromServer) {
       setRawText(initialRawText)
       setFilename(initialFilename ?? "")
       setLoading(false)
@@ -208,6 +211,35 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
     }
     let cancelled = false
     async function load() {
+      if (fetchFromServer && game.morgueUrl) {
+        try {
+          const proxyUrl = `/api/morgues/fetch-raw?url=${encodeURIComponent(game.morgueUrl)}`
+          const res = await fetch(proxyUrl, { cache: "no-store" })
+          if (cancelled) return
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}))
+            const msg = (body as { error?: string }).error ?? `Server returned ${res.status}`
+            setError(msg)
+            setLoading(false)
+            return
+          }
+          const text = await res.text()
+          if (cancelled) return
+          setRawText(text)
+          setFilename(game.morgueUrl.split("/").pop() ?? `morgue-${game.character}-${game.date}.txt`)
+        } catch (e) {
+          if (!cancelled) {
+            setError(e instanceof Error ? e.message : "Could not fetch morgue from server.")
+          }
+        }
+        setLoading(false)
+        return
+      }
+      if (!game.morgueFileId) {
+        setError("Could not load morgue file.")
+        setLoading(false)
+        return
+      }
       const data = await fetchRawMorgue(supabase, game.morgueFileId)
       if (cancelled) return
       if (data) {
@@ -220,7 +252,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
     }
     load()
     return () => { cancelled = true }
-  }, [game.morgueFileId, initialRawText, initialFilename])
+  }, [game.morgueFileId, game.morgueUrl, game.character, game.date, initialRawText, initialFilename, fetchFromServer])
 
   const { segments, sectionTitles } = useMemo(() => {
     if (!rawText) return { segments: [] as MorgueSegment[], sectionTitles: [] as { id: string; title: string }[] }
@@ -307,7 +339,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
                   </span>
                 </div>
               )}
-              {showDownloadButton && (
+              {canDownload && (
                 <Button
                   variant="outline"
                   size="sm"

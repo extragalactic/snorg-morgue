@@ -108,3 +108,7 @@ So with **no saved morgues**, capacity is about **20–25×** the all-upload cas
 - **Auth and system tables** (e.g. `auth.users`) use extra space; the above is for morgue-related data only. Leaving ~50–100 MB for auth and overhead is prudent.
 - **Egress:** Free tier includes 5 GB/month; serving raw morgues and API responses will consume this. Sync-only users don’t need raw morgue served from your DB, so egress is lower for that segment.
 - To support more users: reduce retention (e.g. cap morgues per user), add a sync-only path that skips `morgue_files`, or move large blobs out of the DB (e.g. store `raw_text` in Supabase Storage and keep only metadata in Postgres).
+
+### Current behaviour vs server URL
+
+Right now the **morgue details viewer** does **not** use the DCSS server URL. It always loads raw morgue text from our database (`morgue_files.raw_text`). The online servers do provide a stable URL for each morgue (e.g. `https://crawl.dcss.io/crawl/morgue/PlayerName/morgue-PlayerName-20240101-120000.txt`), which we use only during **import** to fetch the file. If we stop storing raw morgues for sync-imported games, we can have the viewer fetch from that URL when opening a morgue (we store `morgue_url` in `parsed_morgues` for sync-imported games so the client can do that). Manually uploaded morgues have no external URL, so they must continue to be read from our DB (or from Storage if we move blobs there).

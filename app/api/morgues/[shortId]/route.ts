@@ -4,9 +4,9 @@ import { slugifyUsername } from "@/lib/slug"
 import type { GameRecord } from "@/lib/morgue-api"
 
 const SELECT_COLUMNS =
-  "id, short_id, morgue_file_id, user_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
+  "id, short_id, morgue_file_id, morgue_url, user_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
 const SELECT_COLUMNS_NO_SHORT_ID =
-  "id, morgue_file_id, user_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
+  "id, morgue_file_id, morgue_url, user_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
 
 export async function GET(
   _request: Request,
@@ -81,21 +81,27 @@ export async function GET(
     "user"
   const ownerSlug = slugifyUsername(name)
 
-  const { data: file, error: fileError } = await supabase
-    .from("morgue_files")
-    .select("raw_text, filename")
-    .eq("id", parsed.morgue_file_id)
-    .single()
-
-  if (fileError || !file) {
-    return NextResponse.json({ error: "Morgue file not found" }, { status: 404 })
+  const row = parsed as { game_completion_date?: string | null; created_at: string; reached_lair_5?: boolean; short_id?: string; morgue_url?: string | null; morgue_file_id?: string | null }
+  let rawText: string | null = null
+  let filename: string | null = null
+  if (row.morgue_file_id) {
+    const { data: file, error: fileError } = await supabase
+      .from("morgue_files")
+      .select("raw_text, filename")
+      .eq("id", row.morgue_file_id)
+      .single()
+    if (fileError || !file) {
+      return NextResponse.json({ error: "Morgue file not found" }, { status: 404 })
+    }
+    rawText = file.raw_text
+    filename = file.filename
   }
 
-  const row = parsed as { game_completion_date?: string | null; created_at: string; reached_lair_5?: boolean; short_id?: string }
   const gameRecord: GameRecord = {
     id: parsed.id as string,
     shortId: (row.short_id as string | undefined) ?? "",
-    morgueFileId: parsed.morgue_file_id as string,
+    morgueFileId: (parsed.morgue_file_id as string | null) ?? undefined,
+    morgueUrl: (row.morgue_url as string | undefined)?.trim() || undefined,
     character: parsed.character_name as string,
     species: parsed.species as string,
     background: parsed.background as string,
@@ -115,8 +121,8 @@ export async function GET(
 
   return NextResponse.json({
     gameRecord,
-    rawText: file.raw_text,
-    filename: file.filename,
+    rawText: rawText ?? undefined,
+    filename: filename ?? undefined,
     ownerSlug,
   })
 }
