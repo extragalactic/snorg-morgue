@@ -4,13 +4,14 @@ Features:
 - enable Google auth
 - new section to show: best score, average score
 - would be cool to have a Congrats modal after uploading/detecting a new Win 
-- when you rollover a Snorg Award show a tooltip with a larger (pixelated) version of the image, and the font size increases with the award
+- when you rollover a Snorg Award show a tooltip with something fun
 - have a Help tooltip somewhere perhaps for help on first upload/sync
 - need a morgue "character sheet" exporter (to resemble a D&D sheet)
-- add a function to only show morgues from a range of game versions
+- new chart: win rate by god
+- new chart: Arch Nemesis Chart = top 10 unique killers
+- new chart: Skill Level by Combo = with a given species-background-god, for all the winners with that combo what were their average stats at several level benchmarks (mostly used with the Avg data)
 
 Fixes:
-- the importers should enforce reasonable data min/max limits to prevent cheating or broken files
 - what's the proper terminology: Grand Player or Greater Player? And how is it defined?
 - need to normalize the Level at Death graph when comparing to the average data
 - y-axis units messed up on Levels at Death
@@ -26,3 +27,32 @@ Tests:
 
 Notes:
 - We have server download caps in place, edit them here: lib/online-import-limits.ts
+
+
+=====
+
+There are a couple special situations. For all the weapon skills (including unarmed) when calculating averages only use the highest weapon skill in the calculation. Instead of having separate rows for each weapon we just a single Weapon Skill row. For example if a character has a 8 in Axes and a 0 is Short Blades at level 10, and another charcter has 0 in Axes and 8 in Short Blades, the modified average will be 8 for the Weapon Skill at level 10.
+
+We will use a similar algorithm for Spell Schools, but calculate the Top 3 for each. For example:
+
+Game 1:
+
+Conjuration: 0
+Alchemy: 8
+Fire Elem.: 6
+Necromancy: 6
+
+Game 2:
+Conjuration: 6
+Alchemy: 8
+Fire Elem.: 0
+Necromancy: 6
+
+Modified Average:
+
+Conjuration: 6
+Alchemy: 8
+Fire Elem.: 6
+Necromancy: 6
+
+So we don't count spell school values into the average that are outside the top 3 for a particular game. 

@@ -45,6 +45,7 @@ import { GOD_SHORT_FORMS } from "@/lib/dcss-constants"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { slugifyUsername } from "@/lib/slug"
 import { typography } from "@/lib/typography"
+import { SkillingAnalysis } from "@/components/dashboard/skilling-analysis"
 
 function speciesCode(species: string): string {
   const s = (species ?? "").trim()
@@ -626,6 +627,7 @@ export default function DashboardPage({
               )}
             </div>
             <SpeciesBackgroundComboGrid morgues={morgues} />
+            <SkillingAnalysis globalOnly />
           </>
         )}
 

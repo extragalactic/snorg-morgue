@@ -1,0 +1,17 @@
+-- One-time helper query outline for backfilling skill_snapshots.
+-- This script is documentation-only; actual backfill is expected to be run
+-- by application code that can access full morgue raw_text.
+--
+-- Steps (implemented in Node/Next backend, not SQL):
+-- 1. Select all winning parsed_morgues for a user (or all users).
+-- 2. For each row, fetch the associated morgue_files.raw_text or remote morgue_url.
+-- 3. Use the existing parseSkillHistory + computeSkillSnapshotsFromHistory helpers
+--    to compute snapshots per game.
+-- 4. Insert into public.skill_snapshots.
+
+-- Example selection of candidate games (for reference):
+-- select pm.id, pm.user_id, pm.species, pm.background, pm.version, mf.raw_text
+-- from public.parsed_morgues pm
+-- join public.morgue_files mf on pm.morgue_file_id = mf.id
+-- where pm.is_win = true;
+

@@ -7,6 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { nanoid } from "nanoid"
 import { parseMorgue, getMessageHistorySignature, parseSpeciesBackground, isAbandonedCharacterMorgue } from "./morgue-parser"
 import { validateAndSanitizeParsedMorgue } from "./morgue-validation"
+import { parseSkillHistory, computeSkillSnapshotsFromHistory } from "./skill-history"
 import {
   parsedToRow,
   formatPlayTime,
@@ -188,6 +189,28 @@ export async function uploadMorgues(
           dbDetails: insertParsedErr.details as string | undefined,
         })
         continue
+      }
+
+      // For winning games, compute and store skill snapshots from the morgue's skill history.
+      if (row.is_win) {
+        const skillHistory = parseSkillHistory(file.text)
+        if (skillHistory) {
+          const snapshots = computeSkillSnapshotsFromHistory(skillHistory)
+          if (snapshots.length > 0) {
+            const versionShort = (parsed.version.match(/^(\d+\.\d+)/)?.[1] ?? parsed.version).trim()
+            const snapshotRows = snapshots.map((s) => ({
+              user_id: userId,
+              game_id: row.id,
+              species: parsed.species,
+              background: parsed.background,
+              version_short: versionShort,
+              skill_group: s.skill_group,
+              checkpoint_xl: s.checkpoint_xl,
+              level: s.level,
+            }))
+            await supabase.from("skill_snapshots").insert(snapshotRows)
+          }
+        }
       }
 
       success++
