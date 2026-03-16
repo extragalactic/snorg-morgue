@@ -188,6 +188,15 @@ interface ScanOptions {
   serverAbbreviations?: string[]
 }
 
+/** Normalize to an array of strings so a string or malformed value doesn't produce an empty allowlist. */
+function normalizeServerAbbreviations(
+  raw: unknown,
+): string[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null
+  const list = raw.filter((a): a is string => typeof a === "string" && a.length > 0)
+  return list.length > 0 ? list : null
+}
+
 // Stage 1: we infer "new" games by comparing game_signature values that already exist for this user + server.
 export async function scanOnlineGames(
   supabase: SupabaseClient,
@@ -199,10 +208,8 @@ export async function scanOnlineGames(
   const maxGamesPerServer = options.maxGamesPerServer ?? 1000
   const results: OnlineImportScanServerResult[] = []
 
-  const allowlist =
-    options.serverAbbreviations && options.serverAbbreviations.length > 0
-      ? new Set(options.serverAbbreviations)
-      : null
+  const abbrevList = normalizeServerAbbreviations(options.serverAbbreviations)
+  const allowlist = abbrevList ? new Set(abbrevList) : null
 
   const serversToScan = DCSS_SERVERS.filter((server) =>
     allowlist ? allowlist.has(server.abbreviation) : true,
@@ -287,15 +294,16 @@ export async function runOnlineImport(
     Math.max(1, Math.floor(requestedNew)),
     MAX_NEW_GAMES_PER_SERVER_PER_RUN,
   )
-  const requestedScan = options.maxGamesPerServer ?? maxNewGamesPerServer * 10
+  // For imports, default to scanning a generous number of games per server so
+  // we can skip over leading duplicates and still find earlier new games.
+  // This mirrors the scan default (1000) rather than a tight multiple of maxNewGamesPerServer.
+  const requestedScan = options.maxGamesPerServer ?? MAX_GAMES_PER_SERVER_PER_RUN
   const maxGamesPerServer = Math.min(
     Math.max(maxNewGamesPerServer, Math.floor(requestedScan)),
     MAX_GAMES_PER_SERVER_PER_RUN,
   )
-  const allowlist =
-    options.serverAbbreviations && options.serverAbbreviations.length > 0
-      ? new Set(options.serverAbbreviations)
-      : null
+  const abbrevList = normalizeServerAbbreviations(options.serverAbbreviations)
+  const allowlist = abbrevList ? new Set(abbrevList) : null
 
   const serversToImport = DCSS_SERVERS.filter((server) =>
     allowlist ? allowlist.has(server.abbreviation) : true,
@@ -307,6 +315,16 @@ export async function runOnlineImport(
   let totalFetchedThisRun = 0
 
   for (const server of serversToImport) {
+    // Debug: high-level per-server import context
+    // NOTE: Safe to leave in production; gated by explicit prefix and cheap fields only.
+    console.log("[snorg-morgue][import-debug] server start", {
+      server: server.abbreviation,
+      userId,
+      dcssUsername,
+      maxNewGamesPerServer,
+      maxGamesPerServer,
+    })
+
     let status: OnlineImportServerStatus = "ok"
     const errors: string[] = []
     let newGamesImported = 0
@@ -326,6 +344,12 @@ export async function runOnlineImport(
       const existingSet = new Set(
         (existingRows ?? []).map((r) => (r.game_signature as string | null) ?? "").filter(Boolean),
       )
+
+      console.log("[snorg-morgue][import-debug] server matches", {
+        server: server.abbreviation,
+        matches: matches.length,
+        existingCount: existingSet.size,
+      })
 
       for (const row of matches) {
         if (newGamesImported >= maxNewGamesPerServer) break
@@ -410,6 +434,14 @@ export async function runOnlineImport(
       errors.push(e instanceof Error ? e.message : String(e))
     }
 
+    console.log("[snorg-morgue][import-debug] server done", {
+      server: server.abbreviation,
+      newGamesImported,
+      duplicatesSkipped,
+      errorsCount: errors.length,
+      totalFetchedThisRun,
+    })
+
     totalImported += newGamesImported
     totalDuplicates += duplicatesSkipped
 
@@ -421,6 +453,20 @@ export async function runOnlineImport(
       errors,
     })
   }
+
+  console.log("[snorg-morgue][import-debug] run summary", {
+    userId,
+    dcssUsername,
+    totalImported,
+    totalDuplicates,
+    servers: perServerResults.map((s) => ({
+      server: s.serverAbbreviation,
+      newGamesImported: s.newGamesImported,
+      duplicatesSkipped: s.duplicatesSkipped,
+      status: s.status,
+      errorsCount: s.errors.length,
+    })),
+  })
 
   return {
     dcssUsername,

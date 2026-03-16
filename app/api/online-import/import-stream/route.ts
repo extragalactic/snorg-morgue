@@ -48,11 +48,23 @@ export async function POST(request: Request) {
   const maxNewGamesPerServer =
     typeof rawNew === "number" && Number.isFinite(rawNew) && rawNew > 0
       ? Math.min(Math.floor(rawNew), MAX_NEW_GAMES_PER_SERVER_PER_RUN)
-      : undefined
+      : typeof rawNew === "string"
+        ? (() => {
+            const n = Number.parseInt(rawNew, 10)
+            return Number.isFinite(n) && n > 0
+              ? Math.min(Math.max(1, n), MAX_NEW_GAMES_PER_SERVER_PER_RUN)
+              : undefined
+          })()
+        : undefined
   const rawScan = body?.maxGamesPerServer
   const maxGamesPerServer =
     typeof rawScan === "number" && Number.isFinite(rawScan) && rawScan > 0
       ? Math.min(Math.floor(rawScan), MAX_GAMES_PER_SERVER_PER_RUN)
+      : undefined
+  const rawAbbrevs = body?.serverAbbreviations
+  const serverAbbreviations =
+    Array.isArray(rawAbbrevs) && rawAbbrevs.length > 0
+      ? (rawAbbrevs.filter((a): a is string => typeof a === "string" && a.length > 0) as string[])
       : undefined
 
   const encoder = new TextEncoder()
@@ -67,7 +79,7 @@ export async function POST(request: Request) {
           {
             maxGamesPerServer: maxGamesPerServer ?? undefined,
             maxNewGamesPerServer: maxNewGamesPerServer ?? undefined,
-            serverAbbreviations: body?.serverAbbreviations,
+            serverAbbreviations,
             onProgress(importedSoFar) {
               controller.enqueue(
                 encoder.encode(
