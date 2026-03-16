@@ -172,6 +172,14 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
   const hasScan = servers.some(
     (s) => s.scan.status === "done" || s.scan.status === "error" || s.scan.status === "skipped",
   )
+  const allSelectedServersScanned = servers
+    .filter((s) => s.checked)
+    .every(
+      (s) =>
+        s.scan.status === "done" ||
+        s.scan.status === "error" ||
+        s.scan.status === "skipped",
+    )
   const totalNewGamesForSelected = servers.reduce(
     (sum, s) => (s.checked ? sum + s.scan.newGames : sum),
     0,
@@ -186,6 +194,7 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
   const canImport =
     !!userId &&
     hasScan &&
+    allSelectedServersScanned &&
     totalNewGamesForSelected > 0 &&
     !isImporting &&
     !isScanning &&
@@ -755,9 +764,22 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
                             </span>
                           </span>
                         )}
-                        {scan.status === "done" && "Scan complete"}
-                        {scan.status === "error" && "Error"}
-                        {scan.status === "skipped" && "Skipped"}
+                        {scan.status === "done" && (
+                          <span
+                            className={cn(
+                              scan.totalGamesFound === 0 && "text-destructive",
+                              scan.totalGamesFound > 0 && colors.success,
+                            )}
+                          >
+                            {scan.totalGamesFound > 0 ? "Scan complete" : "No games found"}
+                          </span>
+                        )}
+                        {scan.status === "error" && (
+                          <span className="text-destructive">Error</span>
+                        )}
+                        {scan.status === "skipped" && (
+                          <span className="text-amber-500 dark:text-amber-300">Skipped</span>
+                        )}
                       </p>
                       <p className="text-sm">
                         Games found:{" "}
@@ -767,11 +789,20 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
                           <span
                             className={cn(
                               "font-mono font-medium",
-                              scan.totalGamesFound > 0 && colors.success,
+                              scan.status === "skipped" &&
+                                "text-amber-500 dark:text-amber-300",
+                              scan.status === "done" &&
+                                scan.totalGamesFound === 0 &&
+                                "text-destructive",
+                              scan.status === "done" &&
+                                scan.totalGamesFound > 0 &&
+                                colors.success,
                             )}
                           >
                             {scan.totalGamesFound}{" "}
-                            {scan.totalGamesFound > 0 ? `(new: ${scan.newGames})` : ""}
+                            {scan.totalGamesFound > 0 &&
+                              scan.status !== "skipped" &&
+                              `(new: ${scan.newGames})`}
                           </span>
                         )}
                       </p>
