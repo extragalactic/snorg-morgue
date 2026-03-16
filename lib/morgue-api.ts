@@ -43,6 +43,8 @@ export interface GameRecord {
   god?: string
   /** True if player reached Lair:5 in this game. */
   reachedLair5?: boolean
+  /** Short DCSS version for this game (e.g. "0.33", "0.34", "git"). */
+  version?: string
 }
 
 export interface UploadResult {
@@ -396,9 +398,9 @@ export async function fetchMorgues(
   userId: string
 ): Promise<GameRecord[]> {
   const withShortId =
-    "id, short_id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
+    "id, short_id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, version"
   const withoutShortId =
-    "id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
+    "id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, version"
 
   let { data, error } = await supabase
     .from("parsed_morgues")
@@ -417,7 +419,14 @@ export async function fetchMorgues(
   }
 
   return (data ?? []).map((r) => {
-    const row = r as { game_completion_date?: string | null; created_at: string; short_id?: string; morgue_url?: string | null; [k: string]: unknown }
+    const row = r as {
+      game_completion_date?: string | null
+      created_at: string
+      short_id?: string
+      morgue_url?: string | null
+      version?: string | null
+      [k: string]: unknown
+    }
     return {
       id: r.id,
       shortId: row.short_id ?? "",
@@ -438,6 +447,7 @@ export async function fetchMorgues(
       killer: r.killer ?? undefined,
       god: r.god ?? undefined,
       reachedLair5: (r as { reached_lair_5?: boolean }).reached_lair_5 ?? false,
+      version: row.version?.trim() || undefined,
     }
   })
 }
