@@ -87,6 +87,32 @@ interface DiscipleGoalMaps {
   godSpeciesWins: Map<string, Set<string>>
 }
 
+/** Species-specific god exclusions for Devoted Species (Divine Species) awards. */
+const SPECIES_EXCLUDED_GODS: Record<string, string[]> = {
+  // Demigods have no gods at all – they are entirely omitted from Devoted Species awards.
+  // (Handled by skipping Demigod when building Devoted goals; included here for clarity.)
+  Demigod: GOD_NAMES_FOR_CHART,
+  // Cannot worship the three good gods.
+  Demonspawn: ["Zin", "Elyvilon", "The Shining One"],
+  Poltergeist: ["Zin", "Elyvilon", "The Shining One"],
+  Revenant: ["Zin", "Elyvilon", "The Shining One"],
+  Mummy: ["Zin", "Elyvilon", "The Shining One"],
+  // Djinni cannot worship certain spellcasting / necromantic gods.
+  Djinni: ["Sif Muna", "Vehumet", "Kikubaaqudgha"],
+}
+
+/** Species-specific background exclusions for Greater / Enthusiastic Species awards. */
+const SPECIES_EXCLUDED_BACKGROUNDS: Record<string, string[]> = {
+  // Felids cannot use weapon- / hex-focused martial starts.
+  Felid: ["Gladiator", "Hunter", "Brigand", "Hexslinger"],
+  // Demigods cannot be certain god-start backgrounds.
+  Demigod: ["Berserker", "Cinder Acolyte", "Chaos Knight"],
+  // These undead / incorporeal species cannot be Shapeshifters.
+  Mummy: ["Shapeshifter"],
+  Poltergeist: ["Shapeshifter"],
+  Revenant: ["Shapeshifter"],
+}
+
 function computeGoals(morgues: GameRecord[]): {
   goals: Goal[]
   coreWins: CoreGoalWinSets
@@ -189,24 +215,46 @@ function computeGoals(morgues: GameRecord[]): {
     const bgSet = speciesBackgroundWins.get(speciesName) ?? new Set<string>()
     // Hide species with zero wins (no backgrounds cleared yet)
     if (bgSet.size === 0) continue
+
+    // Adjust eligible backgrounds for species that cannot start as certain backgrounds.
+    const excludedBackgrounds = SPECIES_EXCLUDED_BACKGROUNDS[speciesName] ?? []
+    const eligibleExcludedBgCount = excludedBackgrounds.filter((bg) =>
+      ALL_BACKGROUND_NAMES.includes(bg),
+    ).length
+    const eligibleBackgroundsForSpecies = TOTAL_BACKGROUNDS - eligibleExcludedBgCount
+    if (eligibleBackgroundsForSpecies <= 0) continue
+
     goals.push({
       name: `Greater ${speciesName}`,
-      description: `Win with all ${TOTAL_BACKGROUNDS} backgrounds as a ${speciesName}`,
+      description: `Win with all ${eligibleBackgroundsForSpecies} eligible backgrounds as a ${speciesName}`,
       current: bgSet.size,
-      max: TOTAL_BACKGROUNDS,
+      max: eligibleBackgroundsForSpecies,
     })
   }
 
   // Devoted Species achievements: one per species, showing gods won with that species
   for (const speciesName of ALL_SPECIES_NAMES) {
+    // Demigods have no gods at all; skip them entirely for Devoted Species awards.
+    if (speciesName === "Demigod") continue
+
     const godSet = speciesGodWins.get(speciesName) ?? new Set<string>()
     // Hide species with zero wins (no gods yet)
     if (godSet.size === 0) continue
+
+    // Adjust the "max" (eligible gods) for this species based on exclusions.
+    const excludedForSpecies = SPECIES_EXCLUDED_GODS[speciesName] ?? []
+    // Only subtract gods that actually exist in our configured god list.
+    const eligibleExcludedCount = excludedForSpecies.filter((g) =>
+      GOD_NAMES_FOR_CHART.includes(g),
+    ).length
+    const eligibleGodsForSpecies = TOTAL_GODS - eligibleExcludedCount
+    if (eligibleGodsForSpecies <= 0) continue
+
     goals.push({
       name: `Devoted ${speciesName}`,
-      description: `Win with all ${TOTAL_GODS} gods as a ${speciesName}`,
+      description: `Win with all ${eligibleGodsForSpecies} eligible gods as a ${speciesName}`,
       current: godSet.size,
-      max: TOTAL_GODS,
+      max: eligibleGodsForSpecies,
     })
   }
 
@@ -214,11 +262,19 @@ function computeGoals(morgues: GameRecord[]): {
   for (const speciesName of ALL_SPECIES_NAMES) {
     const bgAttemptSet = speciesBackgroundAttempts.get(speciesName) ?? new Set<string>()
     if (bgAttemptSet.size === 0) continue
+
+    const excludedBackgrounds = SPECIES_EXCLUDED_BACKGROUNDS[speciesName] ?? []
+    const eligibleExcludedBgCount = excludedBackgrounds.filter((bg) =>
+      ALL_BACKGROUND_NAMES.includes(bg),
+    ).length
+    const eligibleBackgroundsForSpecies = TOTAL_BACKGROUNDS - eligibleExcludedBgCount
+    if (eligibleBackgroundsForSpecies <= 0) continue
+
     goals.push({
       name: `Enthusiastic ${speciesName}`,
-      description: `Attempt all ${TOTAL_BACKGROUNDS} backgrounds as a ${speciesName}`,
+      description: `Attempt all ${eligibleBackgroundsForSpecies} eligible backgrounds as a ${speciesName}`,
       current: bgAttemptSet.size,
-      max: TOTAL_BACKGROUNDS,
+      max: eligibleBackgroundsForSpecies,
     })
   }
 
@@ -310,9 +366,11 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
   const greaterSpeciesGoals = goals.filter(
     (g) => g.name.startsWith("Greater ") && g.name !== "Grand Player"
   )
-  const hasGreaterSpeciesProgress = greaterSpeciesGoals.some((g) => g.current >= 3)
+  const greaterSpeciesWithProgress = greaterSpeciesGoals.filter((g) => g.current >= 3)
+  const hasGreaterSpeciesProgress = greaterSpeciesWithProgress.length > 0
   const devotedSpeciesGoals = goals.filter((g) => g.name.startsWith("Devoted "))
-  const hasDevotedSpeciesProgress = devotedSpeciesGoals.some((g) => g.current >= 3)
+  const devotedSpeciesWithProgress = devotedSpeciesGoals.filter((g) => g.current >= 3)
+  const hasDevotedSpeciesProgress = devotedSpeciesWithProgress.length > 0
   const enthusiasticSpeciesGoals = goals.filter((g) => g.name.startsWith("Enthusiastic "))
   const enthusiasticSpeciesWithProgress = enthusiasticSpeciesGoals.filter((g) => g.current >= 3)
   const hasEnthusiasticSpeciesProgress = enthusiasticSpeciesWithProgress.length > 0
@@ -430,11 +488,15 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           <CardContent className="pt-4">
             {hasGreaterSpeciesProgress ? (
               <div className="grid gap-6 md:grid-cols-4">
-                {greaterSpeciesGoals.map((goal) => {
+                {greaterSpeciesWithProgress.map((goal) => {
                   const percentage = (goal.current / goal.max) * 100
                   const isComplete = goal.current >= goal.max
                   const speciesName = goal.name.replace(/^Greater /, "")
                   const hasWins = speciesMaps.speciesBackgroundWins.get(speciesName) ?? new Set<string>()
+                  const excludedBackgrounds = SPECIES_EXCLUDED_BACKGROUNDS[speciesName] ?? []
+                  const eligibleBackgrounds = ALL_BACKGROUND_NAMES.filter(
+                    (bg) => !excludedBackgrounds.includes(bg),
+                  )
                   return (
                     <Tooltip key={goal.name}>
                       <TooltipTrigger asChild>
@@ -473,7 +535,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
-                        <AchievementDetailGrid items={ALL_BACKGROUND_NAMES} hasWins={hasWins} />
+                        <AchievementDetailGrid items={eligibleBackgrounds} hasWins={hasWins} />
                       </TooltipContent>
                     </Tooltip>
                   )
@@ -628,6 +690,10 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                   const isComplete = goal.current >= goal.max
                   const speciesName = goal.name.replace(/^Enthusiastic /, "")
                   const hasWins = speciesMaps.speciesBackgroundAttempts.get(speciesName) ?? new Set<string>()
+                  const excludedBackgrounds = SPECIES_EXCLUDED_BACKGROUNDS[speciesName] ?? []
+                  const eligibleBackgrounds = ALL_BACKGROUND_NAMES.filter(
+                    (bg) => !excludedBackgrounds.includes(bg),
+                  )
                   return (
                     <Tooltip key={goal.name}>
                       <TooltipTrigger asChild>
@@ -666,7 +732,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
-                        <AchievementDetailGrid items={ALL_BACKGROUND_NAMES} hasWins={hasWins} />
+                        <AchievementDetailGrid items={eligibleBackgrounds} hasWins={hasWins} />
                       </TooltipContent>
                     </Tooltip>
                   )
@@ -695,11 +761,20 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                     ? discipleMaps.godSpeciesWins.get(godName) ?? new Set<string>()
                     : new Set<string>(["Minotaur", "Troll", "Hill Orc"])
                 const current = speciesSet.size
-                const percentage = (current / TOTAL_SPECIES) * 100
-                const isComplete = current >= TOTAL_SPECIES
+                // Compute eligible species for this god, subtracting species that can never worship this god.
+                const ineligibleSpecies = ALL_SPECIES_NAMES.filter((sp) => {
+                  const excludedForSpecies = SPECIES_EXCLUDED_GODS[sp] ?? []
+                  return excludedForSpecies.includes(godName)
+                })
+                const eligibleSpecies = ALL_SPECIES_NAMES.filter(
+                  (sp) => !ineligibleSpecies.includes(sp),
+                )
+                const maxForGod = eligibleSpecies.length
+                const percentage = (current / maxForGod) * 100
+                const isComplete = current >= maxForGod
                 const wonSpecies =
                   morgues.length > 0 ? new Set(speciesSet) : new Set<string>(["Minotaur", "Troll", "Hill Orc"])
-                const tooltipSpecies = ALL_SPECIES_NAMES
+                const tooltipSpecies = eligibleSpecies
                 return (
                   <Tooltip key={godName}>
                     <TooltipTrigger asChild>
@@ -724,7 +799,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                                 : "text-primary"
                             }`}
                           >
-                            {current}/{TOTAL_SPECIES}
+                            {current}/{maxForGod}
                           </span>
                         </div>
                         <Progress
@@ -733,7 +808,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                           indicatorClassName={isComplete ? completeIndicatorClass : undefined}
                         />
                         <p className="text-xs text-muted-foreground whitespace-pre-line">
-                          Win with all {TOTAL_SPECIES} species while worshipping {godName}.
+                          Win with all {maxForGod} eligible species while worshipping {godName}.
                         </p>
                       </div>
                     </TooltipTrigger>
@@ -775,7 +850,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           <CardContent className="pt-4">
             {hasDevotedSpeciesProgress ? (
               <div className="grid gap-6 md:grid-cols-4">
-                {devotedSpeciesGoals.map((goal) => {
+                {devotedSpeciesWithProgress.map((goal) => {
                   const percentage = (goal.current / goal.max) * 100
                   const isComplete = goal.current >= goal.max
                   const speciesName = goal.name.replace(/^Devoted /, "")

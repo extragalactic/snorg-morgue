@@ -6,6 +6,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { nanoid } from "nanoid"
 import { parseMorgue, getMessageHistorySignature, parseSpeciesBackground, isAbandonedCharacterMorgue } from "./morgue-parser"
+import { validateAndSanitizeParsedMorgue } from "./morgue-validation"
 import {
   parsedToRow,
   formatPlayTime,
@@ -113,7 +114,7 @@ export async function uploadMorgues(
         logImportFailure(file.name, msg, { phase: "parse" })
         continue
       }
-      const parsed = parseMorgue(file.text)
+      const parsed = validateAndSanitizeParsedMorgue(parseMorgue(file.text))
       const signature = getMessageHistorySignature(file.text)
 
       const sameCombo = existing.filter(
@@ -729,7 +730,7 @@ export async function refreshMorguesFromRaw(
         continue
       }
 
-      const parsed = parseMorgue(file.raw_text)
+      const parsed = validateAndSanitizeParsedMorgue(parseMorgue(file.raw_text))
       const signature = getMessageHistorySignature(file.raw_text)
       const row = parsedToRow(file.id, userId, parsed)
       const insertPayload = { ...row, message_history_signature: signature, short_id: nanoid(6) }

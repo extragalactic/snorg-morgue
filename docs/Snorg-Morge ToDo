@@ -1,33 +1,29 @@
 Snorg-Morge ToDo
 
+Features:
 - enable Google auth
-- need to test logic for email/username duplicates on signup
-- need to test on older versions of morgue files
 - new section to show: best score, average score
-- Search Morgues is searching what exactly?
 - would be cool to have a Congrats modal after uploading/detecting a new Win 
-- the importers should enforce reasonable data min/max limits to prevent cheating or broken files
-- setup explicit style enums for the site like Primary, Secondary, PrimaryDark, PrimaryLight, etc.
-- on the grid block out combos that are not possible (copy the chart on https://dcss-stats.com/players/dlwiii)
 - when you rollover a Snorg Award show a tooltip with a larger (pixelated) version of the image, and the font size increases with the award
-
-
-- need to test how the bottom grid reacts to more than 1 winner per box
-- what's the proper terminology: Grand Player or Greater Player? And how is it defined?
-
-- rename the Online Upload button to something like Game Server Sync, or just Sync. Have a Help tooltip somewhere perhaps for help on first upload/sync
-
+- have a Help tooltip somewhere perhaps for help on first upload/sync
 - need a morgue "character sheet" exporter (to resemble a D&D sheet)
-
 - add a function to only show morgues from a range of game versions
 
+Fixes:
+- the importers should enforce reasonable data min/max limits to prevent cheating or broken files
+- what's the proper terminology: Grand Player or Greater Player? And how is it defined?
+- some species have god restrictions for the awards
+
+Tests:
+- need to test logic for email/username duplicates on signup
+- need to test on older versions of morgue files
+- Search Morgues is searching what exactly?
 - server import cards have wobbly text when you click
 
-- connect to online game servers
-https://dcss-stats.com/players/dlwiii
 
 ...hey, buy more vape bags!
 
-We have server download caps in place, edit them here: lib/online-import-limits.ts
+Notes:
+- We have server download caps in place, edit them here: lib/online-import-limits.ts
 
-Streaming (alternative): We could keep one request and stream progress (e.g. SSE or chunked) so the client gets “imported 1”, “imported 2”, … as each morgue is processed. Then the bar could reflect real progress with no extra round-trips. That would require changing the import API to a streaming response.
+- "Streaming (alternative): We could keep one request and stream progress (e.g. SSE or chunked) so the client gets “imported 1”, “imported 2”, … as each morgue is processed. Then the bar could reflect real progress with no extra round-trips. That would require changing the import API to a streaming response."

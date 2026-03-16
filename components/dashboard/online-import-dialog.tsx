@@ -16,7 +16,8 @@
 import { colors } from "@/lib/colors"
 import { DCSS_SERVERS } from "@/lib/dcss-public-sources"
  import { useAuth } from "@/contexts/auth-context"
- import { toast } from "@/hooks/use-toast"
+import { toast } from "@/hooks/use-toast"
+import { Search } from "lucide-react"
  
  type ServerRow = {
    abbreviation: string
@@ -114,15 +115,59 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
   const [importProgressTarget, setImportProgressTarget] = useState(0)
   const [importJustCompleted, setImportJustCompleted] = useState(false)
   const [activeScanIndex, setActiveScanIndex] = useState<number | null>(null)
+  /** Shown after import completes: main dialog closes and this modal shows imported count. */
+  const [successModalOpen, setSuccessModalOpen] = useState(false)
+  const [successImportedCount, setSuccessImportedCount] = useState(0)
   const scanAbortRef = useRef<AbortController | null>(null)
   const importAbortRef = useRef<AbortController | null>(null)
   const importProgressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const successDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const prevOpenRef = useRef(open)
+  const isInitialImportPhase = isImporting && importProgressDisplay === 0
 
   // Persist selected servers to localStorage when checkboxes change.
   useEffect(() => {
     const selected = servers.filter((s) => s.checked).map((s) => s.abbreviation)
     saveSelectedServerAbbreviations(selected)
   }, [servers])
+
+  // When the dialog transitions from closed -> open, reset transient scan/import UI
+  // state so each open starts from a clean slate while preserving which servers
+  // are selected. Do not reset while a scan/import is in progress.
+  useEffect(() => {
+    const wasOpen = prevOpenRef.current
+    prevOpenRef.current = open
+    // Only run when transitioning from closed -> open.
+    if (!open || wasOpen) return
+    if (isScanning || isImporting) return
+    if (successDelayRef.current) {
+      clearTimeout(successDelayRef.current)
+      successDelayRef.current = null
+    }
+    setSuccessModalOpen(false)
+    setImportSummary(null)
+    setImportProgressDisplay(0)
+    setImportProgressTarget(0)
+    setImportJustCompleted(false)
+    setActiveScanIndex(null)
+    setLastScanUsername(null)
+    setServers((prev) =>
+      prev.map((server) => ({
+        ...server,
+        scan: initialServerState,
+      })),
+    )
+  }, [open, isScanning, isImporting])
+
+  // Clear success-delay timeout on unmount.
+  useEffect(() => {
+    return () => {
+      if (successDelayRef.current) {
+        clearTimeout(successDelayRef.current)
+        successDelayRef.current = null
+      }
+    }
+  }, [])
 
   const hasScan = servers.some(
     (s) => s.scan.status === "done" || s.scan.status === "error" || s.scan.status === "skipped",
@@ -148,6 +193,11 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
 
   const handleClose = () => {
     if (isScanning || isImporting) return
+    if (successDelayRef.current) {
+      clearTimeout(successDelayRef.current)
+      successDelayRef.current = null
+    }
+    setSuccessModalOpen(false)
     setImportSummary(null)
     setActiveScanIndex(null)
     onOpenChange(false)
@@ -288,18 +338,16 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
     }
 
     setImportJustCompleted(false)
+    if (successDelayRef.current) {
+      clearTimeout(successDelayRef.current)
+      successDelayRef.current = null
+    }
+    setSuccessModalOpen(false)
     setIsImporting(true)
     const totalSlots = maxNewGamesPerServer * selectedServerAbbreviations.length
     setImportProgressTarget(totalSlots)
     setImportProgressDisplay(0)
     if (importProgressIntervalRef.current) clearInterval(importProgressIntervalRef.current)
-    importProgressIntervalRef.current = setInterval(() => {
-      setImportProgressDisplay((prev) => {
-        const cap = Math.floor(totalSlots * 0.9)
-        if (prev >= cap) return cap
-        return prev + 1
-      })
-    }, 800)
     setImportSummary({
       lastRequested: maxNewGamesPerServer,
       lastImported: 0,
@@ -312,8 +360,60 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
       () => importController.abort(),
       IMPORT_TIMEOUT_MS,
     )
+    const applyImportResult = (data: {
+      summary: { totalNewGamesImported: number; totalDuplicatesSkipped: number }
+      servers: {
+        serverAbbreviation: string
+        status: "ok" | "skipped" | "error"
+        newGamesImported: number
+        duplicatesSkipped: number
+        errors: string[]
+      }[]
+    }) => {
+      const imported = data.summary.totalNewGamesImported
+      const dupes = data.summary.totalDuplicatesSkipped
+      const allErrors = data.servers?.flatMap((s) => s.errors ?? []) ?? []
+      if (importProgressIntervalRef.current) {
+        clearInterval(importProgressIntervalRef.current)
+        importProgressIntervalRef.current = null
+      }
+      setImportProgressDisplay(imported)
+      setImportProgressTarget(totalSlots)
+      if (allErrors.length > 0) {
+        console.error("[snorg-morgue] Online import errors:", allErrors)
+      }
+      setServers((prev) =>
+        prev.map((server) => {
+          const serverResult = data.servers.find((s) => s.serverAbbreviation === server.abbreviation)
+          if (!serverResult) return server
+          const importedForServer = serverResult.newGamesImported
+          return {
+            ...server,
+            scan: {
+              ...server.scan,
+              newGames: Math.max(0, server.scan.newGames - importedForServer),
+            },
+          }
+        }),
+      )
+      setImportSummary({
+        lastRequested: maxNewGamesPerServer,
+        lastImported: imported,
+        lastDuplicates: dupes,
+        lastErrors: allErrors.length,
+      })
+      setImportJustCompleted(true)
+      onImportComplete?.()
+      if (imported >= 1) {
+        setSuccessImportedCount(imported)
+        successDelayRef.current = setTimeout(() => {
+          successDelayRef.current = null
+          setSuccessModalOpen(true)
+        }, 1500)
+      }
+    }
     try {
-      const res = await fetch("/api/online-import/import", {
+      const res = await fetch("/api/online-import/import-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -333,58 +433,58 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
         const data = await res.json().catch(() => ({}))
         throw new Error((data.error as string) ?? `Import failed with status ${res.status}`)
       }
-      const data = (await res.json()) as {
-        summary: { totalNewGamesImported: number; totalDuplicatesSkipped: number }
-        servers: {
-          serverAbbreviation: string
-          status: "ok" | "skipped" | "error"
-          newGamesImported: number
-          duplicatesSkipped: number
-          errors: string[]
-        }[]
+      const reader = res.body?.getReader()
+      if (!reader) {
+        throw new Error("Streaming response has no body")
       }
-
-      const imported = data.summary.totalNewGamesImported
-      const dupes = data.summary.totalDuplicatesSkipped
-      const allErrors = data.servers?.flatMap((s) => s.errors ?? []) ?? []
-
-      if (importProgressIntervalRef.current) {
-        clearInterval(importProgressIntervalRef.current)
-        importProgressIntervalRef.current = null
-      }
-      setImportProgressDisplay(imported)
-      setImportProgressTarget(totalSlots)
-
-      if (allErrors.length > 0) {
-        // Log extra detail to console so we don't overwhelm the toast.
-        console.error("[snorg-morgue] Online import errors:", allErrors)
-      }
-
-      // After a successful import, consider the "newGames" count consumed per server.
-      setServers((prev) =>
-        prev.map((server) => {
-          const serverResult = data.servers.find((s) => s.serverAbbreviation === server.abbreviation)
-          if (!serverResult) return server
-          const importedForServer = serverResult.newGamesImported
-          return {
-            ...server,
-            scan: {
-              ...server.scan,
-              newGames: Math.max(0, server.scan.newGames - importedForServer),
-            },
+      const decoder = new TextDecoder()
+      let buffer = ""
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split("\n")
+        buffer = lines.pop() ?? ""
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed) continue
+          try {
+            const event = JSON.parse(trimmed) as
+              | { type: "progress"; imported: number }
+              | { type: "done"; result: { summary: { totalNewGamesImported: number; totalDuplicatesSkipped: number }; servers: { serverAbbreviation: string; status: "ok" | "skipped" | "error"; newGamesImported: number; duplicatesSkipped: number; errors: string[] }[] } }
+              | { type: "error"; error: string }
+            if (event.type === "progress") {
+              setImportProgressDisplay(event.imported)
+            } else if (event.type === "done") {
+              applyImportResult(event.result)
+            } else if (event.type === "error") {
+              throw new Error(event.error)
+            }
+          } catch (parseErr) {
+            if (parseErr instanceof SyntaxError) continue
+            throw parseErr
           }
-        }),
-      )
-
-      setImportSummary({
-        lastRequested: maxNewGamesPerServer,
-        lastImported: imported,
-        lastDuplicates: dupes,
-        lastErrors: allErrors.length,
-      })
-      setImportJustCompleted(true)
-
-      onImportComplete?.()
+        }
+      }
+      if (buffer.trim()) {
+        try {
+          const event = JSON.parse(buffer.trim()) as
+            | { type: "progress"; imported: number }
+            | { type: "done"; result: unknown }
+            | { type: "error"; error: string }
+          if (event.type === "done") {
+            applyImportResult((event as { type: "done"; result: Parameters<typeof applyImportResult>[0] }).result)
+          } else if (event.type === "error") {
+            throw new Error(event.error)
+          }
+        } catch (parseErr) {
+          if (parseErr instanceof SyntaxError) {
+            // ignore trailing partial line
+          } else {
+            throw parseErr
+          }
+        }
+      }
     } catch (e) {
       if (importTimeoutId != null) clearTimeout(importTimeoutId)
       importAbortRef.current = null
@@ -413,35 +513,98 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
     }
   }
 
+  const handleSuccessOk = () => {
+    setSuccessModalOpen(false)
+    onOpenChange(false)
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-[56.7rem] rounded-none border-2 border-primary/30">
+      <DialogContent
+        className={cn(
+          "rounded-none border-2 border-primary/30 flex max-h-[90vh] flex-col overflow-hidden",
+          successModalOpen ? "sm:max-w-md" : "max-w-[calc(100%-2rem)] sm:max-w-[56.7rem]",
+        )}
+      >
+        {successModalOpen ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="font-mono text-lg text-primary">Import complete</DialogTitle>
+            </DialogHeader>
+            <p className="font-mono text-sm text-muted-foreground">
+              Successfully imported {successImportedCount} game{successImportedCount === 1 ? "" : "s"}.
+            </p>
+            <div className="flex justify-end pt-2">
+              <Button
+                className="rounded-none border-2 border-primary/60 font-mono text-xs"
+                onClick={handleSuccessOk}
+              >
+                OK
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
         <DialogHeader>
-          <DialogTitle className="font-mono text-xl text-primary">Game Server Import (Stage 1)</DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Manually scan and import games from DCSS online servers into Snorg. For now this is limited to a few servers
-            and small test imports.
-          </DialogDescription>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <DialogTitle className="font-mono text-xl text-primary">
+                Game Server Import (Stage 1)
+              </DialogTitle>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                value={dcssUsername}
+                onChange={(e) => setDcssUsername(e.target.value)}
+                placeholder="DCSS username"
+                className="h-8 w-40 rounded-none border-2 border-primary/50 font-mono text-[11px] px-2"
+              />
+              <Input
+                type="number"
+                min={1}
+                max={200}
+                value={maxGames}
+                onChange={(e) => setMaxGames(e.target.value)}
+                placeholder="Max"
+                className="h-8 w-16 rounded-none border-2 border-primary/50 font-mono text-[11px] px-2 text-center"
+              />
+            </div>
+          </div>
         </DialogHeader>
 
+        <div className="min-h-0 flex-1 overflow-y-auto -mr-6 pr-6">
         <div className="space-y-4 pt-2">
-          {importSummary && (
-            <div className="rounded-none border-2 border-primary/50 bg-primary/5 px-3 py-2">
-              <div className="text-center mb-2">
-                {isImporting ? (
-                  <p className="font-mono text-sm text-primary">
-                    Importing… {importProgressDisplay} of {importProgressTarget} game{importProgressTarget === 1 ? "" : "s"}
-                  </p>
+          <div className="rounded-none border-2 border-primary/50 bg-primary/5 px-3 py-2">
+            <div className="text-center mb-2">
+              <p className="font-mono text-sm text-primary">
+                {isScanning
+                  ? "Scanning selected servers for games…"
+                  : isInitialImportPhase
+                    ? "Preparing import (fetching morgue files)…"
+                    : isImporting
+                      ? `Importing… ${importProgressDisplay} of ${importProgressTarget} game${importProgressTarget === 1 ? "" : "s"}`
+                      : importSummary
+                        ? `Imported ${importSummary.lastImported} of ${
+                            importProgressTarget || importSummary.lastRequested
+                          } games`
+                        : "Select which game server(s) you play on, then click Scan, then click Import."}
+              </p>
+              <p className="text-[11px] text-muted-foreground min-h-[1.1rem]">
+                {importSummary ? (
+                  <>Duplicates skipped: {importSummary.lastDuplicates} · Errors: {importSummary.lastErrors}</>
                 ) : (
-                  <p className="font-mono text-sm text-primary">
-                    Imported {importSummary.lastImported} of {importProgressTarget || importSummary.lastRequested} games
-                  </p>
+                  // Invisible placeholder to reserve space so layout doesn't shift when summary appears.
+                  <span className="invisible">Duplicates skipped: 0 · Errors: 0</span>
                 )}
-                <p className="text-[11px] text-muted-foreground">
-                  Duplicates skipped: {importSummary.lastDuplicates} · Errors: {importSummary.lastErrors}
-                </p>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-none border border-primary/40 bg-background">
+              </p>
+            </div>
+            <div className="h-4 w-full max-w-[36rem] mx-auto overflow-hidden rounded-none border border-primary/40 bg-background">
+              {isScanning || isInitialImportPhase ? (
+                <div
+                  className="h-full w-full animate-import-shimmer bg-gradient-to-r from-primary/20 via-primary/70 to-primary/20"
+                  style={{ backgroundPosition: "0% 50%" }}
+                />
+              ) : (
                 <div
                   className="h-full bg-primary/70 transition-all duration-300"
                   style={{
@@ -451,59 +614,37 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
                         : "0%",
                   }}
                 />
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <label className="text-xs font-mono text-primary">
-              DCSS username (testing field, not yet linked to Snorg account)
-            </label>
-            <Input
-              value={dcssUsername}
-              onChange={(e) => setDcssUsername(e.target.value)}
-              placeholder="Exact DCSS account name (case-insensitive)"
-              className="rounded-none border-2 border-primary/50 font-mono text-xs"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-mono text-primary">
-              Max games to import per server (for testing)
-            </label>
-            <Input
-              type="number"
-              min={1}
-              max={200}
-              value={maxGames}
-              onChange={(e) => setMaxGames(e.target.value)}
-              className="w-24 rounded-none border-2 border-primary/50 font-mono text-xs"
-            />
-            <p className="text-[11px] text-muted-foreground">
-              The initial scan will count all matching games. This limit only caps how many new games are imported per run so tests stay fast.
-            </p>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 pt-2">
-            <div className="w-28 shrink-0">
-              {!isImporting && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-none border-2 border-primary/60 font-mono text-xs w-full"
-                  onClick={handleScan}
-                  disabled={!canScan}
-                >
-                  {isScanning ? "Scanning…" : hasScan ? "Refresh" : "Scan"}
-                </Button>
               )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 pt-3">
+            <div className="w-[260px] shrink-0">
+              <Button
+                type="button"
+                variant="default"
+                className={cn(
+                  "rounded-none border-2 font-mono text-base font-bold h-11 px-5 shadow-sm transition-colors w-full",
+                  !isImporting &&
+                    "border-primary hover:shadow-md hover:bg-success/20 hover:text-success hover:border-success/50",
+                  isImporting &&
+                    "cursor-not-allowed opacity-60 bg-muted text-muted-foreground border-muted-foreground/40",
+                )}
+                onClick={handleScan}
+                disabled={!canScan || isImporting}
+              >
+                <Search className="size-4 mr-2 shrink-0" aria-hidden />
+                {isScanning ? "Scanning…" : hasScan ? "Re-scan Game Servers" : "Scan Game Servers"}
+              </Button>
             </div>
             <div className="flex-1 min-w-0" />
             <Button
               type="button"
               className={cn(
-                "rounded-none border-2 font-mono text-xs min-w-[10rem] shrink-0",
-                isImporting && "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+                "rounded-none border-2 font-mono text-base font-bold w-[195px] h-11 shrink-0 px-4 shadow-sm transition-colors",
+                isImporting && "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive",
+                !hasScan && !isImporting && !importJustCompleted && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground border-muted-foreground/30",
+                !isImporting && (hasScan || importJustCompleted) && "hover:bg-success/20 hover:text-success hover:border-success/50 hover:shadow-md"
               )}
               variant={isImporting ? "outline" : "default"}
               onClick={
@@ -658,6 +799,9 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
             )}
           </div>
         </div>
+        </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   )

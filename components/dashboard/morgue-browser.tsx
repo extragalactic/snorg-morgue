@@ -418,7 +418,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
             className={fillHeight ? "min-h-0 flex-1 overflow-y-auto bg-background morgue-modal-scroll" : "h-[550px] overflow-y-auto bg-background"}
           >
             {loading && (
-              <div className="p-8 flex items-center justify-center text-muted-foreground text-sm">
+              <div className="p-8 flex items-center justify-center text-muted-foreground text-sm mt-[100px]">
                 <div className="h-5 w-5 animate-spin border-2 border-primary border-t-transparent rounded-full mr-2" />
                 Loading…
               </div>

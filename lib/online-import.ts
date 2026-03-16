@@ -11,6 +11,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { nanoid } from "nanoid"
 import { parseMorgue } from "./morgue-parser"
 import { parsedToRow } from "./morgue-db"
+import { validateAndSanitizeParsedMorgue } from "./morgue-validation"
 
 export type OnlineImportServerStatus = "ok" | "skipped" | "error"
 
@@ -114,17 +115,27 @@ function shortVersionFromFull(v: string | undefined): string | null {
   return m ? m[1] : null
 }
 
+/** Normalize username for matching: lowercase and treat digit 0 as letter o, 1 as l, so "0cean" matches "Ocean". */
+function normalizeUsernameForMatch(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/0/g, "o")
+    .replace(/1/g, "l")
+}
+
 async function collectMatchesForUsername(
   server: DcssServerConfig,
   dcssUsername: string,
   maxMatches: number,
 ): Promise<ParsedXlog[]> {
-  const nameLower = dcssUsername.toLowerCase()
+  const inputNormalized = normalizeUsernameForMatch(dcssUsername.trim())
   const matches: ParsedXlog[] = []
 
-  // Stage 1: only ingest games whose short version is 0.33 or 0.34, even if they come from
-  // a "trunk"/git logfile. This allows us to include trunk builds that correspond to those versions.
-  const allowedShortVersions = new Set(["0.33", "0.34"])
+  // Include 0.32+ so games from older versions (e.g. 0.32) are found when their logfile is fetched.
+  const allowedShortVersions = new Set(["0.32", "0.33", "0.34"])
+
+  /** Timeout per logfile fetch so one slow/unreachable server (e.g. over VPN) doesn't hang the whole scan. */
+  const LOGFILE_FETCH_MS = 18_000
 
   // Prefer newer logfiles first by iterating in reverse order.
   const logfiles = [...server.logfiles].reverse()
@@ -137,7 +148,13 @@ async function collectMatchesForUsername(
 
     let text: string
     try {
-      const res = await fetch(logfileUrl, { cache: "no-store" })
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), LOGFILE_FETCH_MS)
+      const res = await fetch(logfileUrl, {
+        cache: "no-store",
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
       if (!res.ok) {
         continue
       }
@@ -152,7 +169,7 @@ async function collectMatchesForUsername(
       if (!parsed) continue
       const name = (parsed.name ?? "").trim()
       if (!name) continue
-      if (name.toLowerCase() !== nameLower) continue
+      if (normalizeUsernameForMatch(name) !== inputNormalized) continue
       const v = (parsed.v ?? parsed.version) as string | undefined
       const short = shortVersionFromFull(v)
       if (!short || !allowedShortVersions.has(short)) continue
@@ -171,6 +188,15 @@ interface ScanOptions {
   serverAbbreviations?: string[]
 }
 
+/** Normalize to an array of strings so a string or malformed value doesn't produce an empty allowlist. */
+function normalizeServerAbbreviations(
+  raw: unknown,
+): string[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null
+  const list = raw.filter((a): a is string => typeof a === "string" && a.length > 0)
+  return list.length > 0 ? list : null
+}
+
 // Stage 1: we infer "new" games by comparing game_signature values that already exist for this user + server.
 export async function scanOnlineGames(
   supabase: SupabaseClient,
@@ -182,10 +208,8 @@ export async function scanOnlineGames(
   const maxGamesPerServer = options.maxGamesPerServer ?? 1000
   const results: OnlineImportScanServerResult[] = []
 
-  const allowlist =
-    options.serverAbbreviations && options.serverAbbreviations.length > 0
-      ? new Set(options.serverAbbreviations)
-      : null
+  const abbrevList = normalizeServerAbbreviations(options.serverAbbreviations)
+  const allowlist = abbrevList ? new Set(abbrevList) : null
 
   const serversToScan = DCSS_SERVERS.filter((server) =>
     allowlist ? allowlist.has(server.abbreviation) : true,
@@ -255,6 +279,8 @@ export async function scanOnlineGames(
 interface ImportOptions extends ScanOptions {
   /** Maximum number of new games to import per server in a single run. Default: 3, capped by MAX_NEW_GAMES_PER_SERVER_PER_RUN. */
   maxNewGamesPerServer?: number
+  /** Called after each game is successfully imported (cumulative count). Used for streaming progress. */
+  onProgress?: (importedSoFar: number) => void
 }
 
 export async function runOnlineImport(
@@ -268,15 +294,16 @@ export async function runOnlineImport(
     Math.max(1, Math.floor(requestedNew)),
     MAX_NEW_GAMES_PER_SERVER_PER_RUN,
   )
-  const requestedScan = options.maxGamesPerServer ?? maxNewGamesPerServer * 10
+  // For imports, default to scanning a generous number of games per server so
+  // we can skip over leading duplicates and still find earlier new games.
+  // This mirrors the scan default (1000) rather than a tight multiple of maxNewGamesPerServer.
+  const requestedScan = options.maxGamesPerServer ?? MAX_GAMES_PER_SERVER_PER_RUN
   const maxGamesPerServer = Math.min(
     Math.max(maxNewGamesPerServer, Math.floor(requestedScan)),
     MAX_GAMES_PER_SERVER_PER_RUN,
   )
-  const allowlist =
-    options.serverAbbreviations && options.serverAbbreviations.length > 0
-      ? new Set(options.serverAbbreviations)
-      : null
+  const abbrevList = normalizeServerAbbreviations(options.serverAbbreviations)
+  const allowlist = abbrevList ? new Set(abbrevList) : null
 
   const serversToImport = DCSS_SERVERS.filter((server) =>
     allowlist ? allowlist.has(server.abbreviation) : true,
@@ -288,6 +315,16 @@ export async function runOnlineImport(
   let totalFetchedThisRun = 0
 
   for (const server of serversToImport) {
+    // Debug: high-level per-server import context
+    // NOTE: Safe to leave in production; gated by explicit prefix and cheap fields only.
+    console.log("[snorg-morgue][import-debug] server start", {
+      server: server.abbreviation,
+      userId,
+      dcssUsername,
+      maxNewGamesPerServer,
+      maxGamesPerServer,
+    })
+
     let status: OnlineImportServerStatus = "ok"
     const errors: string[] = []
     let newGamesImported = 0
@@ -307,6 +344,12 @@ export async function runOnlineImport(
       const existingSet = new Set(
         (existingRows ?? []).map((r) => (r.game_signature as string | null) ?? "").filter(Boolean),
       )
+
+      console.log("[snorg-morgue][import-debug] server matches", {
+        server: server.abbreviation,
+        matches: matches.length,
+        existingCount: existingSet.size,
+      })
 
       for (const row of matches) {
         if (newGamesImported >= maxNewGamesPerServer) break
@@ -354,7 +397,7 @@ export async function runOnlineImport(
         }
 
         try {
-          const parsed = parseMorgue(rawMorgue)
+          const parsed = validateAndSanitizeParsedMorgue(parseMorgue(rawMorgue))
           // Sync-imported: store only parsed data and morgue_url; raw text is fetched from server when viewing.
           const rowForDb = parsedToRow(null, userId, parsed)
           const insertPayload = {
@@ -377,6 +420,7 @@ export async function runOnlineImport(
 
           existingSet.add(signature)
           newGamesImported++
+          options.onProgress?.(totalImported + newGamesImported)
         } catch (e) {
           errors.push(
             `Failed to parse/store morgue for ${name} (${server.abbreviation}): ${
@@ -390,6 +434,14 @@ export async function runOnlineImport(
       errors.push(e instanceof Error ? e.message : String(e))
     }
 
+    console.log("[snorg-morgue][import-debug] server done", {
+      server: server.abbreviation,
+      newGamesImported,
+      duplicatesSkipped,
+      errorsCount: errors.length,
+      totalFetchedThisRun,
+    })
+
     totalImported += newGamesImported
     totalDuplicates += duplicatesSkipped
 
@@ -401,6 +453,20 @@ export async function runOnlineImport(
       errors,
     })
   }
+
+  console.log("[snorg-morgue][import-debug] run summary", {
+    userId,
+    dcssUsername,
+    totalImported,
+    totalDuplicates,
+    servers: perServerResults.map((s) => ({
+      server: s.serverAbbreviation,
+      newGamesImported: s.newGamesImported,
+      duplicatesSkipped: s.duplicatesSkipped,
+      status: s.status,
+      errorsCount: s.errors.length,
+    })),
+  })
 
   return {
     dcssUsername,
