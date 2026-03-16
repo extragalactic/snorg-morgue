@@ -12,18 +12,17 @@ Features:
 Fixes:
 - the importers should enforce reasonable data min/max limits to prevent cheating or broken files
 - what's the proper terminology: Grand Player or Greater Player? And how is it defined?
-- some species have god restrictions for the awards
+- need to normalize the Level at Death graph when comparing to the average data
+- y-axis units messed up on Levels at Death
 
 Tests:
 - need to test logic for email/username duplicates on signup
 - need to test on older versions of morgue files
 - Search Morgues is searching what exactly?
 - server import cards have wobbly text when you click
-
+- there are errors on the species-background grid with the X's
 
 ...hey, buy more vape bags!
 
 Notes:
 - We have server download caps in place, edit them here: lib/online-import-limits.ts
-
-- "Streaming (alternative): We could keep one request and stream progress (e.g. SSE or chunked) so the client gets “imported 1”, “imported 2”, … as each morgue is processed. Then the bar could reflect real progress with no extra round-trips. That would require changing the import API to a streaming response."

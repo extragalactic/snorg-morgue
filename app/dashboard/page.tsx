@@ -42,6 +42,7 @@ import {
   type GameRecord,
 } from "@/lib/morgue-api"
 import { GOD_SHORT_FORMS } from "@/lib/dcss-constants"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { slugifyUsername } from "@/lib/slug"
 import { typography } from "@/lib/typography"
 
@@ -172,6 +173,8 @@ export default function DashboardPage({
   const [downloadConfirmOpen, setDownloadConfirmOpen] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [onlineImportOpen, setOnlineImportOpen] = useState(false)
+  const [versionStart, setVersionStart] = useState("0.32")
+  const [versionEnd, setVersionEnd] = useState("0.34")
 
   const loadData = useCallback(async () => {
     setMorguesLoading(true)
@@ -226,6 +229,19 @@ export default function DashboardPage({
         fastestWinGame.god
       )
     : undefined
+
+  // Filter morgues by version range for UI views that care about version (e.g. Morgues tab).
+  // Versions are treated as short x.y (e.g. 0.33, 0.34); if parsing fails, the morgue is included.
+  const filteredMorguesByVersion = morgues.filter((m) => {
+    const v = m.version?.trim()
+    if (!v) return true
+    const mShort = v.match(/^(\d+\.\d+)/)?.[1]
+    if (!mShort) return true
+    const start = parseFloat(versionStart) || 0
+    const end = parseFloat(versionEnd) || 999
+    const val = parseFloat(mShort)
+    return val >= Math.min(start, end) && val <= Math.max(start, end)
+  })
 
   const smallestTurncountWin =
     morgues.length > 0
@@ -621,8 +637,47 @@ export default function DashboardPage({
 
         {activeTab === "morgues" && (
           <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-mono text-sm text-primary">Morgues</h2>
+              <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
+                <span>Version range:</span>
+                <Select value={versionStart} onValueChange={setVersionStart}>
+                  <SelectTrigger className="h-8 w-24 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-xs">
+                    <SelectValue aria-label="Start version" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-none border-2 border-primary/40">
+                    <SelectItem value="0.32" className="font-mono text-sm">
+                      0.32
+                    </SelectItem>
+                    <SelectItem value="0.33" className="font-mono text-sm">
+                      0.33
+                    </SelectItem>
+                    <SelectItem value="0.34" className="font-mono text-sm">
+                      0.34
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <span>to</span>
+                <Select value={versionEnd} onValueChange={setVersionEnd}>
+                  <SelectTrigger className="h-8 w-24 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-xs">
+                    <SelectValue aria-label="End version" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-none border-2 border-primary/40">
+                    <SelectItem value="0.32" className="font-mono text-sm">
+                      0.32
+                    </SelectItem>
+                    <SelectItem value="0.33" className="font-mono text-sm">
+                      0.33
+                    </SelectItem>
+                    <SelectItem value="0.34" className="font-mono text-sm">
+                      0.34
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <UploadsTable
-              morgues={morgues}
+              morgues={filteredMorguesByVersion}
               loading={morguesLoading}
               onRefresh={loadData}
               usernameSlug={usernameSlug}
