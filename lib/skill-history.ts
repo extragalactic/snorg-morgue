@@ -7,7 +7,7 @@ export type SkillHistorySeries = {
 
 export type SkillHistory = Record<string, SkillHistorySeries>
 
-const CHECKPOINTS = [5, 10, 15, 20, 27]
+const CHECKPOINTS = [5, 10, 15, 20, 25]
 
 /**
  * Parse the \"Skill Usage History\" section from a morgue into per-skill XL/level samples.
