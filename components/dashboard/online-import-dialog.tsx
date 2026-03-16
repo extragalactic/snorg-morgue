@@ -545,10 +545,30 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
         ) : (
           <>
         <DialogHeader>
-          <DialogTitle className="font-mono text-xl text-primary">Game Server Import (Stage 1)</DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Scan and import games from DCSS online game servers into Snorg. 
-          </DialogDescription>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <DialogTitle className="font-mono text-xl text-primary">
+                Game Server Import (Stage 1)
+              </DialogTitle>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                value={dcssUsername}
+                onChange={(e) => setDcssUsername(e.target.value)}
+                placeholder="DCSS username"
+                className="h-8 w-40 rounded-none border-2 border-primary/50 font-mono text-[11px] px-2"
+              />
+              <Input
+                type="number"
+                min={1}
+                max={200}
+                value={maxGames}
+                onChange={(e) => setMaxGames(e.target.value)}
+                placeholder="Max"
+                className="h-8 w-16 rounded-none border-2 border-primary/50 font-mono text-[11px] px-2 text-center"
+              />
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto -mr-6 pr-6">
@@ -590,33 +610,11 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
             </div>
           )}
 
-          <div className="space-y-2">
-            <label className="text-xs font-mono text-primary">
-              DCSS username (testing field, not yet linked to Snorg account)
-            </label>
-            <Input
-              value={dcssUsername}
-              onChange={(e) => setDcssUsername(e.target.value)}
-              placeholder="Exact DCSS account name (case-insensitive)"
-              className="rounded-none border-2 border-primary/50 font-mono text-xs"
-            />
-          </div>
+          <p className="mt-4 text-sm font-mono text-primary">
+            Select which game server(s) you play on, then click Scan, then click Import.
+          </p>
 
-          <div className="space-y-2">
-            <label className="text-xs font-mono text-primary">
-              Max games to import per server (for testing)
-            </label>
-            <Input
-              type="number"
-              min={1}
-              max={200}
-              value={maxGames}
-              onChange={(e) => setMaxGames(e.target.value)}
-              className="w-24 rounded-none border-2 border-primary/50 font-mono text-xs"
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-3 pt-2">
+          <div className="flex items-center justify-between gap-3 pt-3">
             <div className="w-[260px] shrink-0">
               {!isImporting && (
                 <Button
