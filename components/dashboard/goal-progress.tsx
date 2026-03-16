@@ -310,9 +310,11 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
   const greaterSpeciesGoals = goals.filter(
     (g) => g.name.startsWith("Greater ") && g.name !== "Grand Player"
   )
-  const hasGreaterSpeciesProgress = greaterSpeciesGoals.some((g) => g.current >= 3)
+  const greaterSpeciesWithProgress = greaterSpeciesGoals.filter((g) => g.current >= 3)
+  const hasGreaterSpeciesProgress = greaterSpeciesWithProgress.length > 0
   const devotedSpeciesGoals = goals.filter((g) => g.name.startsWith("Devoted "))
-  const hasDevotedSpeciesProgress = devotedSpeciesGoals.some((g) => g.current >= 3)
+  const devotedSpeciesWithProgress = devotedSpeciesGoals.filter((g) => g.current >= 3)
+  const hasDevotedSpeciesProgress = devotedSpeciesWithProgress.length > 0
   const enthusiasticSpeciesGoals = goals.filter((g) => g.name.startsWith("Enthusiastic "))
   const enthusiasticSpeciesWithProgress = enthusiasticSpeciesGoals.filter((g) => g.current >= 3)
   const hasEnthusiasticSpeciesProgress = enthusiasticSpeciesWithProgress.length > 0
@@ -430,7 +432,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           <CardContent className="pt-4">
             {hasGreaterSpeciesProgress ? (
               <div className="grid gap-6 md:grid-cols-4">
-                {greaterSpeciesGoals.map((goal) => {
+                {greaterSpeciesWithProgress.map((goal) => {
                   const percentage = (goal.current / goal.max) * 100
                   const isComplete = goal.current >= goal.max
                   const speciesName = goal.name.replace(/^Greater /, "")
@@ -775,7 +777,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           <CardContent className="pt-4">
             {hasDevotedSpeciesProgress ? (
               <div className="grid gap-6 md:grid-cols-4">
-                {devotedSpeciesGoals.map((goal) => {
+                {devotedSpeciesWithProgress.map((goal) => {
                   const percentage = (goal.current / goal.max) * 100
                   const isComplete = goal.current >= goal.max
                   const speciesName = goal.name.replace(/^Devoted /, "")

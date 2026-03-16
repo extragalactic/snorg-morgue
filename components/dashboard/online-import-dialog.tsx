@@ -123,6 +123,7 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
   const importProgressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const successDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const prevOpenRef = useRef(open)
+  const isInitialImportPhase = isImporting && importProgressDisplay === 0
 
   // Persist selected servers to localStorage when checkboxes change.
   useEffect(() => {
@@ -573,67 +574,74 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
 
         <div className="min-h-0 flex-1 overflow-y-auto -mr-6 pr-6">
         <div className="space-y-4 pt-2">
-          {importSummary && (
-            <div className="rounded-none border-2 border-primary/50 bg-primary/5 px-3 py-2">
-              <div className="text-center mb-2">
-                {isImporting ? (
-                  <p className="font-mono text-sm text-primary">
-                    Importing… {importProgressDisplay} of {importProgressTarget} game{importProgressTarget === 1 ? "" : "s"}
-                  </p>
+          <div className="rounded-none border-2 border-primary/50 bg-primary/5 px-3 py-2">
+            <div className="text-center mb-2">
+              <p className="font-mono text-sm text-primary">
+                {isScanning
+                  ? "Scanning selected servers for games…"
+                  : isInitialImportPhase
+                    ? "Preparing import (fetching morgue files)…"
+                    : isImporting
+                      ? `Importing… ${importProgressDisplay} of ${importProgressTarget} game${importProgressTarget === 1 ? "" : "s"}`
+                      : importSummary
+                        ? `Imported ${importSummary.lastImported} of ${
+                            importProgressTarget || importSummary.lastRequested
+                          } games`
+                        : "Select which game server(s) you play on, then click Scan, then click Import."}
+              </p>
+              <p className="text-[11px] text-muted-foreground min-h-[1.1rem]">
+                {importSummary ? (
+                  <>Duplicates skipped: {importSummary.lastDuplicates} · Errors: {importSummary.lastErrors}</>
                 ) : (
-                  <p className="font-mono text-sm text-primary">
-                    Imported {importSummary.lastImported} of {importProgressTarget || importSummary.lastRequested} games
-                  </p>
+                  // Invisible placeholder to reserve space so layout doesn't shift when summary appears.
+                  <span className="invisible">Duplicates skipped: 0 · Errors: 0</span>
                 )}
-                <p className="text-[11px] text-muted-foreground">
-                  Duplicates skipped: {importSummary.lastDuplicates} · Errors: {importSummary.lastErrors}
-                </p>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-none border border-primary/40 bg-background">
-                {isImporting && importProgressDisplay === 0 ? (
-                  <div
-                    className="h-full w-full animate-import-shimmer bg-gradient-to-r from-primary/20 via-primary/70 to-primary/20"
-                    style={{ backgroundPosition: "0% 50%" }}
-                  />
-                ) : (
-                  <div
-                    className="h-full bg-primary/70 transition-all duration-300"
-                    style={{
-                      width:
-                        importProgressTarget > 0
-                          ? `${Math.min(100, Math.round((importProgressDisplay / importProgressTarget) * 100))}%`
-                          : "0%",
-                    }}
-                  />
-                )}
-              </div>
+              </p>
             </div>
-          )}
-
-          <p className="mt-4 text-sm font-mono text-primary">
-            Select which game server(s) you play on, then click Scan, then click Import.
-          </p>
+            <div className="h-4 w-full max-w-[36rem] mx-auto overflow-hidden rounded-none border border-primary/40 bg-background">
+              {isScanning || isInitialImportPhase ? (
+                <div
+                  className="h-full w-full animate-import-shimmer bg-gradient-to-r from-primary/20 via-primary/70 to-primary/20"
+                  style={{ backgroundPosition: "0% 50%" }}
+                />
+              ) : (
+                <div
+                  className="h-full bg-primary/70 transition-all duration-300"
+                  style={{
+                    width:
+                      importProgressTarget > 0
+                        ? `${Math.min(100, Math.round((importProgressDisplay / importProgressTarget) * 100))}%`
+                        : "0%",
+                  }}
+                />
+              )}
+            </div>
+          </div>
 
           <div className="flex items-center justify-between gap-3 pt-3">
             <div className="w-[260px] shrink-0">
-              {!isImporting && (
-                <Button
-                  type="button"
-                  variant="default"
-                  className="rounded-none border-2 border-primary font-mono text-base font-bold h-11 px-5 shadow-sm hover:shadow-md hover:bg-success/20 hover:text-success hover:border-success/50 transition-colors w-full"
-                  onClick={handleScan}
-                  disabled={!canScan}
-                >
-                  <Search className="size-4 mr-2 shrink-0" aria-hidden />
-                  {isScanning ? "Scanning…" : hasScan ? "Re-scan Game Servers" : "Scan Game Servers"}
-                </Button>
-              )}
+              <Button
+                type="button"
+                variant="default"
+                className={cn(
+                  "rounded-none border-2 font-mono text-base font-bold h-11 px-5 shadow-sm transition-colors w-full",
+                  !isImporting &&
+                    "border-primary hover:shadow-md hover:bg-success/20 hover:text-success hover:border-success/50",
+                  isImporting &&
+                    "cursor-not-allowed opacity-60 bg-muted text-muted-foreground border-muted-foreground/40",
+                )}
+                onClick={handleScan}
+                disabled={!canScan || isImporting}
+              >
+                <Search className="size-4 mr-2 shrink-0" aria-hidden />
+                {isScanning ? "Scanning…" : hasScan ? "Re-scan Game Servers" : "Scan Game Servers"}
+              </Button>
             </div>
             <div className="flex-1 min-w-0" />
             <Button
               type="button"
               className={cn(
-                "rounded-none border-2 font-mono text-base font-bold w-[260px] h-11 shrink-0 px-5 shadow-sm transition-colors",
+                "rounded-none border-2 font-mono text-base font-bold w-[195px] h-11 shrink-0 px-4 shadow-sm transition-colors",
                 isImporting && "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive",
                 !hasScan && !isImporting && !importJustCompleted && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground border-muted-foreground/30",
                 !isImporting && (hasScan || importJustCompleted) && "hover:bg-success/20 hover:text-success hover:border-success/50 hover:shadow-md"

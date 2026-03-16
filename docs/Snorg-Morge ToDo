@@ -12,6 +12,7 @@ Features:
 Fixes:
 - the importers should enforce reasonable data min/max limits to prevent cheating or broken files
 - what's the proper terminology: Grand Player or Greater Player? And how is it defined?
+- some species have god restrictions for the awards
 
 Tests:
 - need to test logic for email/username duplicates on signup
