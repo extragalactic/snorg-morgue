@@ -561,10 +561,17 @@ export interface GlobalLevelDeathStats {
   userCount: number
 }
 
+export interface GlobalGodAvgXl {
+  god: string
+  avgXlAtDeath: number
+  deathCount: number
+}
+
 export interface GlobalAnalysisStats {
   userCount: number
   totals: GlobalAnalysisTotals
   levelDeath: GlobalLevelDeathStats
+  avgXlByGod: GlobalGodAvgXl[]
 }
 
 /**
@@ -596,10 +603,22 @@ export async function fetchGlobalAnalysisStats(
       averages?: number[]
       user_count?: number
     }
+    avg_xl_by_god?: {
+      god?: string
+      avg_xl_at_death?: number
+      death_count?: number
+    }[]
   }
 
   const totals = payload.totals ?? {}
   const level = payload.level_death ?? {}
+  const godsRaw = payload.avg_xl_by_god ?? []
+
+  const avgXlByGod: GlobalGodAvgXl[] = godsRaw.map((g) => ({
+    god: g.god ?? "(no god)",
+    avgXlAtDeath: g.avg_xl_at_death ?? 0,
+    deathCount: g.death_count ?? 0,
+  }))
 
   return {
     userCount: payload.user_count ?? 0,
@@ -620,6 +639,7 @@ export async function fetchGlobalAnalysisStats(
       averages: level.averages ?? [],
       userCount: level.user_count ?? 0,
     },
+    avgXlByGod,
   }
 }
 
