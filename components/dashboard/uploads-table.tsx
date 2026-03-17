@@ -233,8 +233,8 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
   const pct = totalCount > 0 ? Math.round((filteredCount / totalCount) * 100) : 0
   const titleText =
     filteredCount === totalCount
-      ? `${totalCount} Morgue Files`
-      : `${filteredCount} of ${totalCount} Morgue Files (${pct}%)`
+      ? `${totalCount} Files`
+      : `${filteredCount} of ${totalCount} Files (${pct}%)`
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -325,7 +325,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
     return (
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle>Morgue Files</CardTitle>
+          <CardTitle>Files</CardTitle>
         </CardHeader>
         <CardContent className="p-8">
           <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
@@ -341,7 +341,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
     return (
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle>0 Morgue Files</CardTitle>
+          <CardTitle>0 Files</CardTitle>
         </CardHeader>
         <CardContent className="p-8 text-center">
           <p className="font-mono text-primary mb-2">No morgue files yet</p>

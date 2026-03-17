@@ -11,6 +11,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { nanoid } from "nanoid"
 import { parseMorgue } from "./morgue-parser"
 import { parsedToRow } from "./morgue-db"
+import { parseSkillHistory, computeSkillSnapshotsFromHistory } from "./skill-history"
 import { validateAndSanitizeParsedMorgue } from "./morgue-validation"
 
 export type OnlineImportServerStatus = "ok" | "skipped" | "error"
@@ -410,12 +411,39 @@ export async function runOnlineImport(
             morgue_url: resolvedMorgueUrl,
           }
 
-          const { error: insertParsedErr } = await supabase.from("parsed_morgues").insert(insertPayload)
+          const { data: inserted, error: insertParsedErr } = await supabase
+            .from("parsed_morgues")
+            .insert(insertPayload)
+            .select("id, species, background, version")
+            .single()
           if (insertParsedErr) {
             errors.push(
               `Failed to insert parsed_morgues row for ${name} (${server.abbreviation}): ${insertParsedErr.message}`,
             )
             continue
+          }
+
+          // For winning games, compute and store skill snapshots from the morgue's skill history.
+          if (rowForDb.is_win) {
+            const skillHistory = parseSkillHistory(rawMorgue)
+            if (skillHistory) {
+              const snapshots = computeSkillSnapshotsFromHistory(skillHistory)
+              if (snapshots.length > 0) {
+                const versionShort =
+                  (parsed.version.match(/^(\d+\.\d+)/)?.[1] ?? parsed.version).trim()
+                const snapshotRows = snapshots.map((s) => ({
+                  user_id: userId,
+                  game_id: inserted?.id,
+                  species: inserted?.species ?? parsed.species,
+                  background: inserted?.background ?? parsed.background,
+                  version_short: versionShort,
+                  skill_group: s.skill_group,
+                  checkpoint_xl: s.checkpoint_xl,
+                  level: s.level,
+                }))
+                await supabase.from("skill_snapshots").insert(snapshotRows)
+              }
+            }
           }
 
           existingSet.add(signature)

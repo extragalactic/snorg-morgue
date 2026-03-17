@@ -7,6 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { nanoid } from "nanoid"
 import { parseMorgue, getMessageHistorySignature, parseSpeciesBackground, isAbandonedCharacterMorgue } from "./morgue-parser"
 import { validateAndSanitizeParsedMorgue } from "./morgue-validation"
+import { parseSkillHistory, computeSkillSnapshotsFromHistory } from "./skill-history"
 import {
   parsedToRow,
   formatPlayTime,
@@ -163,31 +164,67 @@ export async function uploadMorgues(
         continue
       }
 
-      const row = parsedToRow(morgueFile.id, userId, parsed)
-      const insertPayload = { ...row, message_history_signature: signature, short_id: nanoid(6) }
+      const baseRow = parsedToRow(morgueFile.id, userId, parsed)
+      const insertPayload = { ...baseRow, message_history_signature: signature, short_id: nanoid(6) }
       let insertParsedErr: { message: string; code?: string; details?: unknown } | null = null
+      let insertedRow: { id: string; is_win: boolean } | null = null
+
       let res = await supabase
         .from("parsed_morgues")
         .insert(insertPayload)
+        .select("id, is_win")
+        .single()
 
       insertParsedErr = res.error
+      insertedRow = (res.data as { id: string; is_win: boolean } | null) ?? null
+
       // If short_id column doesn't exist (migration not run), retry without it so import still works.
       if (insertParsedErr && /short_id.*schema cache/i.test(insertParsedErr.message)) {
-        const { message_history_signature: _sig, short_id: _sid, ...rowWithoutShort } = insertPayload as typeof insertPayload & { short_id?: string }
-        res = await supabase.from("parsed_morgues").insert(rowWithoutShort)
+        const { message_history_signature: _sig, short_id: _sid, ...rowWithoutShort } = insertPayload as typeof insertPayload & {
+          short_id?: string
+        }
+        res = await supabase
+          .from("parsed_morgues")
+          .insert(rowWithoutShort)
+          .select("id, is_win")
+          .single()
         insertParsedErr = res.error
+        insertedRow = (res.data as { id: string; is_win: boolean } | null) ?? null
       }
 
-      if (insertParsedErr) {
+      if (insertParsedErr || !insertedRow) {
         await supabase.from("morgue_files").delete().eq("id", morgueFile.id)
-        failed.push({ filename: file.name, error: insertParsedErr.message })
-        logImportFailure(file.name, insertParsedErr.message, {
+        const msg = insertParsedErr?.message ?? "Failed to save parsed morgue."
+        failed.push({ filename: file.name, error: msg })
+        logImportFailure(file.name, msg, {
           phase: "insert_parsed",
-          errorMessage: insertParsedErr.message,
-          dbCode: insertParsedErr.code,
-          dbDetails: insertParsedErr.details as string | undefined,
+          errorMessage: insertParsedErr?.message,
+          dbCode: insertParsedErr?.code,
+          dbDetails: insertParsedErr?.details as string | undefined,
         })
         continue
+      }
+
+      // For winning games, compute and store skill snapshots from the morgue's skill history.
+      if (insertedRow.is_win) {
+        const skillHistory = parseSkillHistory(file.text)
+        if (skillHistory) {
+          const snapshots = computeSkillSnapshotsFromHistory(skillHistory)
+          if (snapshots.length > 0) {
+            const versionShort = (parsed.version.match(/^(\d+\.\d+)/)?.[1] ?? parsed.version).trim()
+            const snapshotRows = snapshots.map((s) => ({
+              user_id: userId,
+              game_id: insertedRow!.id,
+              species: parsed.species,
+              background: parsed.background,
+              version_short: versionShort,
+              skill_group: s.skill_group,
+              checkpoint_xl: s.checkpoint_xl,
+              level: s.level,
+            }))
+            await supabase.from("skill_snapshots").insert(snapshotRows)
+          }
+        }
       }
 
       success++
@@ -646,7 +683,7 @@ export async function fetchMorgueById(
 }
 
 /**
- * Delete a morgue (parsed row; if manually uploaded, also delete the morgue_files row), then recalc user stats.
+ * Delete a morgue (parsed row + its skill_snapshots; if manually uploaded, also delete the morgue_files row), then recalc user stats.
  */
 export async function deleteMorgue(
   supabase: SupabaseClient,
@@ -660,6 +697,12 @@ export async function deleteMorgue(
     .eq("user_id", userId)
 
   if (parsedErr) return { error: parsedErr.message }
+  const { error: snapErr } = await supabase
+    .from("skill_snapshots")
+    .delete()
+    .eq("game_id", game.id)
+    .eq("user_id", userId)
+  if (snapErr) return { error: snapErr.message }
   if (game.morgueFileId) {
     const { error: fileErr } = await supabase
       .from("morgue_files")
@@ -673,7 +716,7 @@ export async function deleteMorgue(
 }
 
 /**
- * Delete all morgues for the user (parsed rows + morgue files) and clear their stats. For testing / clean re-upload.
+ * Delete all morgues for the user (parsed rows + morgue files + skill_snapshots) and clear their stats. For testing / clean re-upload.
  */
 export async function deleteAllMorgues(
   supabase: SupabaseClient,
@@ -689,6 +732,11 @@ export async function deleteAllMorgues(
     .delete()
     .eq("user_id", userId)
   if (fileErr) return { error: fileErr.message }
+  const { error: snapErr } = await supabase
+    .from("skill_snapshots")
+    .delete()
+    .eq("user_id", userId)
+  if (snapErr) return { error: snapErr.message }
   await recalcUserStats(supabase, userId)
   return { error: null }
 }

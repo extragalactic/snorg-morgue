@@ -5,30 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { ALL_SPECIES_NAMES, ALL_BACKGROUND_NAMES, GOD_SHORT_FORMS } from "@/lib/dcss-constants"
+import { SPECIES_EXCLUDED_BACKGROUNDS } from "@/components/dashboard/goal-progress"
 import type { GameRecord } from "@/lib/morgue-api"
 
 type Mode = "wins" | "attempts"
 
 /**
- * Impossible species–background combinations (e.g. Felid Berserker, Demigod Brigand).
- * These cells are shown as disabled with a grey X.
+ * Impossible species–background combinations (e.g. Felid Gladiator, Demigod Berserker).
+ * Reuse the same exclusions as the Greater Species award so the grid stays consistent.
  */
-const DISABLED_COMBOS = new Set<string>([
-  "Demigod|||Brigand",
-  "Demigod|||Cinder Acolyte",
-  "Demigod|||Chaos Knight",
-  "Demigod|||Ice Elementalist",
-  "Felid|||Brigand",
-  "Felid|||Gladiator",
-  "Felid|||Hedge Wizard",
-  "Felid|||Hexslinger",
-  "Gargoyle|||Shapeshifter",
-  "Gargoyle|||Summoner",
-  "Mummy|||Shapeshifter",
-  "Mummy|||Summoner",
-  "Poltergeist|||Shapeshifter",
-  "Revenant|||Shapeshifter",
-])
+const DISABLED_COMBOS = new Set<string>(
+  Object.entries(SPECIES_EXCLUDED_BACKGROUNDS).flatMap(([species, bgs]) =>
+    (bgs as string[]).map((bg: string) => `${species}|||${bg}`),
+  ),
+)
 
 const TOTAL_COMBOS = ALL_SPECIES_NAMES.length * ALL_BACKGROUND_NAMES.length - DISABLED_COMBOS.size
 
@@ -161,13 +151,11 @@ export function SpeciesBackgroundComboGrid({
   const hasData = morgues.length > 0
 
   return (
-    <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 bg-background border-b-2 border-primary/30 mt-2">
+    <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 bg-background">
       <div className="mx-auto max-w-7xl px-4 py-6">
         <Card className="border-2 border-primary/30 rounded-none">
           <CardHeader className="border-b-2 border-primary/20 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <CardTitle>
-              SPECIES–BACKGROUND COMBO GRID
-            </CardTitle>
+            <CardTitle>SPECIES–BACKGROUND COMBO GRID</CardTitle>
             <div className="flex items-center gap-3">
               <span className="font-mono text-xs text-primary">SHOW:</span>
               <div className="flex gap-2">

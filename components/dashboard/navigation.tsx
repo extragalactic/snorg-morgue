@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, ScrollText, Menu, X, LogOut, ExternalLink, Monitor, Terminal, Trophy, Shield } from "lucide-react"
+import { BarChart3, ScrollText, Menu, X, LogOut, ExternalLink, Monitor, Terminal, Trophy, Shield, Flame } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -29,6 +29,7 @@ interface NavigationProps {
 
 const navItems = [
   { id: "analysis", label: "Analytics", icon: BarChart3 },
+  { id: "skills", label: "Skills", icon: Flame },
   { id: "achievements", label: "Achievements", icon: Trophy },
   { id: "morgues", label: "Morgues", icon: ScrollText },
   { id: "extras", label: "Resources", icon: ExternalLink },
@@ -48,7 +49,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
     const Icon = item.icon
     const isActive = activeTab === item.id
     const buttonClass = cn(
-      "rounded-none border-2 font-mono text-xs",
+      "rounded-none border-2 font-mono text-sm",
       isActive
         ? "border-primary bg-primary text-primary-foreground"
         : "border-transparent hover:border-primary/50 hover:bg-primary/10 hover:text-primary",
@@ -99,7 +100,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
       <div className="border-b-2 border-green-500/30 bg-gradient-to-b from-green-950/50 to-transparent">
         <div className="mx-auto max-w-7xl px-4 py-4">
           {themeStyle === "ascii" ? (
-            <pre className="text-center text-green-400/80 text-[10px] sm:text-xs font-mono leading-none">
+            <pre className="text-center text-green-400/80 text-[13px] sm:text-[1rem] font-mono leading-none">
 {`                                                                          
  ___ _ __   ___  _ __ __ _       _ __ ___   ___  _ __ __ _ _   _  ___   ___  _ __ __ _ 
 / __| '_ \\ / _ \\| '__/ _\` |_____| '_ \` _ \\ / _ \\| '__/ _\` | | | |/ _ \\ / _ \\| '__/ _\` |
@@ -117,7 +118,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
                 className="h-16 w-16 object-contain drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]"
               />
               <h1 
-                className="text-4xl sm:text-5xl md:text-6xl text-green-400 tracking-wider drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]"
+                className="text-[3.1rem] sm:text-[3.5rem] md:text-[4rem] text-green-400 tracking-wider drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]"
                 style={{ fontFamily: 'var(--font-troll)' }}
               >
                 snorg-morgue.org
@@ -139,7 +140,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
                   variant={isAdminPage ? "default" : "ghost"}
                   size="default"
                   className={cn(
-                    "rounded-none border-2 font-mono text-xs",
+                    "rounded-none border-2 font-mono text-sm",
                     isAdminPage
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-transparent hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
@@ -155,7 +156,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
           {/* User Info, Theme Selector & Sign Out */}
           <div className="hidden md:flex items-center gap-3">
             {user && (
-              <span className="font-mono text-sm text-muted-foreground">
+              <span className="font-mono text-base text-muted-foreground">
                 {user.name}
               </span>
             )}
@@ -164,7 +165,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-2 rounded-none border-0 font-mono text-xs hover:text-primary"
+                  className="gap-2 rounded-none border-0 font-mono text-sm hover:text-primary"
                 >
                   {themeStyle === "tiles" ? (
                     <Monitor className="h-4 w-4" />
@@ -177,7 +178,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
               <DropdownMenuContent align="end" className="rounded-none border-2 border-primary">
                 <DropdownMenuItem 
                   onClick={() => setThemeStyle("tiles")}
-                  className="gap-2 font-mono text-xs cursor-pointer hover:text-primary"
+                  className="gap-2 font-mono text-sm cursor-pointer hover:text-primary"
                 >
                   <Monitor className="h-4 w-4" />
                   Monitor
@@ -185,7 +186,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => setThemeStyle("ascii")}
-                  className="gap-2 font-mono text-xs cursor-pointer hover:text-primary"
+                  className="gap-2 font-mono text-sm cursor-pointer hover:text-primary"
                 >
                   <Terminal className="h-4 w-4" />
                   Terminal
@@ -197,7 +198,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
               variant="ghost"
               size="sm"
               className={cn(
-                "nav-signout gap-2 rounded-none border-2 text-primary hover:bg-destructive/10 font-mono text-xs",
+                "nav-signout gap-2 rounded-none border-2 text-primary hover:bg-destructive/10 font-mono text-sm",
                 themeStyle === "tiles" ? "border-primary/50" : "border-red-500/50"
               )}
               onClick={signOut}
@@ -228,7 +229,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
                   variant={isAdminPage ? "default" : "ghost"}
                   size="default"
                   className={cn(
-                    "w-full justify-start rounded-none border-2 font-mono text-xs",
+                    "w-full justify-start rounded-none border-2 font-mono text-sm",
                     isAdminPage
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-transparent hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
@@ -242,7 +243,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
             {/* Mobile Theme Selector & Sign Out */}
             <div className="mt-2 pt-2 border-t border-primary/30">
               {user && (
-                <p className="text-xs text-muted-foreground mb-2 px-2">
+                <p className="text-sm text-muted-foreground mb-2 px-2">
                   Signed in as {user.name}
                 </p>
               )}
@@ -250,7 +251,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
                 <Button
                   variant={themeStyle === "tiles" ? "default" : "outline"}
                   size="sm"
-                  className="flex-1 gap-2 rounded-none border-2 font-mono text-xs hover:text-primary"
+                  className="flex-1 gap-2 rounded-none border-2 font-mono text-sm hover:text-primary"
                   onClick={() => setThemeStyle("tiles")}
                 >
                   <Monitor className="h-4 w-4" />
@@ -259,7 +260,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
                 <Button
                   variant={themeStyle === "ascii" ? "default" : "outline"}
                   size="sm"
-                  className="flex-1 gap-2 rounded-none border-2 font-mono text-xs hover:text-primary"
+                  className="flex-1 gap-2 rounded-none border-2 font-mono text-sm hover:text-primary"
                   onClick={() => setThemeStyle("ascii")}
                 >
                   <Terminal className="h-4 w-4" />
@@ -269,7 +270,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
               <Button
                 variant="ghost"
                 className={cn(
-                  "nav-signout w-full justify-start gap-2 rounded-none border-2 text-primary hover:bg-destructive/10 font-mono text-xs",
+                  "nav-signout w-full justify-start gap-2 rounded-none border-2 text-primary hover:bg-destructive/10 font-mono text-sm",
                   themeStyle === "tiles" ? "border-primary/50" : "border-red-500/50"
                 )}
                 onClick={signOut}

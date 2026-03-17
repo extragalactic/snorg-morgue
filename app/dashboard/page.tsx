@@ -45,6 +45,8 @@ import { GOD_SHORT_FORMS } from "@/lib/dcss-constants"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { slugifyUsername } from "@/lib/slug"
 import { typography } from "@/lib/typography"
+import { SkillingAnalysis } from "@/components/dashboard/skilling-analysis"
+import { AverageLevelByGodChart } from "@/components/dashboard/average-level-by-god-chart"
 
 function speciesCode(species: string): string {
   const s = (species ?? "").trim()
@@ -319,6 +321,7 @@ export default function DashboardPage({
             <div className="flex flex-wrap items-center gap-3">
               <h1 className={typography.primaryTitle}>
                 {activeTab === "analysis" && "PERFORMANCE ANALYTICS"}
+                {activeTab === "skills" && "SKILLS"}
                 {activeTab === "achievements" && "OFFICIAL ACHIEVEMENTS"}
                 {activeTab === "morgues" && "MORGUE FILES"}
                 {activeTab === "extras" && "RESOURCES"}
@@ -326,6 +329,7 @@ export default function DashboardPage({
             </div>
             <p className={typography.bodyMuted}>
               {activeTab === "analysis" && "Track and analyze your DCSS progress"}
+              {activeTab === "skills" && "Understand how your skills progress across winning games"}
               {activeTab === "achievements" && ""}
               {activeTab === "morgues" && "Upload and browse your morgue files"}
               {activeTab === "extras" && "Helpful links and community resources"}
@@ -364,7 +368,7 @@ export default function DashboardPage({
                   onClick={() => setDownloadConfirmOpen(true)}
                   disabled={isDownloading}
                 >
-                  {isDownloading ? "Preparing…" : "Download All"}
+                  {isDownloading ? "Preparing…" : "Download"}
                 </Button>
               )}
             </div>
@@ -622,11 +626,21 @@ export default function DashboardPage({
                   showGlobalAverages={showGlobalAverages}
                   globalStats={globalStats}
                 />
+                <AverageLevelByGodChart
+                  morgues={morgues}
+                  globalAvgXlAtDeath={globalStats?.totals.avgXlAtDeath}
+                />
                 </>
               )}
             </div>
             <SpeciesBackgroundComboGrid morgues={morgues} />
           </>
+        )}
+
+        {activeTab === "skills" && (
+          <div className="space-y-6">
+            <SkillingAnalysis globalOnly />
+          </div>
         )}
 
         {activeTab === "achievements" && (
