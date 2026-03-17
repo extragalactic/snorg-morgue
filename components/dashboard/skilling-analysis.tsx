@@ -68,6 +68,27 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
     }
   }, [speciesFilter, backgroundFilter])
 
+  const desiredOrder = [
+    "Fighting",
+    "Weapon",
+    "Secondary Weapon",
+    "Ranged Weapons",
+    "Throwing",
+    "Armour",
+    "Dodging",
+    "Stealth",
+    "Shields",
+    "Spellcasting",
+    "Spell School 1",
+    "Spell School 2",
+    "Spell School 3",
+    "Spell School 4",
+    "Spell School 5",
+    "Shapeshifting",
+    "Invocations",
+    "Evocations",
+  ]
+
   const weaponSkillNames = useMemo(
     () => new Set<string>([...WEAPON_SKILLS, ...RANGED_WEAPON_SKILLS]),
     [],
@@ -82,8 +103,14 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
       if (!map.has(row.skill_group)) map.set(row.skill_group, [])
       map.get(row.skill_group)!.push(row)
     }
+    // Ensure all desired skills have at least an empty row array so they render even with no data.
+    for (const name of desiredOrder) {
+      if (!map.has(name)) {
+        map.set(name, [])
+      }
+    }
     return map
-  }, [data, weaponSkillNames])
+  }, [data, weaponSkillNames, desiredOrder])
 
   // Find the three highest-average skills at the final checkpoint.
   const topSkillsAtFinal = useMemo(() => {
@@ -96,24 +123,6 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
     entries.sort((a, b) => b.avg - a.avg)
     return new Set(entries.slice(0, 3).map((e) => e.skill))
   }, [rowsBySkill])
-
-  const desiredOrder = [
-    "Fighting",
-    "Weapon",
-    "Armour",
-    "Dodging",
-    "Stealth",
-    "Shields",
-    "Spellcasting",
-    "Spell School 1",
-    "Spell School 2",
-    "Spell School 3",
-    "Spell School 4",
-    "Spell School 5",
-    "Throwing",
-    "Invocations",
-    "Evocations",
-  ]
 
   const sortedSkillNames = useMemo(() => {
     const present = Array.from(rowsBySkill.keys())
@@ -170,22 +179,23 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
           </div>
         </div>
 
-        {isLoading && (
-          <div className="h-24 flex items-center justify-center text-muted-foreground font-mono text-sm">
-            Loading skilling data…
-          </div>
-        )}
-        {!isLoading && error && (
-          <div className="h-24 flex items-center justify-center text-destructive font-mono text-xs text-center px-4">
-            Failed to load skilling data: {error}
-          </div>
-        )}
-        {!isLoading && !error && sortedSkillNames.length === 0 ? (
-          <div className="h-24 flex items-center justify-center text-muted-foreground font-mono text-sm">
-            No skilling data available yet.
-          </div>
-        ) : !isLoading && !error ? (
-          <>
+        <div className="min-h-[260px] flex flex-col">
+          {isLoading && (
+            <div className="h-24 flex items-center justify-center text-muted-foreground font-mono text-sm">
+              Loading skilling data…
+            </div>
+          )}
+          {!isLoading && error && (
+            <div className="h-24 flex items-center justify-center text-destructive font-mono text-xs text-center px-4">
+              Failed to load skilling data: {error}
+            </div>
+          )}
+          {!isLoading && !error && sortedSkillNames.length === 0 ? (
+            <div className="h-24 flex items-center justify-center text-muted-foreground font-mono text-sm">
+              No skilling data available yet.
+            </div>
+          ) : !isLoading && !error ? (
+            <>
             <div className="overflow-x-auto border border-primary/30">
               <table className="min-w-full border-separate border-spacing-0">
                 <thead>
@@ -217,7 +227,11 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
                       >
                         <td className="sticky left-0 z-10 bg-card border-t border-primary/30 px-2 py-1 font-mono text-sm">
                           {skill === "Weapon"
-                            ? "Primary Weapon"
+                            ? "Primary Melee Weapon"
+                            : skill === "Secondary Weapon"
+                              ? "Secondary Melee Weapon"
+                              : skill === "Ranged Weapons"
+                                ? "Ranged Weapons"
                             : skill === "Spell School 1"
                               ? "1st Highest Spell School"
                               : skill === "Spell School 2"
@@ -247,7 +261,7 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
                               key={cp}
                               className={cn(
                                 "border-t border-l border-primary/30 px-2 py-1 text-center font-mono text-sm",
-                                cell.skill_group === "Weapon" && "font-semibold text-primary",
+                                cell.skill_group === "Weapon" && "font-semibold",
                               )}
                               title={`Average level ${cell.avg_level.toFixed(1)} from ${cell.sample_count} games`}
                             >
@@ -261,13 +275,17 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
                 </tbody>
               </table>
             </div>
-            <p className="font-mono text-xs text-muted-foreground">
-              * Primary Weapon is the highest weapon skill at XL 25; the value at each checkpoint is
-              that same skill&apos;s level. 1st–5th Highest Spell School are ranked by skill level at
-              XL 25 only; each row shows that ranked school&apos;s level at each checkpoint.
-            </p>
-          </>
-        ) : null}
+            <div className="mt-5 space-y-1 font-mono text-sm text-muted-foreground">
+              <p>
+                * Primary Weapon represents the single highest melee weapon skill at XL 25: either Short Blades, Long Blades, Axes, Maces & Flails, Polearms, Staves or Unarmed Combat. Secondary Weapon represents the second highest melee weapon skill. Usage of specific melee weapons will vary depending on item RNG, so these rows show average weapon progression across all winners.
+              </p>
+              <br></br><p>
+                * 1st–5th Highest Spell School are ranked by their skill level at XL 25. Usage of specific schools will vary depending on item RNG, so these rows show average magic progression across all winners.
+              </p>
+            </div>
+            </>
+          ) : null}
+        </div>
       </CardContent>
     </Card>
   )

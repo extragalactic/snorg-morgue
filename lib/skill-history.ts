@@ -142,8 +142,9 @@ const WEAPON_SKILL_NAMES = new Set([...WEAPON_SKILLS, ...RANGED_WEAPON_SKILLS])
  * Compute snapshot levels at XL checkpoints.
  *
  * - Non-spell skills: store Fighting, Spellcasting, Armour, etc. (we do not store individual
- *   weapon skills; only Primary Weapon is stored).
+ *   weapon skills; only Primary / Secondary Weapon are stored).
  * - Primary Weapon: the weapon skill that is highest at XL 25; we store that skill's level at each checkpoint.
+ * - Secondary Weapon: the weapon skill that is second-highest at XL 25 (if any); we store that skill's level at each checkpoint.
  * - Spell School 1–5: ranked by level at XL 25 only; we store each ranked school's level at each checkpoint.
  */
 export function computeSkillSnapshotsFromHistory(
@@ -152,7 +153,7 @@ export function computeSkillSnapshotsFromHistory(
 ): Snapshot[] {
   const snapshots: Snapshot[] = []
 
-  // Non-spell skills except individual weapon schools (we only show Primary Weapon).
+  // Non-spell skills except individual weapon schools (we only show Primary / Secondary / Ranged Weapons).
   for (const skill of NON_SPELL_SKILLS) {
     if (WEAPON_SKILL_NAMES.has(skill as (typeof WEAPON_SKILLS)[number])) continue
     const series = history[skill]
@@ -164,26 +165,58 @@ export function computeSkillSnapshotsFromHistory(
     }
   }
 
-  // Primary Weapon: highest weapon skill at XL 25; store that skill's level at each checkpoint.
-  let primaryWeaponSkill: string | null = null
-  let primaryMaxAt25 = 0
-  for (const weaponSkill of [...WEAPON_SKILLS, ...RANGED_WEAPON_SKILLS]) {
+  // Primary + Secondary Weapon: rank melee/unarmed weapon skills by XL 25, then store their levels at each checkpoint.
+  const weaponLevelsAt25: { skill: string; level: number }[] = []
+  for (const weaponSkill of WEAPON_SKILLS) {
     const series = history[weaponSkill]
     if (!series) continue
     const lvl = levelAtCheckpoint(series.samples, RANK_CHECKPOINT)
     if (lvl == null) continue
-    if (lvl > primaryMaxAt25) {
-      primaryMaxAt25 = lvl
-      primaryWeaponSkill = weaponSkill
-    }
+    weaponLevelsAt25.push({ skill: weaponSkill, level: lvl })
   }
-  if (primaryWeaponSkill) {
-    const series = history[primaryWeaponSkill]
+  weaponLevelsAt25.sort((a, b) => b.level - a.level)
+  const primary = weaponLevelsAt25[0]
+  const secondary = weaponLevelsAt25[1]
+
+  if (primary) {
+    const series = history[primary.skill]
     if (series) {
       for (const cp of checkpoints) {
         const level = levelAtCheckpoint(series.samples, cp)
         if (level == null) continue
         snapshots.push({ skill_group: "Weapon", checkpoint_xl: cp, level })
+      }
+    }
+  }
+  if (secondary) {
+    const series = history[secondary.skill]
+    if (series) {
+      for (const cp of checkpoints) {
+        const level = levelAtCheckpoint(series.samples, cp)
+        if (level == null) continue
+        snapshots.push({ skill_group: "Secondary Weapon", checkpoint_xl: cp, level })
+      }
+    }
+  }
+
+  // Ranged Weapons: highest ranged weapon skill at XL 25; store that skill's level at each checkpoint.
+  const rangedLevelsAt25: { skill: string; level: number }[] = []
+  for (const ranged of RANGED_WEAPON_SKILLS) {
+    const series = history[ranged]
+    if (!series) continue
+    const lvl = levelAtCheckpoint(series.samples, RANK_CHECKPOINT)
+    if (lvl == null) continue
+    rangedLevelsAt25.push({ skill: ranged, level: lvl })
+  }
+  rangedLevelsAt25.sort((a, b) => b.level - a.level)
+  const primaryRanged = rangedLevelsAt25[0]
+  if (primaryRanged) {
+    const series = history[primaryRanged.skill]
+    if (series) {
+      for (const cp of checkpoints) {
+        const level = levelAtCheckpoint(series.samples, cp)
+        if (level == null) continue
+        snapshots.push({ skill_group: "Ranged Weapons", checkpoint_xl: cp, level })
       }
     }
   }

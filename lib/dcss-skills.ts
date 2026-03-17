@@ -15,6 +15,7 @@ export const NON_SPELL_SKILLS = [
   "Armour",
   "Dodging",
   "Stealth",
+  "Shapeshifting",
   "Shields",
   "Invocations",
   "Evocations",

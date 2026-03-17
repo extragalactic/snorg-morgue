@@ -102,7 +102,7 @@ const SPECIES_EXCLUDED_GODS: Record<string, string[]> = {
 }
 
 /** Species-specific background exclusions for Greater / Enthusiastic Species awards. */
-const SPECIES_EXCLUDED_BACKGROUNDS: Record<string, string[]> = {
+export const SPECIES_EXCLUDED_BACKGROUNDS: Record<string, string[]> = {
   // Felids cannot use weapon- / hex-focused martial starts.
   Felid: ["Gladiator", "Hunter", "Brigand", "Hexslinger"],
   // Demigods cannot be certain god-start backgrounds.

@@ -5,30 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { ALL_SPECIES_NAMES, ALL_BACKGROUND_NAMES, GOD_SHORT_FORMS } from "@/lib/dcss-constants"
+import { SPECIES_EXCLUDED_BACKGROUNDS } from "@/components/dashboard/goal-progress"
 import type { GameRecord } from "@/lib/morgue-api"
 
 type Mode = "wins" | "attempts"
 
 /**
- * Impossible species–background combinations (e.g. Felid Berserker, Demigod Brigand).
- * These cells are shown as disabled with a grey X.
+ * Impossible species–background combinations (e.g. Felid Gladiator, Demigod Berserker).
+ * Reuse the same exclusions as the Greater Species award so the grid stays consistent.
  */
-const DISABLED_COMBOS = new Set<string>([
-  "Demigod|||Brigand",
-  "Demigod|||Cinder Acolyte",
-  "Demigod|||Chaos Knight",
-  "Demigod|||Ice Elementalist",
-  "Felid|||Brigand",
-  "Felid|||Gladiator",
-  "Felid|||Hedge Wizard",
-  "Felid|||Hexslinger",
-  "Gargoyle|||Shapeshifter",
-  "Gargoyle|||Summoner",
-  "Mummy|||Shapeshifter",
-  "Mummy|||Summoner",
-  "Poltergeist|||Shapeshifter",
-  "Revenant|||Shapeshifter",
-])
+const DISABLED_COMBOS = new Set<string>(
+  Object.entries(SPECIES_EXCLUDED_BACKGROUNDS).flatMap(([species, bgs]) =>
+    (bgs as string[]).map((bg: string) => `${species}|||${bg}`),
+  ),
+)
 
 const TOTAL_COMBOS = ALL_SPECIES_NAMES.length * ALL_BACKGROUND_NAMES.length - DISABLED_COMBOS.size
 

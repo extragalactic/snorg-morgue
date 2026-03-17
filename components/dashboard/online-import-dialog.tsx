@@ -418,7 +418,7 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
         successDelayRef.current = setTimeout(() => {
           successDelayRef.current = null
           setSuccessModalOpen(true)
-        }, 1500)
+        }, 500)
       }
     }
     try {
