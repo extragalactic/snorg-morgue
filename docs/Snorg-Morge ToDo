@@ -18,6 +18,7 @@ Fixes:
 - y-axis units messed up on Levels at Death
 - Avg species performance data is broken for Wins
 - change the blue dotted line into proper Avg data (likely needs parser/DB changes)
+- ensure Skills still counts character less than XL 25
 
 Tests:
 - need to test logic for email/username duplicates on signup

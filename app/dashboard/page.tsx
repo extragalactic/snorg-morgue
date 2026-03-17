@@ -321,7 +321,7 @@ export default function DashboardPage({
             <div className="flex flex-wrap items-center gap-3">
               <h1 className={typography.primaryTitle}>
                 {activeTab === "analysis" && "PERFORMANCE ANALYTICS"}
-                {activeTab === "skills" && "SKILLS"}
+                {activeTab === "skills" && "WINNING SKILLS"}
                 {activeTab === "achievements" && "OFFICIAL ACHIEVEMENTS"}
                 {activeTab === "morgues" && "MORGUE FILES"}
                 {activeTab === "extras" && "RESOURCES"}
@@ -329,7 +329,7 @@ export default function DashboardPage({
             </div>
             <p className={typography.bodyMuted}>
               {activeTab === "analysis" && "Track and analyze your DCSS progress"}
-              {activeTab === "skills" && "Understand how your skills progress across winning games"}
+              {activeTab === "skills" && "Learn techniques from winning players"}
               {activeTab === "achievements" && ""}
               {activeTab === "morgues" && "Upload and browse your morgue files"}
               {activeTab === "extras" && "Helpful links and community resources"}

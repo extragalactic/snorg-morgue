@@ -239,7 +239,7 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
       <CardHeader className="border-b-2 border-primary/20 pb-3">
         <CardTitle>WINNER AVERAGE SKILL PROGRESSION</CardTitle>
       </CardHeader>
-      <CardContent className="pt-4 space-y-4">
+      <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-3 justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground">

@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { typography } from "@/lib/typography"
+import { Button } from "@/components/ui/button"
 
 interface ImportEvent {
   id: string
@@ -84,6 +85,7 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null)
   const [emailSearch, setEmailSearch] = useState("")
   const [serverFilter, setServerFilter] = useState<string>("all")
+  const [importPage, setImportPage] = useState(1)
 
   useEffect(() => {
     if (authLoading) return
@@ -312,53 +314,90 @@ export default function AdminPage() {
                       serverFilter === "all" || e.serverAbbreviation === serverFilter
                     return matchEmail && matchServer
                   })
+                  const pageSize = 15
+                  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+                  const currentPage = Math.min(importPage, totalPages)
+                  const start = (currentPage - 1) * pageSize
+                  const pageItems = filtered.slice(start, start + pageSize)
                   return (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-primary/20">
-                      <TableHead className="font-mono text-xs">User</TableHead>
-                      <TableHead className="font-mono text-xs">Event</TableHead>
-                      <TableHead className="font-mono text-xs text-right">Count</TableHead>
-                      <TableHead className="font-mono text-xs">When</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {!events.length ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-muted-foreground font-mono text-sm">
-                          No import events yet. Manual uploads and online syncs will appear here after you run the import_events migration.
-                        </TableCell>
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-primary/20">
+                        <TableHead className="font-mono text-xs">User</TableHead>
+                        <TableHead className="font-mono text-xs">Event</TableHead>
+                        <TableHead className="font-mono text-xs text-right">Count</TableHead>
+                        <TableHead className="font-mono text-xs">When</TableHead>
                       </TableRow>
-                    ) : !filtered.length ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-muted-foreground font-mono text-sm">
-                          No events match the current filters.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filtered.map((e) => (
-                        <TableRow key={e.id} className="border-primary/10">
-                          <TableCell className="font-mono text-sm">
-                            {e.userEmail ?? (
-                              <span className="text-muted-foreground" title={e.userId}>
-                                {e.userId.slice(0, 8)}…
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {describeImportEvent(e)}
-                          </TableCell>
-                          <TableCell className="font-mono text-sm text-right">
-                            {e.morgueCount}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs text-muted-foreground">
-                            {formatDate(e.createdAt)}
+                    </TableHeader>
+                    <TableBody>
+                      {!events.length ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-muted-foreground font-mono text-sm">
+                            No import events yet. Manual uploads and online syncs will appear here after you run the import_events migration.
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : !filtered.length ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-muted-foreground font-mono text-sm">
+                            No events match the current filters.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        pageItems.map((e) => (
+                          <TableRow key={e.id} className="border-primary/10">
+                            <TableCell className="font-mono text-sm">
+                              {e.userEmail ?? (
+                                <span className="text-muted-foreground" title={e.userId}>
+                                  {e.userId.slice(0, 8)}…
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {describeImportEvent(e)}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm text-right">
+                              {e.morgueCount}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground">
+                              {formatDate(e.createdAt)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                  {filtered.length > pageSize && (
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="font-mono text-xs text-muted-foreground">
+                        Showing {start + 1}–{Math.min(start + pageSize, filtered.length)} of {filtered.length}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-none border-2 border-primary/40 font-mono text-xs"
+                          disabled={currentPage === 1}
+                          onClick={() => setImportPage((p) => Math.max(1, p - 1))}
+                        >
+                          Prev
+                        </Button>
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {currentPage} / {totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-none border-2 border-primary/40 font-mono text-xs"
+                          disabled={currentPage === totalPages}
+                          onClick={() => setImportPage((p) => Math.min(totalPages, p + 1))}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
                   )
                 })()}
               </CardContent>
