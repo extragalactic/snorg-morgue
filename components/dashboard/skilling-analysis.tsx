@@ -136,14 +136,7 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
   return (
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <CardTitle className="flex flex-col gap-1">
-          <span className="font-mono text-xl text-primary">
-            Winner Average Skill Progression
-          </span>
-          <span className="font-mono text-sm text-muted-foreground">
-            Shows average skill values by level for all global winners.
-          </span>
-        </CardTitle>
+        <CardTitle>WINNER AVERAGE SKILL PROGRESSION</CardTitle>
       </CardHeader>
       <CardContent className="pt-4 space-y-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -180,26 +173,27 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
         </div>
 
         <div className="min-h-[260px] flex flex-col">
-          {isLoading && (
-            <div className="h-24 flex items-center justify-center text-muted-foreground font-mono text-sm">
-              Loading skilling data…
-            </div>
-          )}
-          {!isLoading && error && (
+          {error && (
             <div className="h-24 flex items-center justify-center text-destructive font-mono text-xs text-center px-4">
               Failed to load skilling data: {error}
             </div>
           )}
-          {!isLoading && !error && sortedSkillNames.length === 0 ? (
+          {!error && sortedSkillNames.length === 0 && !isLoading && (
             <div className="h-24 flex items-center justify-center text-muted-foreground font-mono text-sm">
               No skilling data available yet.
             </div>
-          ) : !isLoading && !error ? (
+          )}
+          {!error && sortedSkillNames.length > 0 && (
             <>
-            <div className="overflow-x-auto border border-primary/30">
+            <div className="overflow-x-auto border border-primary/30 relative">
+              {isLoading && (
+                <div className="absolute inset-0 bg-background/70 flex items-center justify-center text-muted-foreground font-mono text-sm z-10">
+                  Loading skilling data…
+                </div>
+              )}
               <table className="min-w-full border-separate border-spacing-0">
                 <thead>
-                  <tr>
+                  <tr className="hover:bg-primary/5">
                     <th className="sticky left-0 z-10 bg-card border-b border-primary/30 px-2 py-1 text-left font-mono text-sm">
                       Skill
                     </th>
@@ -221,11 +215,11 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
                       <tr
                         key={skill}
                         className={cn(
-                          "hover:bg-primary/5",
+                          "group hover:bg-primary/5",
                           isTopAtFinal && "text-primary font-semibold",
                         )}
                       >
-                        <td className="sticky left-0 z-10 bg-card border-t border-primary/30 px-2 py-1 font-mono text-sm">
+                        <td className="sticky left-0 z-10 bg-card border-t border-primary/30 px-2 py-1 font-mono text-sm group-hover:bg-primary/10">
                           {skill === "Weapon"
                             ? "Primary Melee Weapon"
                             : skill === "Secondary Weapon"
@@ -282,9 +276,12 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
               <br></br><p>
                 * 1st–5th Highest Spell School are ranked by their skill level at XL 25. Usage of specific schools will vary depending on item RNG, so these rows show average magic progression across all winners.
               </p>
+              <br></br><p>
+                * Games with a zero in a skill are not included in averages. 
+              </p>              
             </div>
             </>
-          ) : null}
+          )}
         </div>
       </CardContent>
     </Card>

@@ -6,7 +6,7 @@
 export const typography = {
   /** Page or main section title (e.g. "PERFORMANCE ANALYTICS") */
   primaryTitle:
-    "font-mono text-xl text-primary",
+    "font-mono text-2xl text-primary",
 
   /** Double primaryTitle – e.g. tooltip display for hours played */
   displayHours:
@@ -14,7 +14,7 @@ export const typography = {
 
   /** Card/section header (e.g. "RUNES COLLECTED PER GAME", "TOP 10 KILLERS") */
   secondaryTitle:
-    "font-mono text-base text-primary",
+    "font-mono text-lg text-primary",
 
   /** Small heading or label (e.g. "SORT BY:", "LEVEL XL") */
   subtitle:
