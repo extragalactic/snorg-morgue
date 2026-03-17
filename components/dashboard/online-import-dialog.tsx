@@ -502,15 +502,8 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
         importProgressIntervalRef.current = null
       }
       setImportProgressDisplay(0)
-      const message =
-        e instanceof Error && e.name === "AbortError"
-          ? "Import timed out. The server may be slow or unresponsive."
-          : e instanceof Error ? e.message : String(e)
-      toast({
-        title: "Online import failed",
-        description: message,
-        variant: "destructive",
-      })
+      // Errors are reflected in the import log; no toast needed.
+      console.error("Online import failed", e)
     } finally {
       if (importTimeoutId != null) clearTimeout(importTimeoutId)
       if (importProgressIntervalRef.current) {

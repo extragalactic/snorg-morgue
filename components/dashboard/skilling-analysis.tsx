@@ -16,17 +16,45 @@ type SkillAverageRow = {
   checkpoint_xl: number
   avg_level: number
   sample_count: number
+  usage_fraction: number
 }
 
 interface SkillingAnalysisProps {
   globalOnly?: boolean
 }
 export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
-  const [speciesFilter, setSpeciesFilter] = useState<string>("Coglin")
-  const [backgroundFilter, setBackgroundFilter] = useState<string>("Conjurer")
+  const [speciesFilter, setSpeciesFilter] = useState<string>(() => {
+    if (typeof window === "undefined") return "Coglin"
+    try {
+      const saved = window.localStorage.getItem("snorg_skilling_species")
+      return saved && ALL_SPECIES_NAMES.includes(saved) ? saved : "Coglin"
+    } catch {
+      return "Coglin"
+    }
+  })
+  const [backgroundFilter, setBackgroundFilter] = useState<string>(() => {
+    if (typeof window === "undefined") return "Conjurer"
+    try {
+      const saved = window.localStorage.getItem("snorg_skilling_background")
+      return saved && ALL_BACKGROUND_NAMES.includes(saved) ? saved : "Conjurer"
+    } catch {
+      return "Conjurer"
+    }
+  })
   const [data, setData] = useState<SkillAverageRow[] | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Persist filters to localStorage whenever they change.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      window.localStorage.setItem("snorg_skilling_species", speciesFilter)
+      window.localStorage.setItem("snorg_skilling_background", backgroundFilter)
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [speciesFilter, backgroundFilter])
 
   useEffect(() => {
     let cancelled = false
@@ -50,6 +78,7 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
             checkpoint_xl: Number(row.checkpoint_xl ?? 0),
             avg_level: Number(row.avg_level ?? 0),
             sample_count: Number(row.sample_count ?? 0),
+            usage_fraction: Number(row.usage_fraction ?? 0),
           })) ?? []
         setData(rows)
       } catch (e) {
@@ -143,7 +172,7 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
           <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground">
             <span>Species:</span>
             <Select value={speciesFilter} onValueChange={setSpeciesFilter}>
-              <SelectTrigger className="h-8 w-40 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
+              <SelectTrigger className="h-8 w-48 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-none border-2 border-primary/40">
@@ -158,7 +187,7 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
           <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground">
             <span>Background:</span>
             <Select value={backgroundFilter} onValueChange={setBackgroundFilter}>
-              <SelectTrigger className="h-8 w-40 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
+              <SelectTrigger className="h-8 w-54 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-none border-2 border-primary/40">
@@ -197,6 +226,9 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
                     <th className="sticky left-0 z-10 bg-card border-b border-primary/30 px-2 py-1 text-left font-mono text-sm">
                       Skill
                     </th>
+                    <th className="border-b border-l border-primary/30 px-2 py-1 text-center font-mono text-sm">
+                      % usage
+                    </th>
                     {CHECKPOINTS.map((cp) => (
                       <th
                         key={cp}
@@ -211,6 +243,7 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
                   {sortedSkillNames.map((skill) => {
                     const rows = rowsBySkill.get(skill)!
                     const isTopAtFinal = topSkillsAtFinal.has(skill)
+                    const usageFraction = rows[0]?.usage_fraction ?? 0
                     return (
                       <tr
                         key={skill}
@@ -237,6 +270,9 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
                                     : skill === "Spell School 5"
                                       ? "5th Highest Spell School"
                                       : skill}
+                        </td>
+                        <td className="border-t border-l border-primary/30 px-2 py-1 text-center font-mono text-sm">
+                          {(usageFraction * 100).toFixed(0)}%
                         </td>
                         {CHECKPOINTS.map((cp) => {
                           const cell = rows.find((r) => r.checkpoint_xl === cp)
@@ -277,7 +313,7 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
                 * 1st–5th Highest Spell School are ranked by their skill level at XL 25. Usage of specific schools will vary depending on item RNG, so these rows show average magic progression across all winners.
               </p>
               <br></br><p>
-                * Games with a zero in a skill are not included in averages. 
+                * Games with a zero in a skill are not included in averages. The % Usage column shows what percentage of winners used this skill. 
               </p>              
             </div>
             </>
