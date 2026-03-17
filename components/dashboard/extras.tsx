@@ -86,7 +86,7 @@ const linkCategories: LinkCategory[] = [
     ],
   },
   {
-    title: "Active YouTube Channels",
+    title: "Active YouTube Streamers",
     icon: Youtube,
     links: [
       {

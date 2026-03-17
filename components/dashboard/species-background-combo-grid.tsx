@@ -41,6 +41,7 @@ function backgroundCode(background: string): string {
   const b = background.trim()
   if (!b) return ""
   const map: Record<string, string> = {
+    "Chaos Knight": "CK",
     "Fire Elementalist": "FE",
     "Ice Elementalist": "IE",
     "Air Elementalist": "AE",

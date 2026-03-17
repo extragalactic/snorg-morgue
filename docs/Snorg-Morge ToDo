@@ -7,7 +7,6 @@ Features:
 - when you rollover a Snorg Award show a tooltip with something fun
 - have a Help tooltip somewhere perhaps for help on first upload/sync
 - need a morgue "character sheet" exporter (to resemble a D&D sheet)
-- new chart: win rate by god
 - new chart: Arch Nemesis Chart = top 10 unique killers
 
 
@@ -17,14 +16,12 @@ Fixes:
 - need to normalize the Level at Death graph when comparing to the average data
 - y-axis units messed up on Levels at Death
 - Avg species performance data is broken for Wins
-- change the blue dotted line into proper Avg data (likely needs parser/DB changes)
 
 Tests:
 - need to test logic for email/username duplicates on signup
 - need to test on older versions of morgue files
 - Search Morgues is searching what exactly?
 - server import cards have wobbly text when you click
-- there are errors on the species-background grid with the X's
 
 ...hey, buy more vape bags!
 

@@ -66,6 +66,7 @@ function backgroundCode(background: string): string {
   const b = (background ?? "").trim()
   if (!b) return ""
   const map: Record<string, string> = {
+    "Chaos Knight": "CK",
     "Fire Elementalist": "FE",
     "Ice Elementalist": "IE",
     "Air Elementalist": "AE",
@@ -321,7 +322,7 @@ export default function DashboardPage({
             <div className="flex flex-wrap items-center gap-3">
               <h1 className={typography.primaryTitle}>
                 {activeTab === "analysis" && "PERFORMANCE ANALYTICS"}
-                {activeTab === "skills" && "SKILLS"}
+                {activeTab === "skills" && "WINNING SKILLS"}
                 {activeTab === "achievements" && "OFFICIAL ACHIEVEMENTS"}
                 {activeTab === "morgues" && "MORGUE FILES"}
                 {activeTab === "extras" && "RESOURCES"}
@@ -329,7 +330,7 @@ export default function DashboardPage({
             </div>
             <p className={typography.bodyMuted}>
               {activeTab === "analysis" && "Track and analyze your DCSS progress"}
-              {activeTab === "skills" && "Understand how your skills progress across winning games"}
+              {activeTab === "skills" && "Learn techniques from winning players"}
               {activeTab === "achievements" && ""}
               {activeTab === "morgues" && "Upload and browse your morgue files"}
               {activeTab === "extras" && "Helpful links and community resources"}
@@ -372,26 +373,6 @@ export default function DashboardPage({
                 </Button>
               )}
             </div>
-            {activeTab === "morgues" && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="destructive"
-                  className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
-                  onClick={() => setRefreshConfirmOpen(true)}
-                  disabled={isRefreshing || isNuking}
-                >
-                  {isRefreshing ? "Refreshing…" : "Refresh Morgues"}
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="rounded-none border-2 font-mono text-xs"
-                  onClick={() => setNukeConfirmOpen(true)}
-                  disabled={isNuking || isRefreshing}
-                >
-                  {isNuking ? "Nuking…" : "Nuke Morgue"}
-                </Button>
-              </div>
-            )}
           </div>
         </div>
 
@@ -601,7 +582,11 @@ export default function DashboardPage({
                     value={statsData?.fastestWin ?? "—"}
                     secondaryValue={
                       showGlobalAverages && globalStats
-                        ? formatFastestWin(globalStats.totals.fastestWinSeconds)
+                        ? formatFastestWin(
+                            globalStats.totals.fastestWinSeconds != null
+                              ? Math.round(globalStats.totals.fastestWinSeconds)
+                              : null,
+                          )
                         : undefined
                     }
                     subtitle={fastestWinSubtitle}
@@ -612,7 +597,7 @@ export default function DashboardPage({
                     value={smallestTurncountValue}
                     secondaryValue={
                       showGlobalAverages && globalStats?.totals.smallestTurncountWin != null
-                        ? globalStats.totals.smallestTurncountWin
+                        ? Math.round(globalStats.totals.smallestTurncountWin)
                         : undefined
                     }
                     subtitle={smallestTurncountSubtitle}
@@ -628,7 +613,7 @@ export default function DashboardPage({
                 />
                 <AverageLevelByGodChart
                   morgues={morgues}
-                  globalAvgXlAtDeath={globalStats?.totals.avgXlAtDeath}
+                  globalGodAverages={globalStats?.avgXlByGod}
                 />
                 </>
               )}
@@ -690,12 +675,32 @@ export default function DashboardPage({
                 </Select>
               </div>
             </div>
-            <UploadsTable
-              morgues={filteredMorguesByVersion}
-              loading={morguesLoading}
-              onRefresh={loadData}
-              usernameSlug={usernameSlug}
-            />
+            <div className="space-y-3">
+              <UploadsTable
+                morgues={filteredMorguesByVersion}
+                loading={morguesLoading}
+                onRefresh={loadData}
+                usernameSlug={usernameSlug}
+              />
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                <Button
+                  variant="destructive"
+                  className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
+                  onClick={() => setRefreshConfirmOpen(true)}
+                  disabled={isRefreshing || isNuking}
+                >
+                  {isRefreshing ? "Refreshing…" : "Refresh Morgues"}
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="rounded-none border-2 font-mono text-xs"
+                  onClick={() => setNukeConfirmOpen(true)}
+                  disabled={isNuking || isRefreshing}
+                >
+                  {isNuking ? "Nuking…" : "Nuke Morgue"}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 

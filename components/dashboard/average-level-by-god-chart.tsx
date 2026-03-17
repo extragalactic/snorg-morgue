@@ -3,30 +3,35 @@
 import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useTheme } from "@/contexts/theme-context"
-import type { GameRecord } from "@/lib/morgue-api"
+import type { GameRecord, GlobalGodAvgXl } from "@/lib/morgue-api"
 import { ALL_GOD_NAMES, GOD_SHORT_FORMS } from "@/lib/dcss-constants"
 import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  ReferenceLine,
 } from "recharts"
 
 interface AverageLevelByGodChartProps {
   morgues: GameRecord[]
-  /** Global average XL at death across all users (from global stats). */
-  globalAvgXlAtDeath?: number
+  /** Global average XL at death per god across all users (from global stats). */
+  globalGodAverages?: GlobalGodAvgXl[]
 }
 
 type GodDatum = {
   god: string
   short: string
-  avgXl: number
-  count: number
+  userAvgXl: number
+  userCount: number
+  globalAvgXl: number
+  globalCount: number
+  firstSeg: number
+  secondSeg: number
+  isGlobalFirst: boolean
 }
 
 function normalizeGod(raw: string | undefined | null): string {
@@ -40,38 +45,69 @@ function normalizeGod(raw: string | undefined | null): string {
   return name
 }
 
-export function AverageLevelByGodChart({ morgues, globalAvgXlAtDeath }: AverageLevelByGodChartProps) {
+export function AverageLevelByGodChart({ morgues, globalGodAverages = [] }: AverageLevelByGodChartProps) {
   const { themeStyle } = useTheme()
 
   const data: GodDatum[] = useMemo(() => {
-    const sums = new Map<string, { xlTotal: number; count: number }>()
+    const userSums = new Map<string, { xlTotal: number; count: number }>()
 
     for (const game of morgues) {
       const godName = normalizeGod(game.god)
-      const current = sums.get(godName) ?? { xlTotal: 0, count: 0 }
+      const current = userSums.get(godName) ?? { xlTotal: 0, count: 0 }
       current.xlTotal += game.xl
       current.count += 1
-      sums.set(godName, current)
+      userSums.set(godName, current)
+    }
+
+    const globalMap = new Map<string, { avgXlAtDeath: number; deathCount: number }>()
+    for (const g of globalGodAverages) {
+      const name = normalizeGod(g.god)
+      globalMap.set(name, {
+        avgXlAtDeath: g.avgXlAtDeath,
+        deathCount: g.deathCount,
+      })
     }
 
     return ALL_GOD_NAMES.map((name) => {
-      const stats = sums.get(name)
-      const avgXl = stats && stats.count > 0 ? stats.xlTotal / stats.count : 0
+      const userStats = userSums.get(name)
+      const userAvgXl = userStats && userStats.count > 0 ? userStats.xlTotal / userStats.count : 0
+      const userCount = userStats?.count ?? 0
+
+      const globalStats = globalMap.get(name)
+      const globalAvgXl = globalStats?.avgXlAtDeath ?? 0
+      const globalCount = globalStats?.deathCount ?? 0
+
+      const userVal = userAvgXl
+      const globalVal = globalAvgXl
+
+      const low = Math.min(userVal, globalVal)
+      const high = Math.max(userVal, globalVal)
+      const firstSeg = low
+      const secondSeg = high - low
+      const isGlobalFirst = globalVal <= userVal
+
       const short = GOD_SHORT_FORMS[name] ?? name
+
       return {
         god: name,
         short,
-        avgXl,
-        count: stats?.count ?? 0,
+        userAvgXl,
+        userCount,
+        globalAvgXl,
+        globalCount,
+        firstSeg,
+        secondSeg,
+        isGlobalFirst,
       }
     })
-  }, [morgues])
+  }, [morgues, globalGodAverages])
 
-  const barColor = themeStyle === "ascii" ? "#22c55e" : "#d4a574"
+  const youColor =
+    themeStyle === "ascii" ? "oklch(0.62 0.2 145)" : "rgba(250, 204, 21, 0.9)"
   const gridColor = themeStyle === "ascii" ? "rgba(34,197,94,0.15)" : "rgba(212,165,116,0.15)"
-  const globalLineColor = "var(--average)"
+  const avgColor = "var(--average)"
 
-  const hasAnyData = data.some((d) => d.count > 0)
+  const hasAnyData = data.some((d) => d.userCount > 0 || d.globalCount > 0)
 
   return (
     <Card className="border-2 border-primary/30 rounded-none">
@@ -113,54 +149,59 @@ export function AverageLevelByGodChart({ morgues, globalAvgXlAtDeath }: AverageL
               }}
               domain={[0, 27]}
             />
-            {typeof globalAvgXlAtDeath === "number" && globalAvgXlAtDeath > 0 && (
-              <ReferenceLine
-                y={globalAvgXlAtDeath}
-                stroke={globalLineColor}
-                strokeDasharray="4 4"
-                strokeWidth={2}
-                label={{
-                  value: `Global avg XL (${globalAvgXlAtDeath.toFixed(1)})`,
-                  position: "right",
-                  style: { fill: "var(--muted-foreground)", fontSize: 12 },
-                }}
-              />
-            )}
             <Tooltip
               cursor={{ fill: "rgba(148, 163, 184, 0.08)" }}
-              contentStyle={{
-                backgroundColor: "rgba(15, 23, 42, 0.95)",
-                border: "2px solid var(--primary)",
-                borderRadius: 0,
-                padding: "8px 10px",
-              }}
-              labelStyle={{
-                color: "var(--primary)",
-                fontFamily: "var(--font-mono)",
-                fontSize: 12,
-              }}
-              itemStyle={{
-                color: "var(--foreground)",
-                fontSize: 12,
-              }}
-              formatter={(value: number, _name, payload) => {
-                const d = payload?.payload as GodDatum
-                return [
-                  value.toFixed(1),
-                  d.count > 0 ? `Avg XL (from ${d.count} games)` : "Avg XL (no games)",
-                ]
-              }}
-              labelFormatter={(_label, payload) => {
-                const d = (payload?.[0]?.payload ?? {}) as GodDatum
-                return d.god
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null
+                const d = payload[0].payload as GodDatum
+                return (
+                  <div className="border-2 border-primary bg-card p-2">
+                    <p className="font-mono text-xs text-primary mb-1">{d.god}</p>
+                    <p className="text-xs text-muted-foreground">
+                      You: {d.userCount > 0 ? d.userAvgXl.toFixed(1) : "—"} XL
+                      {d.userCount > 0 ? ` (from ${d.userCount} games)` : ""}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Average: {d.globalCount > 0 ? d.globalAvgXl.toFixed(1) : "—"} XL
+                      {d.globalCount > 0 ? ` (from ${d.globalCount} games)` : ""}
+                    </p>
+                  </div>
+                )
               }}
             />
-            <Bar dataKey="avgXl" fill={barColor} radius={[2, 2, 0, 0]} />
+            <Bar dataKey="firstSeg" stackId="stack" radius={[2, 2, 0, 0]}>
+              {data.map((d, index) => (
+                <Cell
+                  key={`first-${index}`}
+                  fill={d.isGlobalFirst ? avgColor : youColor}
+                />
+              ))}
+            </Bar>
+            <Bar dataKey="secondSeg" stackId="stack" radius={[2, 2, 0, 0]}>
+              {data.map((d, index) => (
+                <Cell
+                  key={`second-${index}`}
+                  fill={d.isGlobalFirst ? youColor : avgColor}
+                />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <p className="mt-1 text-xs text-muted-foreground font-mono text-center">
-          God Worshipped
-        </p>
+        <div className="mt-1 flex flex-col items-center gap-2">
+          <p className="text-xs text-muted-foreground font-mono text-center">
+            God Worshipped
+          </p>
+          <div className="mt-1 flex flex-wrap items-center justify-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-6" style={{ backgroundColor: youColor }} />
+              <span className="text-xs text-muted-foreground">You</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-6" style={{ backgroundColor: avgColor }} />
+              <span className="text-xs text-muted-foreground">Global Average</span>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   )

@@ -108,6 +108,28 @@ level_array as (
 level_user_count as (
   select count(distinct user_id) as user_count
   from per_user_level
+),
+god_deaths as (
+  -- Per-god average XL at death across all games (for global comparison charts).
+  select
+    coalesce(nullif(trim(god), ''), '(no god)') as god_name,
+    avg(xl::numeric) as avg_xl_at_death,
+    count(*)::bigint as death_count
+  from base
+  where not is_win
+    and xl is not null
+  group by coalesce(nullif(trim(god), ''), '(no god)')
+),
+god_array as (
+  select jsonb_agg(
+           jsonb_build_object(
+             'god', god_name,
+             'avg_xl_at_death', avg_xl_at_death,
+             'death_count', death_count
+           )
+           order by god_name
+         ) as gods
+  from god_deaths
 )
 select jsonb_build_object(
   'user_count', (select user_count from user_stats_agg),
@@ -133,7 +155,8 @@ select jsonb_build_object(
   'level_death', jsonb_build_object(
     'averages', coalesce((select averages from level_array), array[]::numeric[]),
     'user_count', coalesce((select user_count from level_user_count), 0)
-  )
+  ),
+  'avg_xl_by_god', coalesce((select gods from god_array), '[]'::jsonb)
 );
 $$;
 

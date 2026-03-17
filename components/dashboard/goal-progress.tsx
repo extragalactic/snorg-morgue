@@ -551,8 +551,8 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
       )}
 
       {/* Snorg Awards section title */}
-      <div className="mt-6 mb-5">
-        <h2 className="font-mono text-lg text-primary">SNORG AWARDS</h2>
+      <div className="mt-10 mb-5">
+        <h2 className={typography.primaryTitle}>SNORG AWARDS</h2>
       </div>
 
       {/* Snorg Awards card */}

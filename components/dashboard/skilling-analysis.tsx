@@ -11,6 +11,7 @@ import { ALL_SPECIES_NAMES, ALL_BACKGROUND_NAMES } from "@/lib/dcss-constants"
 import { SPELL_SCHOOLS, WEAPON_SKILLS, RANGED_WEAPON_SKILLS } from "@/lib/dcss-skills"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
+import { useTheme } from "@/contexts/theme-context"
 
 const CHECKPOINTS = [5, 10, 15, 20, 25] as const
 const FINAL_CHECKPOINT = 25
@@ -45,6 +46,7 @@ interface SkillingAnalysisProps {
   globalOnly?: boolean
 }
 export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
+  const { themeStyle } = useTheme()
   const [speciesFilter, setSpeciesFilter] = useState<string>(() => {
     if (typeof window === "undefined") return "Coglin"
     try {
@@ -239,7 +241,7 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
       <CardHeader className="border-b-2 border-primary/20 pb-3">
         <CardTitle>WINNER AVERAGE SKILL PROGRESSION</CardTitle>
       </CardHeader>
-      <CardContent className="pt-4 space-y-4">
+      <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-3 justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground">
@@ -346,7 +348,10 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
                         key={skill}
                         className={cn(
                           "group hover:bg-primary/5",
-                          isTopAtFinal && "text-primary font-semibold",
+                          isTopAtFinal &&
+                            (themeStyle === "ascii"
+                              ? "text-yellow-300 font-semibold"
+                              : "text-primary font-semibold"),
                         )}
                       >
                         <td className="sticky left-0 z-10 bg-card border-t border-primary/30 px-2 py-1 font-mono text-sm group-hover:bg-primary/10">
@@ -421,8 +426,12 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
       <Dialog open={godModalOpen} onOpenChange={setGodModalOpen}>
         <DialogContent className="rounded-none border-2 border-primary/30 max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-mono text-lg text-primary">
-              God selection for {speciesFilter} {backgroundFilter} Winners
+            <DialogTitle className="font-mono text-primary text-center leading-tight">
+              <div className="text-sm uppercase tracking-wide">God Selection for</div>
+              <div className="text-lg mt-1">
+                {speciesFilter} {backgroundFilter}
+              </div>
+              <div className="text-sm uppercase tracking-wide mt-1">Winners</div>
             </DialogTitle>
           </DialogHeader>
           <div className="pt-2">
@@ -447,7 +456,7 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
                   width="100%"
                   height={Math.max(220, 160 + godUsage.length * 10)}
                 >
-                  <PieChart>
+                    <PieChart>
                     <Pie
                       data={godUsage.map(({ god, count }) => ({ name: god, value: count }))}
                       cx="50%"
