@@ -46,6 +46,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { slugifyUsername } from "@/lib/slug"
 import { typography } from "@/lib/typography"
 import { SkillingAnalysis } from "@/components/dashboard/skilling-analysis"
+import { AverageLevelByGodChart } from "@/components/dashboard/average-level-by-god-chart"
 
 function speciesCode(species: string): string {
   const s = (species ?? "").trim()
@@ -624,6 +625,10 @@ export default function DashboardPage({
                   morgues={morgues}
                   showGlobalAverages={showGlobalAverages}
                   globalStats={globalStats}
+                />
+                <AverageLevelByGodChart
+                  morgues={morgues}
+                  globalAvgXlAtDeath={globalStats?.totals.avgXlAtDeath}
                 />
                 </>
               )}

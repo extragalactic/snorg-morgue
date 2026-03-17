@@ -17,6 +17,7 @@ Fixes:
 - need to normalize the Level at Death graph when comparing to the average data
 - y-axis units messed up on Levels at Death
 - Avg species performance data is broken for Wins
+- change the blue dotted line into proper Avg data (likely needs parser/DB changes)
 
 Tests:
 - need to test logic for email/username duplicates on signup
