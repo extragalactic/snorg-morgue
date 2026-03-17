@@ -2,6 +2,10 @@
 -- This script is documentation-only; actual backfill is expected to be run
 -- by application code that can access full morgue raw_text.
 --
+-- After any change to parseSkillHistory (e.g. column alignment or carry-forward
+-- semantics), delete existing skill_snapshots and re-run import or backfill
+-- so displayed averages use the new logic.
+--
 -- Steps (implemented in Node/Next backend, not SQL):
 -- 1. Select all winning parsed_morgues for a user (or all users).
 -- 2. For each row, fetch the associated morgue_files.raw_text or remote morgue_url.

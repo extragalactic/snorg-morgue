@@ -626,8 +626,10 @@ export default function DashboardPage({
                 </>
               )}
             </div>
+            <div className="mt-6">
+              <SkillingAnalysis globalOnly />
+            </div>
             <SpeciesBackgroundComboGrid morgues={morgues} />
-            <SkillingAnalysis globalOnly />
           </>
         )}
 

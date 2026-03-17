@@ -1,10 +1,12 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ALL_SPECIES_NAMES, ALL_BACKGROUND_NAMES } from "@/lib/dcss-constants"
+import { SPELL_SCHOOLS, WEAPON_SKILLS, RANGED_WEAPON_SKILLS } from "@/lib/dcss-skills"
 import { cn } from "@/lib/utils"
+import { supabase } from "@/lib/supabase"
 
 const CHECKPOINTS = [5, 10, 15, 20, 25] as const
 const FINAL_CHECKPOINT = 25
@@ -19,95 +21,69 @@ type SkillAverageRow = {
 interface SkillingAnalysisProps {
   globalOnly?: boolean
 }
-
-// Temporary mock data so the UI can be reviewed without relying on live Supabase data.
-const MOCK_DATA: SkillAverageRow[] = [
-  // Primary Weapon (includes melee, unarmed, and ranged) + core skills
-  { skill_group: "Weapon", checkpoint_xl: 5, avg_level: 5.2, sample_count: 42 },
-  { skill_group: "Weapon", checkpoint_xl: 10, avg_level: 10.3, sample_count: 42 },
-  { skill_group: "Weapon", checkpoint_xl: 15, avg_level: 14.8, sample_count: 42 },
-  { skill_group: "Weapon", checkpoint_xl: 20, avg_level: 17.9, sample_count: 42 },
-  { skill_group: "Weapon", checkpoint_xl: 25, avg_level: 19.8, sample_count: 42 },
-  // Core defenses
-  { skill_group: "Fighting", checkpoint_xl: 5, avg_level: 3.2, sample_count: 42 },
-  { skill_group: "Fighting", checkpoint_xl: 10, avg_level: 7.9, sample_count: 42 },
-  { skill_group: "Fighting", checkpoint_xl: 15, avg_level: 12.0, sample_count: 42 },
-  { skill_group: "Fighting", checkpoint_xl: 20, avg_level: 16.1, sample_count: 42 },
-  { skill_group: "Fighting", checkpoint_xl: 25, avg_level: 18.8, sample_count: 42 },
-  { skill_group: "Armour", checkpoint_xl: 5, avg_level: 2.0, sample_count: 30 },
-  { skill_group: "Armour", checkpoint_xl: 10, avg_level: 6.3, sample_count: 30 },
-  { skill_group: "Armour", checkpoint_xl: 15, avg_level: 10.5, sample_count: 30 },
-  { skill_group: "Armour", checkpoint_xl: 20, avg_level: 13.7, sample_count: 30 },
-  { skill_group: "Armour", checkpoint_xl: 25, avg_level: 15.5, sample_count: 30 },
-  { skill_group: "Dodging", checkpoint_xl: 5, avg_level: 3.0, sample_count: 35 },
-  { skill_group: "Dodging", checkpoint_xl: 10, avg_level: 7.2, sample_count: 35 },
-  { skill_group: "Dodging", checkpoint_xl: 15, avg_level: 11.5, sample_count: 35 },
-  { skill_group: "Dodging", checkpoint_xl: 20, avg_level: 15.0, sample_count: 35 },
-  { skill_group: "Dodging", checkpoint_xl: 25, avg_level: 17.3, sample_count: 35 },
-  { skill_group: "Stealth", checkpoint_xl: 5, avg_level: 1.5, sample_count: 28 },
-  { skill_group: "Stealth", checkpoint_xl: 10, avg_level: 4.5, sample_count: 28 },
-  { skill_group: "Stealth", checkpoint_xl: 15, avg_level: 7.2, sample_count: 28 },
-  { skill_group: "Stealth", checkpoint_xl: 20, avg_level: 9.0, sample_count: 28 },
-  { skill_group: "Stealth", checkpoint_xl: 25, avg_level: 10.1, sample_count: 28 },
-  { skill_group: "Shields", checkpoint_xl: 5, avg_level: 0.5, sample_count: 20 },
-  { skill_group: "Shields", checkpoint_xl: 10, avg_level: 4.0, sample_count: 20 },
-  { skill_group: "Shields", checkpoint_xl: 15, avg_level: 7.3, sample_count: 20 },
-  { skill_group: "Shields", checkpoint_xl: 20, avg_level: 10.1, sample_count: 20 },
-  { skill_group: "Shields", checkpoint_xl: 25, avg_level: 12.0, sample_count: 20 },
-  // Utility skills
-  { skill_group: "Spellcasting", checkpoint_xl: 5, avg_level: 2.5, sample_count: 28 },
-  { skill_group: "Spellcasting", checkpoint_xl: 10, avg_level: 7.0, sample_count: 28 },
-  { skill_group: "Spellcasting", checkpoint_xl: 15, avg_level: 11.2, sample_count: 28 },
-  { skill_group: "Spellcasting", checkpoint_xl: 20, avg_level: 14.8, sample_count: 28 },
-  { skill_group: "Spellcasting", checkpoint_xl: 25, avg_level: 16.8, sample_count: 28 },
-  // Ranked spell schools (mocked as if many games have multiple trained schools)
-  { skill_group: "Spell School 1", checkpoint_xl: 5, avg_level: 3.0, sample_count: 30 },
-  { skill_group: "Spell School 1", checkpoint_xl: 10, avg_level: 8.5, sample_count: 30 },
-  { skill_group: "Spell School 1", checkpoint_xl: 15, avg_level: 13.2, sample_count: 30 },
-  { skill_group: "Spell School 1", checkpoint_xl: 20, avg_level: 17.0, sample_count: 30 },
-  { skill_group: "Spell School 1", checkpoint_xl: 25, avg_level: 19.6, sample_count: 30 },
-  { skill_group: "Spell School 2", checkpoint_xl: 5, avg_level: 1.5, sample_count: 18 },
-  { skill_group: "Spell School 2", checkpoint_xl: 10, avg_level: 5.0, sample_count: 18 },
-  { skill_group: "Spell School 2", checkpoint_xl: 15, avg_level: 8.4, sample_count: 18 },
-  { skill_group: "Spell School 2", checkpoint_xl: 20, avg_level: 11.6, sample_count: 18 },
-  { skill_group: "Spell School 2", checkpoint_xl: 25, avg_level: 13.9, sample_count: 18 },
-  { skill_group: "Spell School 3", checkpoint_xl: 5, avg_level: 0.8, sample_count: 10 },
-  { skill_group: "Spell School 3", checkpoint_xl: 10, avg_level: 3.2, sample_count: 10 },
-  { skill_group: "Spell School 3", checkpoint_xl: 15, avg_level: 5.7, sample_count: 10 },
-  { skill_group: "Spell School 3", checkpoint_xl: 20, avg_level: 7.9, sample_count: 10 },
-  { skill_group: "Spell School 3", checkpoint_xl: 25, avg_level: 8.8, sample_count: 10 },
-  { skill_group: "Throwing", checkpoint_xl: 5, avg_level: 1.0, sample_count: 12 },
-  { skill_group: "Throwing", checkpoint_xl: 10, avg_level: 3.8, sample_count: 12 },
-  { skill_group: "Throwing", checkpoint_xl: 15, avg_level: 5.9, sample_count: 12 },
-  { skill_group: "Throwing", checkpoint_xl: 20, avg_level: 7.1, sample_count: 12 },
-  { skill_group: "Throwing", checkpoint_xl: 25, avg_level: 7.8, sample_count: 12 },
-  { skill_group: "Invocations", checkpoint_xl: 5, avg_level: 0.8, sample_count: 16 },
-  { skill_group: "Invocations", checkpoint_xl: 10, avg_level: 4.2, sample_count: 16 },
-  { skill_group: "Invocations", checkpoint_xl: 15, avg_level: 7.4, sample_count: 16 },
-  { skill_group: "Invocations", checkpoint_xl: 20, avg_level: 9.5, sample_count: 16 },
-  { skill_group: "Invocations", checkpoint_xl: 25, avg_level: 10.4, sample_count: 16 },
-  { skill_group: "Evocations", checkpoint_xl: 5, avg_level: 0.5, sample_count: 20 },
-  { skill_group: "Evocations", checkpoint_xl: 10, avg_level: 3.1, sample_count: 20 },
-  { skill_group: "Evocations", checkpoint_xl: 15, avg_level: 5.7, sample_count: 20 },
-  { skill_group: "Evocations", checkpoint_xl: 20, avg_level: 7.8, sample_count: 20 },
-  { skill_group: "Evocations", checkpoint_xl: 25, avg_level: 8.6, sample_count: 20 },
-]
 export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
-  // For now this component uses mock data so the UI can be reviewed.
-  const [speciesFilter, setSpeciesFilter] = useState<string>("Gnoll")
-  const [backgroundFilter, setBackgroundFilter] = useState<string>("Fighter")
+  const [speciesFilter, setSpeciesFilter] = useState<string>("Coglin")
+  const [backgroundFilter, setBackgroundFilter] = useState<string>("Conjurer")
+  const [data, setData] = useState<SkillAverageRow[] | null>(null)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const data = MOCK_DATA
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setIsLoading(true)
+      setError(null)
+      try {
+        const { data: rpcData, error: rpcError } = await supabase.rpc("get_skill_level_averages", {
+          p_species: speciesFilter,
+          p_background: backgroundFilter,
+        })
+        if (cancelled) return
+        if (rpcError) {
+          setError(rpcError.message)
+          setData([])
+          return
+        }
+        const rows: SkillAverageRow[] =
+          (rpcData ?? []).map((row: any) => ({
+            skill_group: String(row.skill_group ?? ""),
+            checkpoint_xl: Number(row.checkpoint_xl ?? 0),
+            avg_level: Number(row.avg_level ?? 0),
+            sample_count: Number(row.sample_count ?? 0),
+          })) ?? []
+        setData(rows)
+      } catch (e) {
+        if (cancelled) return
+        setError(e instanceof Error ? e.message : String(e))
+        setData([])
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [speciesFilter, backgroundFilter])
+
+  const weaponSkillNames = useMemo(
+    () => new Set<string>([...WEAPON_SKILLS, ...RANGED_WEAPON_SKILLS]),
+    [],
+  )
 
   // Group by skill_group for table rows.
   const rowsBySkill = useMemo(() => {
     const map = new Map<string, SkillAverageRow[]>()
-    for (const row of data) {
+    for (const row of data ?? []) {
+      if (SPELL_SCHOOLS.includes(row.skill_group as (typeof SPELL_SCHOOLS)[number])) continue
+      if (weaponSkillNames.has(row.skill_group)) continue
       if (!map.has(row.skill_group)) map.set(row.skill_group, [])
       map.get(row.skill_group)!.push(row)
     }
     return map
-  }, [])
+  }, [data, weaponSkillNames])
 
   // Find the three highest-average skills at the final checkpoint.
   const topSkillsAtFinal = useMemo(() => {
@@ -132,6 +108,8 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
     "Spell School 1",
     "Spell School 2",
     "Spell School 3",
+    "Spell School 4",
+    "Spell School 5",
     "Throwing",
     "Invocations",
     "Evocations",
@@ -151,7 +129,7 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
       <CardHeader className="border-b-2 border-primary/20 pb-3">
         <CardTitle className="flex flex-col gap-1">
           <span className="font-mono text-xl text-primary">
-            Winner Skill Progression
+            Winner Average Skill Progression
           </span>
           <span className="font-mono text-sm text-muted-foreground">
             Shows average skill values by level for all global winners.
@@ -192,11 +170,21 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
           </div>
         </div>
 
-        {sortedSkillNames.length === 0 ? (
+        {isLoading && (
+          <div className="h-24 flex items-center justify-center text-muted-foreground font-mono text-sm">
+            Loading skilling data…
+          </div>
+        )}
+        {!isLoading && error && (
+          <div className="h-24 flex items-center justify-center text-destructive font-mono text-xs text-center px-4">
+            Failed to load skilling data: {error}
+          </div>
+        )}
+        {!isLoading && !error && sortedSkillNames.length === 0 ? (
           <div className="h-24 flex items-center justify-center text-muted-foreground font-mono text-sm">
             No skilling data available yet.
           </div>
-        ) : (
+        ) : !isLoading && !error ? (
           <>
             <div className="overflow-x-auto border border-primary/30">
               <table className="min-w-full border-separate border-spacing-0">
@@ -231,12 +219,16 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
                           {skill === "Weapon"
                             ? "Primary Weapon"
                             : skill === "Spell School 1"
-                              ? "Highest Spell School"
+                              ? "1st Highest Spell School"
                               : skill === "Spell School 2"
-                                ? "Second Spell School"
+                                ? "2nd Highest Spell School"
                                 : skill === "Spell School 3"
-                                  ? "Third Spell School"
-                                  : skill}
+                                  ? "3rd Highest Spell School"
+                                  : skill === "Spell School 4"
+                                    ? "4th Highest Spell School"
+                                    : skill === "Spell School 5"
+                                      ? "5th Highest Spell School"
+                                      : skill}
                         </td>
                         {CHECKPOINTS.map((cp) => {
                           const cell = rows.find((r) => r.checkpoint_xl === cp)
@@ -270,14 +262,12 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
               </table>
             </div>
             <p className="font-mono text-xs text-muted-foreground">
-              * Primary Weapon is the highest level among: Short Blades, Long Blades, Axes,
-              Maces &amp; Flails, Polearms, Staves, Ranged Weapons, and Unarmed Combat.
-              Highest/Second/Third Spell School show the average of the highest, second-highest, and
-              third-highest trained spell schools by level at each XL checkpoint (only counting games
-              with at least that many trained spell schools at that checkpoint).
+              * Primary Weapon is the highest weapon skill at XL 25; the value at each checkpoint is
+              that same skill&apos;s level. 1st–5th Highest Spell School are ranked by skill level at
+              XL 25 only; each row shows that ranked school&apos;s level at each checkpoint.
             </p>
           </>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   )
