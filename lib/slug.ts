@@ -16,6 +16,7 @@ export function slugifyUsername(name: string): string {
 /** Map URL segment -> dashboard tab id */
 export const PAGE_TO_TAB: Record<string, string> = {
   analytics: "analysis",
+  skills: "skills",
   achievements: "achievements",
   morgues: "morgues",
   resources: "extras",
@@ -24,6 +25,7 @@ export const PAGE_TO_TAB: Record<string, string> = {
 /** Map dashboard tab id -> URL segment */
 export const TAB_TO_PAGE: Record<string, string> = {
   analysis: "analytics",
+  skills: "skills",
   achievements: "achievements",
   morgues: "morgues",
   extras: "resources",

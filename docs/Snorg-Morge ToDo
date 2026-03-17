@@ -10,6 +10,7 @@ Features:
 - new chart: win rate by god
 - new chart: Arch Nemesis Chart = top 10 unique killers
 - new chart: Skill Level by Combo = with a given species-background-god, for all the winners with that combo what were their average stats at several level benchmarks (mostly used with the Avg data)
+- Skills table needs a Gods popup that shows the ratio of which gods were used
 
 Fixes:
 - the Skilling Analysis should exclude Invotations from the average if the charaacter worships a god that doesn't use that skill (like Vehumet)

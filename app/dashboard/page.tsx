@@ -320,6 +320,7 @@ export default function DashboardPage({
             <div className="flex flex-wrap items-center gap-3">
               <h1 className={typography.primaryTitle}>
                 {activeTab === "analysis" && "PERFORMANCE ANALYTICS"}
+                {activeTab === "skills" && "SKILLS"}
                 {activeTab === "achievements" && "OFFICIAL ACHIEVEMENTS"}
                 {activeTab === "morgues" && "MORGUE FILES"}
                 {activeTab === "extras" && "RESOURCES"}
@@ -327,6 +328,7 @@ export default function DashboardPage({
             </div>
             <p className={typography.bodyMuted}>
               {activeTab === "analysis" && "Track and analyze your DCSS progress"}
+              {activeTab === "skills" && "Understand how your skills progress across winning games"}
               {activeTab === "achievements" && ""}
               {activeTab === "morgues" && "Upload and browse your morgue files"}
               {activeTab === "extras" && "Helpful links and community resources"}
@@ -365,7 +367,7 @@ export default function DashboardPage({
                   onClick={() => setDownloadConfirmOpen(true)}
                   disabled={isDownloading}
                 >
-                  {isDownloading ? "Preparing…" : "Download All"}
+                  {isDownloading ? "Preparing…" : "Download"}
                 </Button>
               )}
             </div>
@@ -626,11 +628,14 @@ export default function DashboardPage({
                 </>
               )}
             </div>
-            <div className="mt-6">
-              <SkillingAnalysis globalOnly />
-            </div>
             <SpeciesBackgroundComboGrid morgues={morgues} />
           </>
+        )}
+
+        {activeTab === "skills" && (
+          <div className="space-y-6">
+            <SkillingAnalysis globalOnly />
+          </div>
         )}
 
         {activeTab === "achievements" && (

@@ -10,7 +10,8 @@ returns table (
   checkpoint_xl int,
   avg_level numeric,
   sample_count bigint,
-  usage_fraction numeric
+  usage_fraction numeric,
+  total_wins bigint
 )
 language sql
 as $$
@@ -35,7 +36,8 @@ as $$
     s.checkpoint_xl,
     avg(s.level) as avg_level,
     count(*) as sample_count,
-    coalesce(usage.used_games::numeric / nullif(wins.total_wins, 0), 0) as usage_fraction
+    coalesce(usage.used_games::numeric / nullif(wins.total_wins, 0), 0) as usage_fraction,
+    wins.total_wins
   from public.skill_snapshots s
   cross join wins
   left join usage on usage.skill_group = s.skill_group

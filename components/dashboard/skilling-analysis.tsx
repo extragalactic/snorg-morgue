@@ -141,6 +141,16 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
     return map
   }, [data, weaponSkillNames, desiredOrder])
 
+  const winnerCount = useMemo(() => {
+    if (!data || data.length === 0) return 0
+    // At XL 25, sample_count is the number of games that had a non-zero value
+    // for that skill at that checkpoint. The maximum across all skills at the
+    // final checkpoint approximates the total number of winners for this combo.
+    const xl25Rows = data.filter((row) => row.checkpoint_xl === FINAL_CHECKPOINT)
+    if (xl25Rows.length === 0) return 0
+    return xl25Rows.reduce((max, row) => (row.sample_count > max ? row.sample_count : max), 0)
+  }, [data])
+
   // Find the three highest-average skills at the final checkpoint.
   const topSkillsAtFinal = useMemo(() => {
     const entries: { skill: string; avg: number }[] = []
@@ -199,6 +209,20 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        <div className="mt-2 font-mono text-sm text-muted-foreground">
+          {winnerCount > 0 ? (
+            <>
+              Averaged across{" "}
+              <span className="text-primary font-semibold">
+                {winnerCount} winner{winnerCount === 1 ? "" : "s"}
+              </span>{" "}
+              for this combo.
+            </>
+          ) : (
+            "No winners for this species/background yet."
+          )}
         </div>
 
         <div className="min-h-[260px] flex flex-col">
@@ -307,10 +331,10 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
             </div>
             <div className="mt-5 space-y-1 font-mono text-sm text-muted-foreground">
               <p>
-                * Primary Weapon represents the single highest melee weapon skill at XL 25: either Short Blades, Long Blades, Axes, Maces & Flails, Polearms, Staves or Unarmed Combat. Secondary Weapon represents the second highest melee weapon skill. Usage of specific melee weapons will vary depending on item RNG, so these rows show average weapon progression across all winners.
+                * Primary Weapon represents the single highest melee weapon skill at XL 25: either Short Blades, Long Blades, Axes, Maces & Flails, Polearms, Staves or Unarmed Combat. Secondary Weapon represents the second highest melee weapon skill. Usage of specific melee weapon types will vary depending on item RNG, so these rows show patterns of weapon progression across all winners.
               </p>
               <br></br><p>
-                * 1st–5th Highest Spell School are ranked by their skill level at XL 25. Usage of specific schools will vary depending on item RNG, so these rows show average magic progression across all winners.
+                * 1st–5th Highest Spell School are ranked by their skill level at XL 25. Usage of specific schools will vary depending on item RNG, so these rows show patterns of magic progression across all winners.
               </p>
               <br></br><p>
                 * Games with a zero in a skill are not included in averages. The % Usage column shows what percentage of winners used this skill. 
