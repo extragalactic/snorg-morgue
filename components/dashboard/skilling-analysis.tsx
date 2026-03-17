@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts"
+import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { ALL_SPECIES_NAMES, ALL_BACKGROUND_NAMES } from "@/lib/dcss-constants"
 import { SPELL_SCHOOLS, WEAPON_SKILLS, RANGED_WEAPON_SKILLS } from "@/lib/dcss-skills"
 import { cn } from "@/lib/utils"
@@ -17,6 +21,24 @@ type SkillAverageRow = {
   avg_level: number
   sample_count: number
   usage_fraction: number
+}
+
+interface GodPieTooltipProps {
+  active?: boolean
+  payload?: Array<{ value: number; name: string }>
+}
+
+function GodPieTooltip({ active, payload }: GodPieTooltipProps) {
+  if (!active || !payload || payload.length === 0) return null
+
+  const { name, value } = payload[0]
+
+  return (
+    <div className="border-2 border-primary bg-card px-3 py-2">
+      <p className="font-mono text-xs text-primary">{name}</p>
+      <p className="font-mono text-sm text-foreground">Wins: {value}</p>
+    </div>
+  )
 }
 
 interface SkillingAnalysisProps {
@@ -44,6 +66,10 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
   const [data, setData] = useState<SkillAverageRow[] | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+  const [godModalOpen, setGodModalOpen] = useState(false)
+  const [godError, setGodError] = useState<string | null>(null)
+  const [godLoading, setGodLoading] = useState(false)
+  const [godUsage, setGodUsage] = useState<Array<{ god: string; count: number }>>([])
 
   // Persist filters to localStorage whenever they change.
   useEffect(() => {
@@ -55,6 +81,42 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
       // Ignore localStorage errors
     }
   }, [speciesFilter, backgroundFilter])
+
+  const openGodModal = async () => {
+    setGodModalOpen(true)
+    setGodError(null)
+    setGodLoading(true)
+    try {
+      const { data: rows, error: dbError } = await supabase
+        .from("parsed_morgues")
+        .select("god, id")
+        .eq("is_win", true)
+        .eq("species", speciesFilter)
+        .eq("background", backgroundFilter)
+
+      if (dbError) {
+        setGodError(dbError.message)
+        setGodUsage([])
+        return
+      }
+      const counts = new Map<string, number>()
+      for (const row of rows ?? []) {
+        const rawGod = (row as any).god as string | null
+        const god = (rawGod ?? "").trim()
+        if (!god) continue
+        counts.set(god, (counts.get(god) ?? 0) + 1)
+      }
+      const usage = Array.from(counts.entries())
+        .map(([god, count]) => ({ god, count }))
+        .sort((a, b) => b.count - a.count)
+      setGodUsage(usage)
+    } catch (e) {
+      setGodError(e instanceof Error ? e.message : String(e))
+      setGodUsage([])
+    } finally {
+      setGodLoading(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -225,6 +287,16 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
           )}
         </div>
 
+        <div className="mt-3">
+          <FilterToggleButton
+            selected={false}
+            onClick={openGodModal}
+            className="px-5 py-2 text-sm"
+          >
+            View God Data
+          </FilterToggleButton>
+        </div>
+
         <div className="min-h-[260px] flex flex-col">
           {error && (
             <div className="h-24 flex items-center justify-center text-destructive font-mono text-xs text-center px-4">
@@ -344,6 +416,64 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
           )}
         </div>
       </CardContent>
+
+      <Dialog open={godModalOpen} onOpenChange={setGodModalOpen}>
+        <DialogContent className="rounded-none border-2 border-primary/30 max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-mono text-lg text-primary">
+              God selection for {speciesFilter} {backgroundFilter} Winners
+            </DialogTitle>
+          </DialogHeader>
+          <div className="pt-2">
+            {godLoading && (
+              <div className="h-24 flex items-center justify-center font-mono text-sm text-muted-foreground">
+                Loading god data…
+              </div>
+            )}
+            {!godLoading && godError && (
+              <div className="h-24 flex items-center justify-center font-mono text-xs text-destructive text-center px-4">
+                Failed to load god data: {godError}
+              </div>
+            )}
+            {!godLoading && !godError && godUsage.length === 0 && (
+              <div className="h-24 flex items-center justify-center font-mono text-sm text-muted-foreground">
+                No winning gods for this combo yet.
+              </div>
+            )}
+            {!godLoading && !godError && godUsage.length > 0 && (
+              <div className="space-y-4">
+                <ResponsiveContainer
+                  width="100%"
+                  height={Math.max(220, 160 + godUsage.length * 10)}
+                >
+                  <PieChart>
+                    <Pie
+                      data={godUsage.map(({ god, count }) => ({ name: god, value: count }))}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={70}
+                      dataKey="value"
+                      paddingAngle={2}
+                      label={({ name }) => name}
+                      labelLine={false}
+                      animationDuration={200}
+                    >
+                      {godUsage.map((entry, index) => (
+                        <Cell
+                          key={entry.god}
+                          fill={`var(--chart-${(index % 5) + 1})`}
+                          stroke="none"
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<GodPieTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }
