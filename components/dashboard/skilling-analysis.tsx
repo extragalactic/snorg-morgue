@@ -240,36 +240,47 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
         <CardTitle>WINNER AVERAGE SKILL PROGRESSION</CardTitle>
       </CardHeader>
       <CardContent className="pt-4 space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground">
-            <span>Species:</span>
-            <Select value={speciesFilter} onValueChange={setSpeciesFilter}>
-              <SelectTrigger className="h-8 w-48 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="rounded-none border-2 border-primary/40">
-                {ALL_SPECIES_NAMES.map((sp) => (
-                  <SelectItem key={sp} value={sp} className="font-mono text-sm">
-                    {sp}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="flex flex-wrap items-center gap-3 justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground">
+              <span>Species:</span>
+              <Select value={speciesFilter} onValueChange={setSpeciesFilter}>
+                <SelectTrigger className="h-8 w-48 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-none border-2 border-primary/40">
+                  {ALL_SPECIES_NAMES.map((sp) => (
+                    <SelectItem key={sp} value={sp} className="font-mono text-sm">
+                      {sp}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground">
+              <span>Background:</span>
+              <Select value={backgroundFilter} onValueChange={setBackgroundFilter}>
+                <SelectTrigger className="h-8 w-54 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-none border-2 border-primary/40">
+                  {ALL_BACKGROUND_NAMES.map((bg) => (
+                    <SelectItem key={bg} value={bg} className="font-mono text-sm">
+                      {bg}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground">
-            <span>Background:</span>
-            <Select value={backgroundFilter} onValueChange={setBackgroundFilter}>
-              <SelectTrigger className="h-8 w-54 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="rounded-none border-2 border-primary/40">
-                {ALL_BACKGROUND_NAMES.map((bg) => (
-                  <SelectItem key={bg} value={bg} className="font-mono text-sm">
-                    {bg}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="mt-1">
+            <FilterToggleButton
+              selected={false}
+              onClick={openGodModal}
+              className="px-5 py-2 text-sm"
+            >
+              View God Data
+            </FilterToggleButton>
           </div>
         </div>
 
@@ -285,16 +296,6 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
           ) : (
             "No winners for this species/background yet."
           )}
-        </div>
-
-        <div className="mt-3">
-          <FilterToggleButton
-            selected={false}
-            onClick={openGodModal}
-            className="px-5 py-2 text-sm"
-          >
-            View God Data
-          </FilterToggleButton>
         </div>
 
         <div className="min-h-[260px] flex flex-col">

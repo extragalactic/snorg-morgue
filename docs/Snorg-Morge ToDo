@@ -9,14 +9,14 @@ Features:
 - need a morgue "character sheet" exporter (to resemble a D&D sheet)
 - new chart: win rate by god
 - new chart: Arch Nemesis Chart = top 10 unique killers
-- new chart: Skill Level by Combo = with a given species-background-god, for all the winners with that combo what were their average stats at several level benchmarks (mostly used with the Avg data)
-- Skills table needs a Gods popup that shows the ratio of which gods were used
+
 
 Fixes:
 - the Skilling Analysis should exclude Invotations from the average if the charaacter worships a god that doesn't use that skill (like Vehumet)
 - what's the proper terminology: Grand Player or Greater Player? And how is it defined?
 - need to normalize the Level at Death graph when comparing to the average data
 - y-axis units messed up on Levels at Death
+- Avg species performance data is broken for Wins
 
 Tests:
 - need to test logic for email/username duplicates on signup
