@@ -18,6 +18,7 @@ import { DCSS_SERVERS } from "@/lib/dcss-public-sources"
  import { useAuth } from "@/contexts/auth-context"
 import { toast } from "@/hooks/use-toast"
 import { Search } from "lucide-react"
+import { HydraLoader } from "@/components/dashboard/hydra-loader"
  
  type ServerRow = {
    abbreviation: string
@@ -692,7 +693,7 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
                       }
                     }}
                     className={cn(
-                      "rounded-none p-3 border-2 min-w-0 flex flex-col h-[156px] overflow-hidden",
+                      "rounded-none p-3 border-2 min-w-0 flex flex-col h-[156px] overflow-hidden relative",
                       canToggle && "cursor-pointer transition-colors hover:border-primary/60 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
                       isActive && "border-primary bg-primary/5",
                       !isActive && server.checked && "border-primary",
@@ -807,6 +808,11 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
                         </p>
                       )}
                     </div>
+                    {isActive && (
+                      <div className="absolute bottom-2 right-2 pointer-events-none" aria-hidden>
+                        <HydraLoader active size={72} />
+                      </div>
+                    )}
                   </Card>
                 )
               })}

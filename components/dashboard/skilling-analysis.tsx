@@ -244,7 +244,7 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-3 justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 font-mono text-sm">
               <span>Species:</span>
               <Select value={speciesFilter} onValueChange={setSpeciesFilter}>
                 <SelectTrigger className="h-8 w-48 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
@@ -259,7 +259,7 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 font-mono text-sm">
               <span>Background:</span>
               <Select value={backgroundFilter} onValueChange={setBackgroundFilter}>
                 <SelectTrigger className="h-8 w-54 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
@@ -373,7 +373,15 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
                                       ? "5th Highest Spell School"
                                       : skill}
                         </td>
-                        <td className="border-t border-l border-primary/30 px-2 py-1 text-center font-mono text-sm">
+                        <td
+                          className={cn(
+                            "border-t border-l border-primary/30 px-2 py-1 text-center font-mono text-sm",
+                            isTopAtFinal &&
+                              (themeStyle === "ascii"
+                                ? "text-yellow-300"
+                                : "text-primary"),
+                          )}
+                        >
                           {(usageFraction * 100).toFixed(0)}%
                         </td>
                         {CHECKPOINTS.map((cp) => {
@@ -394,6 +402,10 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
                               className={cn(
                                 "border-t border-l border-primary/30 px-2 py-1 text-center font-mono text-sm",
                                 cell.skill_group === "Weapon" && "font-semibold",
+                                isTopAtFinal &&
+                                  (themeStyle === "ascii"
+                                    ? "text-yellow-300"
+                                    : "text-primary"),
                               )}
                               title={`Average level ${cell.avg_level.toFixed(1)} from ${cell.sample_count} games`}
                             >

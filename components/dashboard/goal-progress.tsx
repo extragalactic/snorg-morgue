@@ -1,9 +1,10 @@
 "use client"
 
+import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { typography } from "@/lib/typography"
+import { typography, TITLE_GRAPHIC_SIZE_LARGE } from "@/lib/typography"
 import { Check } from "lucide-react"
 import { useTheme } from "@/contexts/theme-context"
 import {
@@ -543,7 +544,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
               </div>
             ) : (
               <p className="text-sm text-muted-foreground font-mono">
-                Before you see the Greater Species tracking you must win with a species with a minimum of 3 different backgrounds.
+                Before you see the Greater Species tracking you must have at least 3 wins with a species with different backgrounds.
               </p>
             )}
           </CardContent>
@@ -551,8 +552,19 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
       )}
 
       {/* Snorg Awards section title */}
-      <div className="mt-10 mb-5">
-        <h2 className={typography.primaryTitle}>SNORG AWARDS</h2>
+      <div className="mt-10 mb-5 flex items-center gap-3">
+        <Image
+          src="/images/snorg-hammer-icon.png"
+          alt=""
+          width={TITLE_GRAPHIC_SIZE_LARGE}
+          height={TITLE_GRAPHIC_SIZE_LARGE}
+          className="object-contain shrink-0"
+          style={{ width: TITLE_GRAPHIC_SIZE_LARGE, height: TITLE_GRAPHIC_SIZE_LARGE }}
+        />
+        <div className="min-w-0">
+          <h2 className={typography.primaryTitle}>SNORG AWARDS</h2>
+          <p className={typography.bodyMuted}>Snorg-approved awards of excellence</p>
+        </div>
       </div>
 
       {/* Snorg Awards card */}
@@ -835,7 +847,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
             </div>
           ) : (
             <p className="text-sm text-muted-foreground font-mono">
-              Before you see the Divine Disciples tracking you must have wins with a god on a minimum of 3 different species.
+              Before you see the Divine Disciples tracking you must have at least 3 wins with a god on different species.
             </p>
           )}
         </CardContent>
@@ -901,7 +913,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
               </div>
             ) : (
               <p className="text-sm text-muted-foreground font-mono">
-                Before you see the Devoted Species tracking you must have wins with a species worshipping a minimum of 3 different gods.
+                Before you see the Devoted Species tracking you must have at least 3 wins with a species while worshipping different gods (except for Ignis, only the final god counts for all god calculations).
               </p>
             )}
           </CardContent>

@@ -32,7 +32,7 @@ const navItems = [
   { id: "skills", label: "Skills", icon: Flame },
   { id: "achievements", label: "Achievements", icon: Trophy },
   { id: "morgues", label: "Morgues", icon: ScrollText },
-  { id: "extras", label: "Resources", icon: ExternalLink },
+  // { id: "extras", label: "Resources", icon: ExternalLink }, // Hidden - uncomment to restore
 ]
 
 export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }: NavigationProps) {

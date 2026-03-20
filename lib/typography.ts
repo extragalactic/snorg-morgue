@@ -3,6 +3,13 @@
  * consistent type hierarchy. Change the Tailwind classes here to update
  * the look site-wide (e.g. bump primaryTitle from text-lg to text-xl).
  */
+
+/** Pixel size for title graphics – keep consistent across all section titles */
+export const TITLE_GRAPHIC_SIZE = 56
+
+/** Larger size for chart and sword icons (double TITLE_GRAPHIC_SIZE) */
+export const TITLE_GRAPHIC_SIZE_LARGE = 112
+
 export const typography = {
   /** Page or main section title (e.g. "PERFORMANCE ANALYTICS") */
   primaryTitle:

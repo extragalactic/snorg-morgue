@@ -53,11 +53,11 @@ export interface UploadResult {
   failed: { filename: string; error: string }[]
 }
 
-/** Log a single import failure to the console with debugging context. */
+/** Record import failure for UI; user message is surfaced via the failed array. No console logging—duplicates and similar cases are expected. */
 function logImportFailure(
-  filename: string,
-  userMessage: string,
-  debug?: {
+  _filename: string,
+  _userMessage: string,
+  _debug?: {
     phase?: "parse" | "duplicate" | "insert_file" | "insert_parsed"
     errorMessage?: string
     stack?: string
@@ -66,23 +66,7 @@ function logImportFailure(
     dbDetails?: string
   }
 ) {
-  const payload = {
-    type: "morgue_import_failed",
-    filename,
-    userMessage,
-    ...(debug && {
-      debug: {
-        phase: debug.phase,
-        errorMessage: debug.errorMessage,
-        stack: debug.stack,
-        snippet: debug.snippet,
-        dbCode: debug.dbCode,
-        dbDetails: debug.dbDetails,
-      },
-    }),
-  }
-  console.error("[snorg-morgue] Morgue import failed:", payload)
-  if (debug?.stack) console.error(debug.stack)
+  // No-op: user-facing message is surfaced via the failed array in uploadMorgues / refreshMorguesFromRaw.
 }
 
 /**

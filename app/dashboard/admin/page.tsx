@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Navigation } from "@/components/dashboard/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { isAdminEmail } from "@/lib/admin-auth"
@@ -23,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { typography } from "@/lib/typography"
+import { typography, TITLE_GRAPHIC_SIZE_LARGE } from "@/lib/typography"
 import { Button } from "@/components/ui/button"
 
 interface ImportEvent {
@@ -179,9 +180,19 @@ export default function AdminPage() {
       />
 
       <main className="mx-auto max-w-7xl px-4 py-6">
-        <div className="mb-6">
-          <h1 className={typography.primaryTitle}>ADMIN</h1>
-          <p className={typography.bodyMuted}>Site and user stats (restricted to admin)</p>
+        <div className="mb-6 flex items-center gap-3">
+          <Image
+            src="/images/meow-icon.png"
+            alt=""
+            width={TITLE_GRAPHIC_SIZE_LARGE}
+            height={TITLE_GRAPHIC_SIZE_LARGE}
+            className="object-contain shrink-0"
+            style={{ width: TITLE_GRAPHIC_SIZE_LARGE, height: TITLE_GRAPHIC_SIZE_LARGE }}
+          />
+          <div className="min-w-0">
+            <h1 className={typography.primaryTitle}>ADMIN</h1>
+            <p className={typography.bodyMuted}>Site and user stats (restricted to admin)</p>
+          </div>
         </div>
 
         {error && (
