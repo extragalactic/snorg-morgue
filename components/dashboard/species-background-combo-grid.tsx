@@ -241,7 +241,7 @@ export function SpeciesBackgroundComboGrid({
                             return (
                               <div
                                 key={key}
-                                className={`aspect-square w-full border border-primary/20 flex items-center justify-center text-muted-foreground font-mono text-lg select-none transition-colors ${
+                                className={`aspect-square w-full border border-primary/20 flex items-center justify-center text-muted-foreground font-mono text-lg select-none cursor-pointer transition-colors ${
                                   isCellHighlighted ? "bg-muted/60" : "bg-muted/50"
                                 }`}
                                 onMouseEnter={onCellHover}
@@ -256,7 +256,7 @@ export function SpeciesBackgroundComboGrid({
                             return (
                               <div
                                 key={key}
-                                className={`aspect-square w-full border border-primary/20 transition-colors ${
+                                className={`aspect-square w-full border border-primary/20 select-none cursor-pointer transition-colors ${
                                   isCellHighlighted ? "bg-muted/40" : "bg-background"
                                 }`}
                                 onMouseEnter={onCellHover}
@@ -272,7 +272,7 @@ export function SpeciesBackgroundComboGrid({
                             <Tooltip key={key}>
                               <TooltipTrigger asChild>
                                 <div
-                                  className={`aspect-square w-full border-2 flex items-center justify-center font-mono text-sm transition-colors ${colorClass} ${
+                                  className={`aspect-square w-full border-2 flex items-center justify-center font-mono text-sm select-none cursor-pointer transition-colors ${colorClass} ${
                                     isCellHighlighted ? "bg-muted/40" : "bg-background"
                                   }`}
                                   onMouseEnter={onCellHover}

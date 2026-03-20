@@ -18,6 +18,7 @@ import { supabase } from "@/lib/supabase"
 import { uploadMorgues } from "@/lib/morgue-api"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "@/hooks/use-toast"
+import { HydraLoader } from "@/components/dashboard/hydra-loader"
 
 interface PendingFile {
   id: string
@@ -240,7 +241,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
           Upload Morgue
         </Button>
       </DialogTrigger>
-      <DialogContent className="border-4 border-primary rounded-none bg-card sm:max-w-lg">
+      <DialogContent className="border-4 border-primary rounded-none bg-card sm:max-w-[532px]">
         <DialogHeader className="border-b-2 border-primary/30 pb-4">
           <DialogTitle className="font-mono text-primary">
             UPLOAD MORGUE FILES
@@ -252,7 +253,8 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
 
         <div className="space-y-4 pt-2">
           {isProcessing ? (
-            <div className="flex flex-col items-center justify-center border-2 border-dashed border-primary/50 p-8 gap-2">
+            <div className="flex flex-col items-center justify-center border-2 border-dashed border-primary/50 p-8 gap-2 min-h-[220px]">
+              <HydraLoader active size={72} className="shrink-0" />
               <p className="font-mono text-sm text-foreground">
                 Processing {processingCurrent} of {processingTotal} files…
               </p>
@@ -266,7 +268,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={cn(
-              "relative flex flex-col items-center justify-center border-2 border-dashed p-8 transition-colors",
+              "relative flex flex-col items-center justify-center border-2 border-dashed p-8 transition-colors min-h-[220px]",
               isDragging
                 ? "border-primary bg-primary/10"
                 : "border-primary/50 hover:border-primary hover:bg-primary/5"
@@ -366,7 +368,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
             <ul className="font-mono text-xs text-muted-foreground space-y-1 pl-5">
               <li><span className="text-foreground/80">Windows:</span> <code className="break-all">%USERPROFILE%\AppData\Local\crawl\morgue</code></li>
               <li><span className="text-foreground/80">Linux:</span> <code className="break-all">~/.crawl/morgue</code></li>
-              <li><span className="text-foreground/80">Mac:</span> <code className="break-all">~/Library/Application Support/Crawl/morgue</code></li>
+              <li><span className="text-foreground/80">Mac:</span> <code className="break-all">~/Library/Application Support/Dungeon Crawl Stone Soup/morgue</code></li>
             </ul>
           </div>
 

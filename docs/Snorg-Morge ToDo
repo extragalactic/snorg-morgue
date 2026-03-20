@@ -8,10 +8,9 @@ Features:
 - have a Help tooltip somewhere perhaps for help on first upload/sync
 - need a morgue "character sheet" exporter (to resemble a D&D sheet)
 - new chart: Arch Nemesis Chart = top 10 unique killers
-
+- make a new chart on Skills page showing usage of abilities for winners
 
 Fixes:
-- the Skilling Analysis should exclude Invotations from the average if the charaacter worships a god that doesn't use that skill (like Vehumet)
 - what's the proper terminology: Grand Player or Greater Player? And how is it defined?
 - need to normalize the Level at Death graph when comparing to the average data
 - y-axis units messed up on Levels at Death

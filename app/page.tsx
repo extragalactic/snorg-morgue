@@ -8,6 +8,14 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { useAuth } from "@/contexts/auth-context"
 import { useTheme } from "@/contexts/theme-context"
 import Image from "next/image"
@@ -17,6 +25,7 @@ export default function LoginPage() {
   const { themeStyle } = useTheme()
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   // Sign In form state
   const [signInEmail, setSignInEmail] = useState("")
@@ -44,11 +53,24 @@ export default function LoginPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!signUpEmail.trim() || !signUpPassword.trim() || !signUpName.trim()) {
+      return
+    }
+    // Open confirmation modal instead of immediately creating the account.
+    setConfirmOpen(true)
+  }
+
+  const handleConfirmSignUp = async () => {
+    if (!signUpEmail.trim() || !signUpPassword.trim() || !signUpName.trim()) {
+      setConfirmOpen(false)
+      return
+    }
     setIsSubmitting(true)
     try {
       await signUp(signUpEmail, signUpPassword, signUpName)
     } finally {
       setIsSubmitting(false)
+      setConfirmOpen(false)
     }
   }
 
@@ -252,8 +274,8 @@ export default function LoginPage() {
                       </button>
                     </div>
                   </div>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={isSubmitting || isLoading}
                     className="w-full rounded-none border-2 border-green-500 bg-green-500/20 text-green-400 hover:bg-green-500/30 font-mono"
                   >
@@ -306,6 +328,46 @@ export default function LoginPage() {
         </div>
         )}
       </main>
+
+      {/* Sign Up confirmation dialog */}
+      <Dialog open={confirmOpen} onOpenChange={(open) => !isSubmitting && setConfirmOpen(open)}>
+        <DialogContent className="rounded-none border-2 border-green-500/40 bg-card max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-mono text-green-400 text-center">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                Creating account for
+              </div>
+              <div className="text-xl">
+                {signUpName || "(no username)"}
+              </div>
+            </DialogTitle>
+            <DialogDescription className="mt-3 text-sm text-muted-foreground font-mono text-left">
+              Snorg will fetch your game data from the online DCSS servers, so make sure you use the
+              exact same username. If you play offline you can manually upload your morgue files and
+              the username can be anything. If you decide to play online later, use this username.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row justify-between gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setConfirmOpen(false)}
+              disabled={isSubmitting}
+              className="flex-1 rounded-none border-2 border-green-500/40 text-muted-foreground hover:text-green-400 hover:border-green-500"
+            >
+              Go Back
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmSignUp}
+              disabled={isSubmitting}
+              className="flex-1 rounded-none border-2 border-green-500 bg-green-500/20 text-green-400 hover:bg-green-500/30 font-mono"
+            >
+              {isSubmitting ? "…" : "Proceed"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <footer className="border-t-2 border-green-500/20 bg-card/50 py-4">

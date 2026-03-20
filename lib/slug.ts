@@ -19,7 +19,7 @@ export const PAGE_TO_TAB: Record<string, string> = {
   skills: "skills",
   achievements: "achievements",
   morgues: "morgues",
-  resources: "extras",
+  // resources: "extras", // Hidden - uncomment to restore
 }
 
 /** Map dashboard tab id -> URL segment */
@@ -28,7 +28,7 @@ export const TAB_TO_PAGE: Record<string, string> = {
   skills: "skills",
   achievements: "achievements",
   morgues: "morgues",
-  extras: "resources",
+  // extras: "resources", // Hidden - uncomment to restore
 }
 
 export const VALID_PAGES = Object.keys(PAGE_TO_TAB)

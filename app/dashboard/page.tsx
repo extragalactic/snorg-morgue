@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Trophy, Skull, Target, Flame, Zap, Timer, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -44,7 +45,7 @@ import {
 import { GOD_SHORT_FORMS } from "@/lib/dcss-constants"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { slugifyUsername } from "@/lib/slug"
-import { typography } from "@/lib/typography"
+import { typography, TITLE_GRAPHIC_SIZE_LARGE } from "@/lib/typography"
 import { SkillingAnalysis } from "@/components/dashboard/skilling-analysis"
 import { AverageLevelByGodChart } from "@/components/dashboard/average-level-by-god-chart"
 
@@ -317,24 +318,58 @@ export default function DashboardPage({
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} usernameSlug={usernameSlug} />
 
       <main className="mx-auto max-w-7xl px-4 py-6">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          className={`flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between ${activeTab === "morgues" ? "mb-2" : "mb-6"}`}
+        >
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className={typography.primaryTitle}>
-                {activeTab === "analysis" && "PERFORMANCE ANALYTICS"}
-                {activeTab === "skills" && "WINNING SKILLS"}
-                {activeTab === "achievements" && "OFFICIAL ACHIEVEMENTS"}
-                {activeTab === "morgues" && "MORGUE FILES"}
-                {activeTab === "extras" && "RESOURCES"}
-              </h1>
+              {activeTab === "analysis" && (
+                <Image
+                  src="/images/tesseract-icon.png"
+                  alt=""
+                  width={TITLE_GRAPHIC_SIZE_LARGE}
+                  height={TITLE_GRAPHIC_SIZE_LARGE}
+                  className="object-contain shrink-0"
+                  style={{ width: TITLE_GRAPHIC_SIZE_LARGE, height: TITLE_GRAPHIC_SIZE_LARGE }}
+                />
+              )}
+              {activeTab === "achievements" && (
+                <Image
+                  src="/images/achievement-award-icon.png"
+                  alt=""
+                  width={TITLE_GRAPHIC_SIZE_LARGE}
+                  height={TITLE_GRAPHIC_SIZE_LARGE}
+                  className="object-contain shrink-0"
+                  style={{ width: TITLE_GRAPHIC_SIZE_LARGE, height: TITLE_GRAPHIC_SIZE_LARGE }}
+                />
+              )}
+              {activeTab === "morgues" && (
+                <Image
+                  src="/images/angelic-guardian-icon.png"
+                  alt=""
+                  width={TITLE_GRAPHIC_SIZE_LARGE}
+                  height={TITLE_GRAPHIC_SIZE_LARGE}
+                  className="object-contain shrink-0"
+                  style={{ width: TITLE_GRAPHIC_SIZE_LARGE, height: TITLE_GRAPHIC_SIZE_LARGE }}
+                />
+              )}
+              <div className="min-w-0">
+                <h1 className={typography.primaryTitle}>
+                  {activeTab === "analysis" && "PERFORMANCE ANALYTICS"}
+                  {activeTab === "skills" && "WINNING SKILLS"}
+                  {activeTab === "achievements" && "OFFICIAL ACHIEVEMENTS"}
+                  {activeTab === "morgues" && "MORGUE FILES"}
+                  {activeTab === "extras" && "RESOURCES"}
+                </h1>
+                <p className={typography.bodyMuted}>
+                  {activeTab === "analysis" && "Track and analyze your DCSS progress"}
+                  {activeTab === "skills" && "Learn techniques from winning players"}
+                  {activeTab === "achievements" && "Impressive metrics of DCSS prowess"}
+                  {activeTab === "morgues" && "Upload and browse your morgue files"}
+                  {activeTab === "extras" && "Helpful links and community resources"}
+                </p>
+              </div>
             </div>
-            <p className={typography.bodyMuted}>
-              {activeTab === "analysis" && "Track and analyze your DCSS progress"}
-              {activeTab === "skills" && "Learn techniques from winning players"}
-              {activeTab === "achievements" && ""}
-              {activeTab === "morgues" && "Upload and browse your morgue files"}
-              {activeTab === "extras" && "Helpful links and community resources"}
-            </p>
           </div>
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-2">
@@ -635,9 +670,8 @@ export default function DashboardPage({
         )}
 
         {activeTab === "morgues" && (
-          <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-mono text-sm text-primary">Morgues</h2>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
                 <span>Version range:</span>
                 <Select value={versionStart} onValueChange={setVersionStart}>

@@ -183,7 +183,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
   const winsColor =
     themeStyle === "ascii" ? "oklch(0.62 0.2 145)" : "rgba(250, 204, 21, 0.9)"
   const attemptsColor =
-    themeStyle === "ascii" ? "oklch(0.42 0.1 145)" : "rgba(100, 116, 139, 0.55)"
+    themeStyle === "ascii" ? "oklch(0.52 0.12 145)" : "rgba(148, 163, 184, 0.9)"
 
   const hasTotalRunes = data.length > 0
   const hasRuneByType = runeByTypeData.length > 0
