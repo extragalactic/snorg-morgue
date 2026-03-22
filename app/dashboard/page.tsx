@@ -648,7 +648,7 @@ export default function DashboardPage({
                 />
                 <AverageLevelByGodChart
                   morgues={morgues}
-                  globalGodAverages={globalStats?.avgXlByGod}
+                  globalGodAverages={showGlobalAverages ? globalStats?.avgXlByGod : undefined}
                 />
                 </>
               )}
