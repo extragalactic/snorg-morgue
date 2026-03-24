@@ -279,7 +279,7 @@ export default function AdminPage() {
                 value="users"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent font-mono text-sm px-4 pb-2 -mb-0.5"
               >
-                Users
+                Users{!usersLoading && !usersError ? ` (${users.length})` : ""}
               </TabsTrigger>
               <TabsTrigger
                 value="import-summary"
@@ -535,7 +535,10 @@ export default function AdminPage() {
                       </SelectTrigger>
                       <SelectContent className="rounded-none border-2 border-primary/30">
                         <SelectItem value="all" className="font-mono text-sm">
-                          All servers
+                          All
+                        </SelectItem>
+                        <SelectItem value="uploads" className="font-mono text-sm">
+                          Uploads
                         </SelectItem>
                         {[
                           ...new Set(
@@ -562,7 +565,11 @@ export default function AdminPage() {
                       !emailTrim ||
                       (e.userEmail?.toLowerCase().includes(emailTrim) ?? false)
                     const matchServer =
-                      serverFilter === "all" || e.serverAbbreviation === serverFilter
+                      serverFilter === "all"
+                        ? true
+                        : serverFilter === "uploads"
+                          ? e.eventType === "manual_upload"
+                          : e.serverAbbreviation === serverFilter
                     return matchEmail && matchServer
                   })
                   const pageSize = 15

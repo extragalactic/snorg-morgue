@@ -126,11 +126,13 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
           ? "Dr"
           : species === "Mountain Dwarf"
             ? "MD"
-            : species === "Demonspawn"
-              ? "Ds"
-              : species === "Gargoyle"
-                ? "Gr"
-                : species.substring(0, 2)
+            : species === "Demigod"
+              ? "Dg"
+              : species === "Demonspawn"
+                ? "Ds"
+                : species === "Gargoyle"
+                  ? "Gr"
+                  : species.substring(0, 2)
     const backgroundCodes: Record<string, string> = {
       "Chaos Knight": "CK",
       "Fire Elementalist": "FE",

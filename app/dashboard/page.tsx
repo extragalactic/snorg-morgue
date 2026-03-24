@@ -57,6 +57,7 @@ function speciesCode(species: string): string {
   if (s === "Deep Elf") return "DE"
   if (s === "Draconian") return "Dr"
   if (s === "Mountain Dwarf") return "MD"
+  if (s === "Demigod") return "Dg"
   if (s === "Demonspawn") return "Ds"
   if (s === "Gargoyle") return "Gr"
   if (s.endsWith(" Draconian")) return "Dr"
