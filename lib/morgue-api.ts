@@ -280,8 +280,14 @@ export async function recalcUserStats(
       const row = f as { id: string; filename?: string; raw_text?: string }
       filenameByFileId.set(row.id, row.filename ?? "")
       const raw = row.raw_text ?? ""
-      // Count Ignis as "ever worshipped" if the morgue text mentions Ignis anywhere.
-      everIgnisByFileId.set(row.id, /Ignis/i.test(raw))
+      // Count Ignis as "ever worshipped" only if the player actually joined Ignis,
+      // not if they merely found an Ignis altar. Match: "You worshipped Ignis.",
+      // "Became a worshipper of Ignis", or "You abandoned Ignis."
+      const everIgnis =
+        /\bYou worshipped Ignis\./i.test(raw) ||
+        /\bBecame a worshipper of Ignis\b/i.test(raw) ||
+        /\bYou abandoned Ignis\./i.test(raw)
+      everIgnisByFileId.set(row.id, everIgnis)
     }
   }
   // DCSS filenames: morgue-Name-YYYYMMDD-HHMMSS.txt; use as sort key for chronological order. Sync-imported rows have no file, use game_completion_date or created_at.

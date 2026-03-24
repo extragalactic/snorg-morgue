@@ -238,6 +238,9 @@ export default function LoginPage() {
                         className="pl-10 rounded-none border-2 border-green-500/30 bg-background focus:border-green-500"
                       />
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      * use the same username you use on the DCSS servers if you want to import stats for those games
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email" className="text-sm">Email</Label>

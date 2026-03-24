@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { Upload, X, FileText, CheckCircle, AlertCircle, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -50,7 +50,30 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
   const [processingTotal, setProcessingTotal] = useState(0)
   const [failureModalOpen, setFailureModalOpen] = useState(false)
   const [failureItems, setFailureItems] = useState<{ filename: string; reason: string }[]>([])
+  const [successModalOpen, setSuccessModalOpen] = useState(false)
+  const [successImportedCount, setSuccessImportedCount] = useState(0)
+  const successDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (successDelayRef.current) {
+        clearTimeout(successDelayRef.current)
+        successDelayRef.current = null
+      }
+    }
+  }, [])
+
+  const handleFailureModalClose = useCallback(() => {
+    setFailureModalOpen(false)
+    if (successImportedCount > 0) {
+      if (successDelayRef.current) clearTimeout(successDelayRef.current)
+      successDelayRef.current = setTimeout(() => {
+        successDelayRef.current = null
+        setSuccessModalOpen(true)
+      }, 500)
+    }
+  }, [successImportedCount])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -188,14 +211,8 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
         )
       })
       if (result.success > 0) {
-        toast({
-          title: "Upload complete",
-          description:
-            result.failed.length > 0
-              ? `${result.success} morgue${result.success === 1 ? "" : "s"} added. ${result.failed.length} file${result.failed.length === 1 ? "" : "s"} could not be imported — see details below.`
-              : `${result.success} morgue${result.success === 1 ? "" : "s"} added.`,
-        })
         await Promise.resolve(onUploadComplete?.())
+        setSuccessImportedCount(result.success)
       }
       const allFailures: { filename: string; reason: string }[] = [
         ...result.failed.map((f) => ({ filename: f.filename, reason: f.error })),
@@ -204,6 +221,11 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
       if (allFailures.length > 0) {
         setFailureItems(allFailures)
         setFailureModalOpen(true)
+      } else if (result.success > 0) {
+        successDelayRef.current = setTimeout(() => {
+          successDelayRef.current = null
+          setSuccessModalOpen(true)
+        }, 500)
       }
     } else if (failedReads.length > 0) {
       setFailureItems(failedReads.map((f) => ({ filename: f.name, reason: f.error })))
@@ -400,7 +422,12 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
       </DialogContent>
     </Dialog>
 
-    <Dialog open={failureModalOpen} onOpenChange={setFailureModalOpen}>
+    <Dialog
+      open={failureModalOpen}
+      onOpenChange={(open) => {
+        if (!open) handleFailureModalClose()
+      }}
+    >
       <DialogContent className="border-4 border-primary rounded-none bg-card sm:max-w-lg">
         <DialogHeader className="border-b-2 border-primary/30 pb-4">
           <DialogTitle className="font-mono text-primary">
@@ -428,12 +455,31 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
         </ul>
         <DialogFooter className="border-t-2 border-primary/30 pt-4">
           <Button
-            onClick={() => setFailureModalOpen(false)}
+            onClick={handleFailureModalClose}
             className="rounded-none border-2 border-primary font-mono text-xs"
           >
-            Close
+            Ok
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={successModalOpen} onOpenChange={setSuccessModalOpen}>
+      <DialogContent className="border-4 border-primary rounded-none bg-card sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-mono text-lg text-primary">Import complete</DialogTitle>
+        </DialogHeader>
+        <p className="font-mono text-sm text-muted-foreground">
+          Successfully imported {successImportedCount} game{successImportedCount === 1 ? "" : "s"}.
+        </p>
+        <div className="flex justify-end pt-2">
+          <Button
+            className="rounded-none border-2 border-primary/60 font-mono text-xs"
+            onClick={() => setSuccessModalOpen(false)}
+          >
+            OK
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
     </>

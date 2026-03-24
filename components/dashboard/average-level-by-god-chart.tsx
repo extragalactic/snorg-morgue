@@ -191,16 +191,18 @@ export function AverageLevelByGodChart({ morgues, globalGodAverages = [] }: Aver
           <p className="text-xs text-muted-foreground font-mono text-center">
             God Worshipped
           </p>
-          <div className="mt-1 flex flex-wrap items-center justify-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-6" style={{ backgroundColor: youColor }} />
-              <span className="text-xs text-muted-foreground">You</span>
+          {globalGodAverages.length > 0 && (
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-6" style={{ backgroundColor: youColor }} />
+                <span className="text-xs text-muted-foreground">You</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-6" style={{ backgroundColor: avgColor }} />
+                <span className="text-xs text-muted-foreground">Global Average</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-6" style={{ backgroundColor: avgColor }} />
-              <span className="text-xs text-muted-foreground">Global Average</span>
-            </div>
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>

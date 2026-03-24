@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Navigation } from "@/components/dashboard/navigation"
@@ -26,6 +26,9 @@ import {
 } from "@/components/ui/select"
 import { typography, TITLE_GRAPHIC_SIZE_LARGE } from "@/lib/typography"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ChevronUp, ChevronDown } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface ImportEvent {
   id: string
@@ -49,6 +52,15 @@ interface AdminStats {
     limitBytes: number
     limitMb: number
   }
+}
+
+interface AdminUser {
+  id: string
+  email: string | null
+  createdAt: string
+  lastSignInAt: string | null
+  morgueCount: number
+  uploadCount: number
 }
 
 function describeImportEvent(e: ImportEvent): string {
@@ -87,6 +99,12 @@ export default function AdminPage() {
   const [emailSearch, setEmailSearch] = useState("")
   const [serverFilter, setServerFilter] = useState<string>("all")
   const [importPage, setImportPage] = useState(1)
+  const [users, setUsers] = useState<AdminUser[]>([])
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [usersError, setUsersError] = useState<string | null>(null)
+  const [usersPage, setUsersPage] = useState(1)
+  const [usersSortKey, setUsersSortKey] = useState<"email" | "id" | "morgues" | "uploads" | "created" | "lastSignIn">("email")
+  const [usersSortAsc, setUsersSortAsc] = useState(true)
 
   useEffect(() => {
     if (authLoading) return
@@ -141,6 +159,36 @@ export default function AdminPage() {
       cancelled = true
     }
   }, [user])
+
+  const fetchUsers = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) return
+    setUsersLoading(true)
+    setUsersError(null)
+    try {
+      const res = await fetch("/api/admin/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setUsersError((body.error as string) || `HTTP ${res.status}`)
+        return
+      }
+      const data = await res.json()
+      setUsers(data.users ?? [])
+    } catch (e) {
+      setUsersError(e instanceof Error ? e.message : "Failed to load users")
+    } finally {
+      setUsersLoading(false)
+    }
+  }, [])
+
+  const handleUsersTabSelect = useCallback(() => {
+    if (users.length === 0 && !usersLoading && !usersError) {
+      fetchUsers()
+    }
+  }, [users.length, usersLoading, usersError, fetchUsers])
 
   if (authLoading || !user) {
     return (
@@ -215,7 +263,33 @@ export default function AdminPage() {
         )}
 
         {stats && (
-          <div className="space-y-6">
+          <Tabs
+            defaultValue="overview"
+            className="space-y-6"
+            onValueChange={(v) => v === "users" && handleUsersTabSelect()}
+          >
+            <TabsList className="w-full sm:w-auto rounded-none border-b-2 border-primary/20 bg-transparent p-0 gap-0">
+              <TabsTrigger
+                value="overview"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent font-mono text-sm px-4 pb-2 -mb-0.5"
+              >
+                Overview
+              </TabsTrigger>
+              <TabsTrigger
+                value="users"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent font-mono text-sm px-4 pb-2 -mb-0.5"
+              >
+                Users
+              </TabsTrigger>
+              <TabsTrigger
+                value="import-summary"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent font-mono text-sm px-4 pb-2 -mb-0.5"
+              >
+                Import Summary
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="m-0 space-y-6">
             {/* Summary cards */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Card className="rounded-none border-2 border-primary/30">
@@ -270,7 +344,173 @@ export default function AdminPage() {
                 </p>
               </CardContent>
             </Card>
+            </TabsContent>
 
+            <TabsContent value="users" className="m-0">
+            <Card className="rounded-none border-2 border-primary/30">
+              <CardHeader>
+                <CardTitle className="font-mono">Users</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {usersError && (
+                  <p className="text-destructive font-mono text-sm mb-4">{usersError}</p>
+                )}
+                {usersLoading && (
+                  <p className="text-muted-foreground font-mono text-sm inline-flex">
+                    Loading users
+                    <span className="animate-scan-dots inline-flex ml-0.5">
+                      <span>.</span><span>.</span><span>.</span>
+                    </span>
+                  </p>
+                )}
+                {!usersLoading && !usersError && (
+                  (() => {
+                    const pageSize = 20
+                    const sortUsers = (a: AdminUser, b: AdminUser): number => {
+                      let cmp = 0
+                      switch (usersSortKey) {
+                        case "email":
+                          cmp = (a.email ?? "").localeCompare(b.email ?? "")
+                          break
+                        case "id":
+                          cmp = a.id.localeCompare(b.id)
+                          break
+                        case "morgues":
+                          cmp = a.morgueCount - b.morgueCount
+                          break
+                        case "uploads":
+                          cmp = a.uploadCount - b.uploadCount
+                          break
+                        case "created":
+                          cmp = (a.createdAt ?? "").localeCompare(b.createdAt ?? "")
+                          break
+                        case "lastSignIn":
+                          cmp = (a.lastSignInAt ?? "").localeCompare(b.lastSignInAt ?? "")
+                          break
+                      }
+                      return usersSortAsc ? cmp : -cmp
+                    }
+                    const sortedUsers = [...users].sort(sortUsers)
+                    const totalPages = Math.max(1, Math.ceil(sortedUsers.length / pageSize))
+                    const currentPage = Math.min(usersPage, totalPages)
+                    const start = (currentPage - 1) * pageSize
+                    const pageUsers = sortedUsers.slice(start, start + pageSize)
+
+                    const SortableTh = ({
+                      label,
+                      sortKey,
+                      alignRight,
+                    }: { label: string; sortKey: typeof usersSortKey; alignRight?: boolean }) => {
+                      const isActive = usersSortKey === sortKey
+                      return (
+                        <TableHead
+                          className={cn(
+                            "font-mono text-xs cursor-pointer hover:text-primary transition-colors select-none",
+                            alignRight && "text-right"
+                          )}
+                          onClick={() => {
+                            setUsersSortKey(sortKey)
+                            setUsersSortAsc(isActive ? !usersSortAsc : true)
+                            setUsersPage(1)
+                          }}
+                        >
+                          <span className="inline-flex items-center gap-0.5">
+                            {label}
+                            {isActive
+                              ? usersSortAsc
+                                ? <ChevronUp className="h-3 w-3" />
+                                : <ChevronDown className="h-3 w-3" />
+                              : null}
+                          </span>
+                        </TableHead>
+                      )
+                    }
+
+                    return (
+                      <>
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="border-primary/20">
+                              <SortableTh label="Email" sortKey="email" />
+                              <SortableTh label="User ID" sortKey="id" />
+                              <SortableTh label="Morgues" sortKey="morgues" alignRight />
+                              <SortableTh label="Uploads" sortKey="uploads" alignRight />
+                              <SortableTh label="Created" sortKey="created" />
+                              <SortableTh label="Last sign in" sortKey="lastSignIn" />
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {pageUsers.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={6} className="text-muted-foreground font-mono text-sm">
+                                  No users found.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              pageUsers.map((u) => (
+                                <TableRow key={u.id} className="border-primary/10">
+                                  <TableCell className="font-mono text-sm">
+                                    {u.email ?? <span className="text-muted-foreground">—</span>}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-xs text-muted-foreground" title={u.id}>
+                                    {u.id.slice(0, 8)}…
+                                  </TableCell>
+                                  <TableCell className="font-mono text-sm text-right">
+                                    {u.morgueCount.toLocaleString()}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-sm text-right">
+                                    {(u.uploadCount ?? 0).toLocaleString()}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-xs text-muted-foreground">
+                                    {u.createdAt ? formatDate(u.createdAt) : "—"}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-xs text-muted-foreground">
+                                    {u.lastSignInAt ? formatDate(u.lastSignInAt) : "—"}
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                        {sortedUsers.length > pageSize && (
+                          <div className="mt-3 flex items-center justify-between">
+                            <span className="font-mono text-xs text-muted-foreground">
+                              Showing {start + 1}–{Math.min(start + pageSize, sortedUsers.length)} of {sortedUsers.length}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-none border-2 border-primary/40 font-mono text-xs"
+                                disabled={currentPage === 1}
+                                onClick={() => setUsersPage((p) => Math.max(1, p - 1))}
+                              >
+                                Prev
+                              </Button>
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {currentPage} / {totalPages}
+                              </span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-none border-2 border-primary/40 font-mono text-xs"
+                                disabled={currentPage === totalPages}
+                                onClick={() => setUsersPage((p) => Math.min(totalPages, p + 1))}
+                              >
+                                Next
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()
+                )}
+              </CardContent>
+            </Card>
+            </TabsContent>
+
+            <TabsContent value="import-summary" className="m-0">
             {/* Import activity summaries */}
             <Card className="rounded-none border-2 border-primary/30">
               <CardHeader>
@@ -413,7 +653,8 @@ export default function AdminPage() {
                 })()}
               </CardContent>
             </Card>
-          </div>
+            </TabsContent>
+          </Tabs>
         )}
       </main>
     </div>
