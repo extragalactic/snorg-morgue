@@ -48,6 +48,7 @@ import { slugifyUsername } from "@/lib/slug"
 import { typography, TITLE_GRAPHIC_SIZE_LARGE } from "@/lib/typography"
 import { SkillingAnalysis } from "@/components/dashboard/skilling-analysis"
 import { AverageLevelByGodChart } from "@/components/dashboard/average-level-by-god-chart"
+import { DeathImpactProfileChart } from "@/components/dashboard/death-impact-profile-chart"
 
 function speciesCode(species: string): string {
   const s = (species ?? "").trim()
@@ -656,6 +657,11 @@ export default function DashboardPage({
               )}
             </div>
             <SpeciesBackgroundComboGrid morgues={morgues} />
+            {!isEmpty && !statsLoading && (
+              <div className="mt-12">
+                <DeathImpactProfileChart morgues={morgues} baselineLabel="all your species" />
+              </div>
+            )}
           </>
         )}
 
