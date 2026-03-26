@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import { Trophy, Skull, Target, Flame, Zap, Timer, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -44,10 +45,11 @@ import {
 } from "@/lib/morgue-api"
 import { GOD_SHORT_FORMS } from "@/lib/dcss-constants"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { slugifyUsername } from "@/lib/slug"
+import { slugifyUsername, TAB_TO_PAGE } from "@/lib/slug"
 import { typography, TITLE_GRAPHIC_SIZE_LARGE } from "@/lib/typography"
 import { SkillingAnalysis } from "@/components/dashboard/skilling-analysis"
 import { AverageLevelByGodChart } from "@/components/dashboard/average-level-by-god-chart"
+import { cn } from "@/lib/utils"
 
 function speciesCode(species: string): string {
   const s = (species ?? "").trim()
@@ -208,6 +210,8 @@ export default function DashboardPage({
 
   const hasStats = stats && stats.total_games > 0
   const isEmpty = !statsLoading && !morguesLoading && morgues.length === 0
+  const routeSlug = usernameSlug || (user?.name ? slugifyUsername(user.name) : "")
+  const morguesPageHref = routeSlug ? `/${routeSlug}/${TAB_TO_PAGE.morgues}` : null
   const statsData = stats
     ? {
         totalWins: stats.total_wins,
@@ -316,12 +320,27 @@ export default function DashboardPage({
   }, [userId, morgues, isDownloading])
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} usernameSlug={usernameSlug} />
+    <div
+      className={cn(
+        "bg-background",
+        activeTab === "morgues" ? "flex h-dvh min-h-0 flex-col overflow-hidden" : "min-h-screen",
+      )}
+    >
+      <div className={cn(activeTab === "morgues" && "shrink-0")}>
+        <Navigation activeTab={activeTab} onTabChange={setActiveTab} usernameSlug={usernameSlug} />
+      </div>
 
-      <main className="mx-auto max-w-7xl px-4 py-6">
+      <main
+        className={cn(
+          "mx-auto max-w-7xl px-4 py-6",
+          activeTab === "morgues" && "flex w-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+        )}
+      >
         <div
-          className={`flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between ${activeTab === "morgues" ? "mb-2" : "mb-6"}`}
+          className={cn(
+            "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
+            activeTab === "morgues" ? "mb-2 shrink-0" : "mb-6",
+          )}
         >
           <div>
             <div className="flex flex-wrap items-center gap-3">
@@ -540,7 +559,7 @@ export default function DashboardPage({
                 />
               )}
               {isEmpty ? (
-                <AnalysisEmptyState />
+                <AnalysisEmptyState morguesPageHref={morguesPageHref} />
               ) : statsLoading ? (
                 <AnalysisLoadingState />
               ) : (
@@ -655,7 +674,9 @@ export default function DashboardPage({
                 </>
               )}
             </div>
-            <SpeciesBackgroundComboGrid morgues={morgues} />
+            {!morguesLoading && morgues.length > 0 && (
+              <SpeciesBackgroundComboGrid morgues={morgues} />
+            )}
           </>
         )}
 
@@ -672,8 +693,8 @@ export default function DashboardPage({
         )}
 
         {activeTab === "morgues" && (
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center justify-end gap-3">
+          <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-2 pb-2">
+            <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-3">
               <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
                 <span>Version range:</span>
                 <Select value={versionStart} onValueChange={setVersionStart}>
@@ -711,14 +732,15 @@ export default function DashboardPage({
                 </Select>
               </div>
             </div>
-            <div className="space-y-3">
+            <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3">
               <UploadsTable
                 morgues={filteredMorguesByVersion}
                 loading={morguesLoading}
                 onRefresh={loadData}
                 usernameSlug={usernameSlug}
+                fillViewportHeight
               />
-              <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 pt-1">
                 <Button
                   variant="destructive"
                   className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
@@ -751,7 +773,12 @@ export default function DashboardPage({
         onImportComplete={loadData}
       />
 
-      <footer className="border-t-4 border-primary/30 bg-card mt-8">
+      <footer
+        className={cn(
+          "border-t-4 border-primary/30 bg-card",
+          activeTab === "morgues" ? "mt-0 shrink-0" : "mt-8",
+        )}
+      >
         <div className="mx-auto max-w-7xl px-4 py-6">
           <p className="text-center text-sm text-muted-foreground font-mono">
             Snorg.
@@ -762,13 +789,21 @@ export default function DashboardPage({
   )
 }
 
-function AnalysisEmptyState() {
+function AnalysisEmptyState({ morguesPageHref }: { morguesPageHref: string | null }) {
   return (
     <div className="rounded-none border-2 border-primary/30 bg-card p-8 text-center">
       <p className="font-mono text-primary mb-2">No morgue data yet</p>
       <p className={typography.bodyMuted}>
-        Upload morgue files from the &quot;Upload Morgue&quot; button to see your stats here.
+        Add some morgues files to start tracking your progress...
       </p>
+      {morguesPageHref && (
+        <Button
+          asChild
+          className="mt-6 rounded-none border-2 border-primary bg-background font-mono text-xs text-primary hover:bg-primary/10"
+        >
+          <Link href={morguesPageHref}>Go to morgue page</Link>
+        </Button>
+      )}
     </div>
   )
 }

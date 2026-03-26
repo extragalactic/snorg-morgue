@@ -27,7 +27,6 @@ Tests:
 - Search Morgues is searching what exactly?
 - server import cards have wobbly text when you click
 
-...hey, buy more vape bags!
 
 Notes:
 - We have server download caps in place, edit them here: lib/online-import-limits.ts

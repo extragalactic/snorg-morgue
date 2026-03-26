@@ -382,12 +382,9 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
       ? GOD_NAMES_FOR_CHART.filter(
           (godName) => (discipleMaps.godSpeciesWins.get(godName)?.size ?? 0) >= 3
         )
-      : ["Trog"]
+      : []
 
-  const hasDiscipleProgress =
-    morgues.length > 0
-      ? discipleGods.length > 0
-      : true
+  const hasDiscipleProgress = morgues.length > 0 && discipleGods.length > 0
 
   if (loading) {
     return (
@@ -481,15 +478,14 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
       </Card>
 
       {/* Greater Species card */}
-      {greaterSpeciesGoals.length > 0 && (
-        <Card className="mt-6 border-2 border-primary/30 rounded-none">
-          <CardHeader className="border-b-2 border-primary/20 pb-3">
-            <CardTitle>GREATER SPECIES</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            {hasGreaterSpeciesProgress ? (
-              <div className="grid gap-6 md:grid-cols-4">
-                {greaterSpeciesWithProgress.map((goal) => {
+      <Card className="mt-6 border-2 border-primary/30 rounded-none">
+        <CardHeader className="border-b-2 border-primary/20 pb-3">
+          <CardTitle>GREATER SPECIES</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {hasGreaterSpeciesProgress ? (
+            <div className="grid gap-6 md:grid-cols-4">
+              {greaterSpeciesWithProgress.map((goal) => {
                   const percentage = (goal.current / goal.max) * 100
                   const isComplete = goal.current >= goal.max
                   const speciesName = goal.name.replace(/^Greater /, "")
@@ -541,15 +537,16 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                     </Tooltip>
                   )
                 })}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground font-mono">
-                Before you see the Greater Species tracking you must have at least 3 wins with a species with different backgrounds.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+            </div>
+          ) : morgues.length === 0 ? (
+            <p className="text-sm text-muted-foreground font-mono">No awards yet.</p>
+          ) : (
+            <p className="text-sm text-muted-foreground font-mono">
+              Before you see the Greater Species tracking you must have at least 3 wins with a species with different backgrounds.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Snorg Awards section title */}
       <div className="mt-10 mb-5 flex items-center gap-3">
@@ -692,10 +689,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           {hasDiscipleProgress ? (
             <div className="grid gap-6 md:grid-cols-4">
               {discipleGods.map((godName) => {
-                const speciesSet =
-                  morgues.length > 0
-                    ? discipleMaps.godSpeciesWins.get(godName) ?? new Set<string>()
-                    : new Set<string>(["Minotaur", "Troll", "Hill Orc"])
+                const speciesSet = discipleMaps.godSpeciesWins.get(godName) ?? new Set<string>()
                 const current = speciesSet.size
                 // Compute eligible species for this god, subtracting species that can never worship this god.
                 const ineligibleSpecies = ALL_SPECIES_NAMES.filter((sp) => {
@@ -708,8 +702,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                 const maxForGod = eligibleSpecies.length
                 const percentage = (current / maxForGod) * 100
                 const isComplete = current >= maxForGod
-                const wonSpecies =
-                  morgues.length > 0 ? new Set(speciesSet) : new Set<string>(["Minotaur", "Troll", "Hill Orc"])
+                const wonSpecies = new Set(speciesSet)
                 const tooltipSpecies = eligibleSpecies
                 return (
                   <Tooltip key={godName}>
@@ -769,6 +762,8 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                 )
               })}
             </div>
+          ) : morgues.length === 0 ? (
+            <p className="text-sm text-muted-foreground font-mono">No awards yet.</p>
           ) : (
             <p className="text-sm text-muted-foreground font-mono">
               Before you see the Divine Disciples tracking you must have at least 3 wins with a god on different species.
@@ -778,8 +773,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
       </Card>
 
       {/* Devoted Species card */}
-      {devotedSpeciesGoals.length > 0 && (
-        <Card className="mt-6 border-2 border-primary/30 rounded-none">
+      <Card className="mt-6 border-2 border-primary/30 rounded-none">
           <CardHeader className="border-b-2 border-primary/20 pb-3">
             <CardTitle>DEVOTED SPECIES</CardTitle>
           </CardHeader>
@@ -835,6 +829,8 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                   )
                 })}
               </div>
+            ) : morgues.length === 0 ? (
+              <p className="text-sm text-muted-foreground font-mono">No awards yet.</p>
             ) : (
               <p className="text-sm text-muted-foreground font-mono">
                 Before you see the Devoted Species tracking you must have at least 3 wins with a species while worshipping different gods (except for Ignis, only the final god counts for all god calculations).
@@ -842,11 +838,9 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
             )}
           </CardContent>
         </Card>
-      )}
 
       {/* Enthusiastic Species card (bottom of achievements page) */}
-      {enthusiasticSpeciesGoals.length > 0 && (
-        <Card className="mt-6 border-2 border-primary/30 rounded-none">
+      <Card className="mt-6 border-2 border-primary/30 rounded-none">
           <CardHeader className="border-b-2 border-primary/20 pb-3">
             <CardTitle className="flex items-baseline gap-2">
               <span>ENTHUSIASTIC SPECIES</span>
@@ -911,6 +905,8 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                   )
                 })}
               </div>
+            ) : morgues.length === 0 ? (
+              <p className="text-sm text-muted-foreground font-mono">No awards yet.</p>
             ) : (
               <p className="text-sm text-muted-foreground font-mono">
                 Before you see the Enthusiastic Species tracking you must attempt a win with a species using a minimum of 3 different backgrounds.
@@ -918,7 +914,6 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
             )}
           </CardContent>
         </Card>
-      )}
 
     </>
   )

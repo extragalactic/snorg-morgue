@@ -104,8 +104,9 @@ export default function AdminPage() {
   const [usersLoading, setUsersLoading] = useState(false)
   const [usersError, setUsersError] = useState<string | null>(null)
   const [usersPage, setUsersPage] = useState(1)
-  const [usersSortKey, setUsersSortKey] = useState<"email" | "id" | "morgues" | "uploads" | "created" | "lastSignIn">("email")
-  const [usersSortAsc, setUsersSortAsc] = useState(true)
+  const [usersSortKey, setUsersSortKey] = useState<"email" | "id" | "morgues" | "uploads" | "created" | "lastSignIn">("created")
+  /** false = descending (e.g. newest Created first) */
+  const [usersSortAsc, setUsersSortAsc] = useState(false)
 
   useEffect(() => {
     if (authLoading) return
