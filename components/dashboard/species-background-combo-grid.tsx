@@ -47,6 +47,7 @@ function backgroundCode(background: string): string {
     "Ice Elementalist": "IE",
     "Air Elementalist": "AE",
     "Earth Elementalist": "EE",
+    "Forgewright": "FW",
     "Hedge Wizard": "HW",
     "Warper": "Wr",
     "Wanderer": "Wn",

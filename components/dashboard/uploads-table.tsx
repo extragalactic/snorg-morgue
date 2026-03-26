@@ -139,6 +139,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
       "Ice Elementalist": "IE",
       "Air Elementalist": "AE",
       "Earth Elementalist": "EE",
+      "Forgewright": "FW",
       "Hedge Wizard": "HW",
       "Warper": "Wr",
       "Wanderer": "Wn",
@@ -556,7 +557,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                   <TableCell className="text-sm text-foreground">
                     {getCombo(game)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs">
+                  <TableCell className="font-mono">
                     {getGodShort(game)}
                   </TableCell>
                   <TableCell>{game.xl}</TableCell>

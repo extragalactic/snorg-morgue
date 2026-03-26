@@ -100,6 +100,7 @@ export default function AdminPage() {
   const [serverFilter, setServerFilter] = useState<string>("all")
   const [importPage, setImportPage] = useState(1)
   const [users, setUsers] = useState<AdminUser[]>([])
+  const [usersFetched, setUsersFetched] = useState(false)
   const [usersLoading, setUsersLoading] = useState(false)
   const [usersError, setUsersError] = useState<string | null>(null)
   const [usersPage, setUsersPage] = useState(1)
@@ -177,6 +178,7 @@ export default function AdminPage() {
       }
       const data = await res.json()
       setUsers(data.users ?? [])
+      setUsersFetched(true)
     } catch (e) {
       setUsersError(e instanceof Error ? e.message : "Failed to load users")
     } finally {
@@ -239,7 +241,7 @@ export default function AdminPage() {
           />
           <div className="min-w-0">
             <h1 className={typography.primaryTitle}>ADMIN</h1>
-            <p className={typography.bodyMuted}>Site and user stats (restricted to admin)</p>
+            <p className={typography.bodyMuted}>Site and user stats</p>
           </div>
         </div>
 
@@ -279,7 +281,7 @@ export default function AdminPage() {
                 value="users"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent font-mono text-sm px-4 pb-2 -mb-0.5"
               >
-                Users{!usersLoading && !usersError ? ` (${users.length})` : ""}
+                Users{` (${usersFetched ? users.length : stats.usersWithMorgues})`}
               </TabsTrigger>
               <TabsTrigger
                 value="import-summary"

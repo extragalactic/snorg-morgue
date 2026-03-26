@@ -552,7 +552,7 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
           <div className="flex items-center justify-between gap-4">
             <div>
               <DialogTitle className="font-mono text-xl text-primary">
-                Game Server Import (Stage 1)
+                Game Server Import
               </DialogTitle>
             </div>
             <div className="flex items-center gap-2">
