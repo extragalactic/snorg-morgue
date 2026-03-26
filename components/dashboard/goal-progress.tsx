@@ -683,82 +683,6 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
         </CardContent>
       </Card>
 
-      {/* Enthusiastic Species card */}
-      {enthusiasticSpeciesGoals.length > 0 && (
-        <Card className="mt-6 border-2 border-primary/30 rounded-none">
-          <CardHeader className="border-b-2 border-primary/20 pb-3">
-            <CardTitle className="flex items-baseline gap-2">
-              <span>ENTHUSIASTIC SPECIES</span>
-              <span className="text-xs text-muted-foreground">
-                …on the path to Greater Species
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            {hasEnthusiasticSpeciesProgress ? (
-              <div className="grid gap-6 md:grid-cols-4">
-                {enthusiasticSpeciesWithProgress.map((goal) => {
-                  const percentage = (goal.current / goal.max) * 100
-                  const isComplete = goal.current >= goal.max
-                  const speciesName = goal.name.replace(/^Enthusiastic /, "")
-                  const hasWins = speciesMaps.speciesBackgroundAttempts.get(speciesName) ?? new Set<string>()
-                  const excludedBackgrounds = SPECIES_EXCLUDED_BACKGROUNDS[speciesName] ?? []
-                  const eligibleBackgrounds = ALL_BACKGROUND_NAMES.filter(
-                    (bg) => !excludedBackgrounds.includes(bg),
-                  )
-                  return (
-                    <Tooltip key={goal.name}>
-                      <TooltipTrigger asChild>
-                        <div className="space-y-2 cursor-default">
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1 font-mono text-sm text-foreground">
-                              {goal.name}
-                              {isComplete && (
-                                <Check
-                                  className={`h-3.5 w-3.5 ${
-                                    themeStyle === "ascii" ? "text-emerald-300" : "text-emerald-400"
-                                  }`}
-                                />
-                              )}
-                            </span>
-                        <span
-                          className={`font-mono text-sm ${
-                            isComplete
-                              ? themeStyle === "ascii"
-                                ? "text-emerald-300"
-                                : "text-emerald-400"
-                              : "text-primary"
-                          }`}
-                        >
-                              {goal.current}/{goal.max}
-                        </span>
-                          </div>
-                          <Progress
-                            value={percentage}
-                            className="h-3 rounded-none bg-secondary border border-primary/30"
-                            indicatorClassName={isComplete ? completeIndicatorClass : undefined}
-                          />
-                          <p className="text-xs text-muted-foreground whitespace-pre-line">
-                            {goal.description}
-                          </p>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
-                        <AchievementDetailGrid items={eligibleBackgrounds} hasWins={hasWins} />
-                      </TooltipContent>
-                    </Tooltip>
-                  )
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground font-mono">
-                Before you see the Enthusiastic Species tracking you must attempt a win with a species using a minimum of 3 different backgrounds.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
       {/* Divine Disciples card */}
       <Card className="mt-6 border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
@@ -914,6 +838,82 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
             ) : (
               <p className="text-sm text-muted-foreground font-mono">
                 Before you see the Devoted Species tracking you must have at least 3 wins with a species while worshipping different gods (except for Ignis, only the final god counts for all god calculations).
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Enthusiastic Species card (bottom of achievements page) */}
+      {enthusiasticSpeciesGoals.length > 0 && (
+        <Card className="mt-6 border-2 border-primary/30 rounded-none">
+          <CardHeader className="border-b-2 border-primary/20 pb-3">
+            <CardTitle className="flex items-baseline gap-2">
+              <span>ENTHUSIASTIC SPECIES</span>
+              <span className="text-xs text-muted-foreground">
+                …on the path to Greater Species
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {hasEnthusiasticSpeciesProgress ? (
+              <div className="grid gap-6 md:grid-cols-4">
+                {enthusiasticSpeciesWithProgress.map((goal) => {
+                  const percentage = (goal.current / goal.max) * 100
+                  const isComplete = goal.current >= goal.max
+                  const speciesName = goal.name.replace(/^Enthusiastic /, "")
+                  const hasWins = speciesMaps.speciesBackgroundAttempts.get(speciesName) ?? new Set<string>()
+                  const excludedBackgrounds = SPECIES_EXCLUDED_BACKGROUNDS[speciesName] ?? []
+                  const eligibleBackgrounds = ALL_BACKGROUND_NAMES.filter(
+                    (bg) => !excludedBackgrounds.includes(bg),
+                  )
+                  return (
+                    <Tooltip key={goal.name}>
+                      <TooltipTrigger asChild>
+                        <div className="space-y-2 cursor-default">
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-1 font-mono text-sm text-foreground">
+                              {goal.name}
+                              {isComplete && (
+                                <Check
+                                  className={`h-3.5 w-3.5 ${
+                                    themeStyle === "ascii" ? "text-emerald-300" : "text-emerald-400"
+                                  }`}
+                                />
+                              )}
+                            </span>
+                        <span
+                          className={`font-mono text-sm ${
+                            isComplete
+                              ? themeStyle === "ascii"
+                                ? "text-emerald-300"
+                                : "text-emerald-400"
+                              : "text-primary"
+                          }`}
+                        >
+                              {goal.current}/{goal.max}
+                        </span>
+                          </div>
+                          <Progress
+                            value={percentage}
+                            className="h-3 rounded-none bg-secondary border border-primary/30"
+                            indicatorClassName={isComplete ? completeIndicatorClass : undefined}
+                          />
+                          <p className="text-xs text-muted-foreground whitespace-pre-line">
+                            {goal.description}
+                          </p>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
+                        <AchievementDetailGrid items={eligibleBackgrounds} hasWins={hasWins} />
+                      </TooltipContent>
+                    </Tooltip>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground font-mono">
+                Before you see the Enthusiastic Species tracking you must attempt a win with a species using a minimum of 3 different backgrounds.
               </p>
             )}
           </CardContent>

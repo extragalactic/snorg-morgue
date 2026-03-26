@@ -100,7 +100,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
       <div className="border-b-2 border-green-500/30 bg-gradient-to-b from-green-950/50 to-transparent">
         <div className="mx-auto max-w-7xl px-4 py-4">
           {themeStyle === "ascii" ? (
-            <pre className="text-center text-green-400/80 text-[13px] sm:text-[1rem] font-mono leading-none">
+            <pre className="max-w-full text-left text-green-400/80 text-[13px] sm:text-[1rem] font-mono leading-none overflow-x-auto overflow-y-hidden">
 {`                                                                          
  ___ _ __   ___  _ __ __ _       _ __ ___   ___  _ __ __ _ _   _  ___   ___  _ __ __ _ 
 / __| '_ \\ / _ \\| '__/ _\` |_____| '_ \` _ \\ / _ \\| '__/ _\` | | | |/ _ \\ / _ \\| '__/ _\` |
@@ -109,7 +109,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
                      |___/                          |___/                       |___/ `}
             </pre>
           ) : (
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-start gap-4">
               <Image 
                 src="/images/snorg.png" 
                 alt="Snorg the Troll" 
