@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, ScrollText, Menu, X, LogOut, ExternalLink, Monitor, Terminal, Trophy, Shield, Flame } from "lucide-react"
+import { BarChart3, ScrollText, Menu, X, LogOut, ExternalLink, Monitor, Terminal, Trophy, Shield, Flame, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -44,10 +44,33 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
   const isAdminPage = adminActive ?? pathname === "/dashboard/admin"
   const slugFromUser = user?.name ? slugifyUsername(user.name) : null
   const useNavLinks = !usernameSlug && slugFromUser && isAdminPage
+  const pathSegments = pathname?.split("/").filter(Boolean) ?? []
+  const isBrowsePage = pathSegments.length >= 2 && pathSegments[1] === "browse"
+  const browseBaseSlug = usernameSlug ?? slugFromUser
+  const browseHref = browseBaseSlug ? `/${browseBaseSlug}/browse` : undefined
+
+  const renderBrowseButton = (mobile = false) => {
+    if (!browseHref) return null
+    const buttonClass = cn(
+      "rounded-none border-2 font-mono text-sm",
+      isBrowsePage
+        ? "border-primary bg-primary text-primary-foreground"
+        : "border-transparent hover:border-primary/50 hover:bg-primary/10 hover:text-primary",
+      mobile && "w-full justify-start mb-1",
+    )
+    return (
+      <Link href={browseHref} onClick={() => mobile && setMobileMenuOpen(false)}>
+        <Button variant="ghost" size="default" className={cn(buttonClass, mobile && "w-full justify-start")}>
+          <Users className="h-4 w-4" />
+          Browse
+        </Button>
+      </Link>
+    )
+  }
 
   const renderNavItem = (item: (typeof navItems)[0], mobile = false) => {
     const Icon = item.icon
-    const isActive = activeTab === item.id
+    const isActive = !isBrowsePage && activeTab === item.id
     const buttonClass = cn(
       "rounded-none border-2 font-mono text-sm",
       isActive
@@ -134,6 +157,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
             {navItems.map((item) => renderNavItem(item))}
+            {renderBrowseButton(false)}
             {showAdmin && (
               <Link href="/dashboard/admin">
                 <Button
@@ -223,6 +247,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
         {mobileMenuOpen && (
           <div className="md:hidden border-t-2 border-primary/30 py-2">
             {navItems.map((item) => renderNavItem(item, true))}
+            {renderBrowseButton(true)}
             {showAdmin && (
               <Link href="/dashboard/admin" className="block mb-1" onClick={() => setMobileMenuOpen(false)}>
                 <Button

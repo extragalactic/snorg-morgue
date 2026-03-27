@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Creepster, Space_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { AuthProvider } from "@/contexts/auth-context"
+import { BrowseProvider } from "@/contexts/browse-context"
 import { SettingsProvider } from "@/contexts/settings-context"
 import { ThemeProvider } from "@/contexts/theme-context"
 import { Toaster } from "@/components/ui/toaster"
@@ -61,9 +62,11 @@ export default function RootLayout({
       <body className={`${creepster.variable} ${spaceMono.variable} font-sans antialiased`}>
         <ThemeProvider>
           <AuthProvider>
-            <SettingsProvider>
-              <MobileGate>{children}</MobileGate>
-            </SettingsProvider>
+            <BrowseProvider>
+              <SettingsProvider>
+                <MobileGate>{children}</MobileGate>
+              </SettingsProvider>
+            </BrowseProvider>
           </AuthProvider>
         </ThemeProvider>
         <Toaster />

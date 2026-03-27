@@ -70,9 +70,18 @@ interface UploadsTableProps {
   usernameSlug?: string
   /** Grow with the parent flex column and fit page size to available table body height. */
   fillViewportHeight?: boolean
+  /** When true, hide delete and other mutations (e.g. viewing another user's morgues). */
+  readOnly?: boolean
 }
 
-export function UploadsTable({ morgues, loading, onRefresh, usernameSlug, fillViewportHeight }: UploadsTableProps) {
+export function UploadsTable({
+  morgues,
+  loading,
+  onRefresh,
+  usernameSlug,
+  fillViewportHeight,
+  readOnly,
+}: UploadsTableProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { userId } = useAuth()
@@ -610,7 +619,9 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug, fillVi
                 <SortableHeader field="duration" className="hidden md:table-cell">Duration</SortableHeader>
                 <SortableHeader field="date">Date</SortableHeader>
                 <SortableHeader field="result">Result</SortableHeader>
-                <TableHead className="font-mono text-xs text-primary w-24 text-right">Actions</TableHead>
+                <TableHead className={cn("font-mono text-xs text-primary text-right", readOnly ? "w-14" : "w-24")}>
+                  {readOnly ? "View" : "Actions"}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -663,17 +674,19 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug, fillVi
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn("h-8 w-8 rounded-none hover:bg-destructive/20", colors.destructive)}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeleteConfirmGame(game)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!readOnly && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn("h-8 w-8 rounded-none hover:bg-destructive/20", colors.destructive)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteConfirmGame(game)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -682,7 +695,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug, fillVi
           </Table>
         </div>
 
-        <AlertDialog open={!!deleteConfirmGame} onOpenChange={(open) => !open && setDeleteConfirmGame(null)}>
+        <AlertDialog open={!readOnly && !!deleteConfirmGame} onOpenChange={(open) => !open && setDeleteConfirmGame(null)}>
           <AlertDialogContent className="rounded-none border-2 border-primary/30">
             <AlertDialogHeader>
               <AlertDialogTitle className="font-mono">Delete morgue?</AlertDialogTitle>

@@ -30,6 +30,7 @@ import { OnlineImportDialog } from "@/components/dashboard/online-import-dialog"
 import { UploadsTable } from "@/components/dashboard/uploads-table"
 import { Extras } from "@/components/dashboard/extras"
 import { useAuth } from "@/contexts/auth-context"
+import { useBrowse } from "@/contexts/browse-context"
 import { supabase } from "@/lib/supabase"
 import { toast } from "@/hooks/use-toast"
 import {
@@ -154,7 +155,10 @@ export default function DashboardPage({
   usernameSlug?: string
 } = {}) {
   const { userId, user } = useAuth()
+  const { browseTarget, clearBrowseTarget } = useBrowse()
   const router = useRouter()
+  const isBrowsingOther = !!(browseTarget && userId && browseTarget.userId !== userId)
+  const morguePublicSlug = browseTarget?.usernameSlug ?? usernameSlug
   const [internalTab, setInternalTab] = useState("analysis")
   const activeTab = activeTabProp ?? internalTab
   const setActiveTab = onTabChangeProp ?? setInternalTab
@@ -188,21 +192,63 @@ export default function DashboardPage({
     setMorguesLoading(true)
     setStatsLoading(true)
 
-    const [morgueList, statsRow, globalAnalysis] = await Promise.all([
-      userId ? fetchMorgues(supabase, userId) : Promise.resolve([]),
-      userId ? fetchUserStats(supabase, userId) : Promise.resolve(null),
-      fetchGlobalAnalysisStats(supabase),
-    ])
+    const targetBrowseId = browseTarget?.userId
+    const useBrowseApi = !!(targetBrowseId && userId && targetBrowseId !== userId)
 
-    setMorgues(morgueList)
-    setStats(statsRow)
-    setGlobalStats(globalAnalysis)
-    setGlobalLevelDeathAverages(globalAnalysis?.levelDeath.averages ?? null)
-    setGlobalLevelDeathUserCount(globalAnalysis?.levelDeath.userCount ?? null)
+    try {
+      const globalAnalysis = await fetchGlobalAnalysisStats(supabase)
 
-    setMorguesLoading(false)
-    setStatsLoading(false)
-  }, [userId])
+      if (useBrowseApi) {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        const token = session?.access_token
+        if (!token) {
+          setMorgues([])
+          setStats(null)
+        } else {
+          const res = await fetch(
+            `/api/browse/dashboard?userId=${encodeURIComponent(targetBrowseId)}`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          )
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}))
+            toast({
+              title: "Could not load player data",
+              description: (body.error as string) || res.statusText,
+              variant: "destructive",
+            })
+            setMorgues([])
+            setStats(null)
+          } else {
+            const payload = await res.json()
+            setMorgues(payload.morgues ?? [])
+            setStats(payload.stats ?? null)
+          }
+        }
+      } else {
+        const [morgueList, statsRow] = await Promise.all([
+          userId ? fetchMorgues(supabase, userId) : Promise.resolve([]),
+          userId ? fetchUserStats(supabase, userId) : Promise.resolve(null),
+        ])
+        setMorgues(morgueList)
+        setStats(statsRow)
+      }
+
+      setGlobalStats(globalAnalysis)
+      setGlobalLevelDeathAverages(globalAnalysis?.levelDeath.averages ?? null)
+      setGlobalLevelDeathUserCount(globalAnalysis?.levelDeath.userCount ?? null)
+    } catch (e) {
+      toast({
+        title: "Load failed",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      })
+    } finally {
+      setMorguesLoading(false)
+      setStatsLoading(false)
+    }
+  }, [userId, browseTarget?.userId])
 
   useEffect(() => {
     loadData()
@@ -211,7 +257,12 @@ export default function DashboardPage({
   const hasStats = stats && stats.total_games > 0
   const isEmpty = !statsLoading && !morguesLoading && morgues.length === 0
   const routeSlug = usernameSlug || (user?.name ? slugifyUsername(user.name) : "")
-  const morguesPageHref = routeSlug ? `/${routeSlug}/${TAB_TO_PAGE.morgues}` : null
+  const morguesPageHref =
+    isBrowsingOther && browseTarget
+      ? `/${browseTarget.usernameSlug}/${TAB_TO_PAGE.morgues}`
+      : routeSlug
+        ? `/${routeSlug}/${TAB_TO_PAGE.morgues}`
+        : null
   const statsData = stats
     ? {
         totalWins: stats.total_wins,
@@ -277,7 +328,7 @@ export default function DashboardPage({
   const gamesReachedLair5Value = `${lair5Pct}%`
 
   const handleDownloadAllMorgues = useCallback(async () => {
-    if (!userId || morgues.length === 0 || isDownloading) return
+    if (!userId || isBrowsingOther || morgues.length === 0 || isDownloading) return
     setIsDownloading(true)
     try {
       const { default: JSZip } = await import("jszip")
@@ -317,7 +368,7 @@ export default function DashboardPage({
       setIsDownloading(false)
       setDownloadConfirmOpen(false)
     }
-  }, [userId, morgues, isDownloading])
+  }, [userId, morgues, isDownloading, isBrowsingOther])
 
   return (
     <div
@@ -329,6 +380,27 @@ export default function DashboardPage({
       <div className={cn(activeTab === "morgues" && "shrink-0")}>
         <Navigation activeTab={activeTab} onTabChange={setActiveTab} usernameSlug={usernameSlug} />
       </div>
+
+      {browseTarget && (
+        <div className="shrink-0 border-b-2 border-amber-500/60 bg-amber-500/10">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2.5">
+            <p className="font-mono text-sm text-foreground">
+              Viewing data for user:{" "}
+              <span className="font-semibold text-primary">{browseTarget.usernameSlug}</span>
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-none border-2 border-primary font-mono text-xs"
+              onClick={() => {
+                clearBrowseTarget()
+              }}
+            >
+              Return to your data
+            </Button>
+          </div>
+        </div>
+      )}
 
       <main
         className={cn(
@@ -409,8 +481,10 @@ export default function DashboardPage({
                   />
                 </div>
               )}
-              {activeTab === "morgues" && <UploadDialog onUploadComplete={loadData} />}
-              {activeTab === "morgues" && (
+              {activeTab === "morgues" && !isBrowsingOther && (
+                <UploadDialog onUploadComplete={loadData} />
+              )}
+              {activeTab === "morgues" && !isBrowsingOther && (
                 <Button
                   className="gap-2 rounded-none border-2 border-primary bg-background text-primary hover:bg-primary/10 font-mono text-xs"
                   onClick={() => setOnlineImportOpen(true)}
@@ -419,7 +493,7 @@ export default function DashboardPage({
                   Server Import
                 </Button>
               )}
-              {activeTab === "morgues" && morgues.length > 0 && (
+              {activeTab === "morgues" && !isBrowsingOther && morgues.length > 0 && (
                 <Button
                   className="gap-2 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs"
                   onClick={() => setDownloadConfirmOpen(true)}
@@ -737,27 +811,30 @@ export default function DashboardPage({
                 morgues={filteredMorguesByVersion}
                 loading={morguesLoading}
                 onRefresh={loadData}
-                usernameSlug={usernameSlug}
+                usernameSlug={morguePublicSlug}
                 fillViewportHeight
+                readOnly={isBrowsingOther}
               />
-              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 pt-1">
-                <Button
-                  variant="destructive"
-                  className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
-                  onClick={() => setRefreshConfirmOpen(true)}
-                  disabled={isRefreshing || isNuking}
-                >
-                  {isRefreshing ? "Refreshing…" : "Refresh Morgues"}
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="rounded-none border-2 font-mono text-xs"
-                  onClick={() => setNukeConfirmOpen(true)}
-                  disabled={isNuking || isRefreshing}
-                >
-                  {isNuking ? "Nuking…" : "Nuke Morgue"}
-                </Button>
-              </div>
+              {!isBrowsingOther && (
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 pt-1">
+                  <Button
+                    variant="destructive"
+                    className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
+                    onClick={() => setRefreshConfirmOpen(true)}
+                    disabled={isRefreshing || isNuking}
+                  >
+                    {isRefreshing ? "Refreshing…" : "Refresh Morgues"}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="rounded-none border-2 font-mono text-xs"
+                    onClick={() => setNukeConfirmOpen(true)}
+                    disabled={isNuking || isRefreshing}
+                  >
+                    {isNuking ? "Nuking…" : "Nuke Morgue"}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         )}
