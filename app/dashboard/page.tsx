@@ -409,7 +409,7 @@ export default function DashboardPage({
                   />
                 </div>
               )}
-              <UploadDialog onUploadComplete={loadData} />
+              {activeTab === "morgues" && <UploadDialog onUploadComplete={loadData} />}
               {activeTab === "morgues" && (
                 <Button
                   className="gap-2 rounded-none border-2 border-primary bg-background text-primary hover:bg-primary/10 font-mono text-xs"
