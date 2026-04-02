@@ -31,6 +31,7 @@ import { UploadsTable } from "@/components/dashboard/uploads-table"
 import { Extras } from "@/components/dashboard/extras"
 import { useAuth } from "@/contexts/auth-context"
 import { useBrowse } from "@/contexts/browse-context"
+import { useTheme } from "@/contexts/theme-context"
 import { supabase } from "@/lib/supabase"
 import { toast } from "@/hooks/use-toast"
 import {
@@ -156,6 +157,7 @@ export default function DashboardPage({
 } = {}) {
   const { userId, user } = useAuth()
   const { browseTarget, clearBrowseTarget } = useBrowse()
+  const { themeStyle } = useTheme()
   const router = useRouter()
   const isBrowsingOther = !!(browseTarget && userId && browseTarget.userId !== userId)
   const morguePublicSlug = browseTarget?.usernameSlug ?? usernameSlug
@@ -384,14 +386,18 @@ export default function DashboardPage({
       {browseTarget && (
         <div className="shrink-0 border-b-2 border-amber-500/60 bg-amber-500/10">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2.5">
-            <p className="font-mono text-sm text-foreground">
+            <p className="font-mono text-lg text-foreground">
               Viewing data for user:{" "}
-              <span className="font-semibold text-primary">{browseTarget.usernameSlug}</span>
+              <span className="text-xl font-semibold text-primary">{browseTarget.usernameSlug}</span>
             </p>
             <Button
               type="button"
-              variant="outline"
-              className="rounded-none border-2 border-primary font-mono text-xs"
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "nav-signout rounded-none border-2 text-primary hover:bg-destructive/10 font-mono text-sm",
+                themeStyle === "tiles" ? "border-primary/50" : "border-red-500/50",
+              )}
               onClick={() => {
                 clearBrowseTarget()
               }}
@@ -465,9 +471,9 @@ export default function DashboardPage({
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-6">
               {activeTab === "analysis" && globalStats && globalStats.userCount > 0 && (
-                <div className="flex items-center gap-2 pr-5">
+                <div className="flex items-center gap-2 pr-5 sm:pr-0">
                   <div className="flex flex-col items-center">
                     <span className={typography.captionMono}>Show averages</span>
                     <span className={typography.captionMono}>
@@ -478,6 +484,31 @@ export default function DashboardPage({
                     checked={showGlobalAverages}
                     onCheckedChange={setShowGlobalAverages}
                     className="data-[state=checked]:bg-average data-[state=checked]:border-average"
+                  />
+                </div>
+              )}
+              {activeTab === "analysis" && !isBrowsingOther && userId && (
+                <div className="flex items-center gap-2 pr-5 sm:pr-0">
+                  <div className="flex flex-col items-center max-w-[11rem] text-center">
+                    <span className={typography.captionMono}>Enable sharing</span>
+                  </div>
+                  <Switch
+                    checked={user?.browseSharingEnabled ?? true}
+                    onCheckedChange={async (enabled) => {
+                      if (!userId) return
+                      const { error } = await supabase.auth.updateUser({
+                        data: { browse_sharing_enabled: enabled },
+                      })
+                      if (error) {
+                        toast({
+                          title: "Could not update sharing",
+                          description: error.message,
+                          variant: "destructive",
+                        })
+                        return
+                      }
+                    }}
+                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                   />
                 </div>
               )}

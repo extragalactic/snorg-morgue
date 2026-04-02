@@ -1,9 +1,10 @@
 Snorg-Morge ToDo
 
 Features:
-- make the main morgue table auto-resize according to browser height
-- the initial empty Analytics page should have a message directing to the Morgues page to upload games (with a button)
 - Runes Collected per Game needs testing/fixing for data with 15 runes
+- make a random stats section, such as:
+    number of times you died with exactly 0 HP
+    number of times you died with exactly -1 HP
 
 - enable Google auth
 - new section to show: best score, average score
@@ -14,18 +15,21 @@ Features:
 - new chart: Arch Nemesis Chart = top 10 unique killers
 - make a new chart on Skills page showing usage of abilities for winners
 - make a loader animation using graphics from the game, like animated orbs, hydra heads
+- the Species Performance should have a toggle to show old species instead of current ones
 
 Fixes:
 - what's the proper terminology: Grand Player or Greater Player? And how is it defined?
 - need to normalize the Level at Death graph when comparing to the average data
 - y-axis units messed up on Levels at Death
 - Avg species performance data is broken for Wins
+- server import cards have wobbly text when you click
+- need to review all the minor branch names like: gauntlet, volcano, etc. and ensure they are shown correctly in various spots
 
 Tests:
 - need to test logic for email/username duplicates on signup
 - need to test on older versions of morgue files
-- Search Morgues is searching what exactly?
-- server import cards have wobbly text when you click
+- Search Morgues is searching what exactly? maybe just remove it.
+
 
 
 Notes:

@@ -79,13 +79,15 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
       mobile && "w-full justify-start mb-1"
     )
     const pagePath = TAB_TO_PAGE[item.id]
-    const href = pagePath && slugFromUser ? `/${slugFromUser}/${pagePath}` : undefined
+    const tabHref = pagePath && slugFromUser ? `/${slugFromUser}/${pagePath}` : undefined
+    /** Dashboard tabs use client pushState; admin uses Link; Browse route must use Link (parent often passes onTabChange no-op). */
+    const useTabLink = Boolean(tabHref) && (useNavLinks || isBrowsePage)
 
-    if (useNavLinks && href) {
+    if (useTabLink && tabHref) {
       return (
         <Link
           key={item.id}
-          href={href}
+          href={tabHref}
           onClick={() => mobile && setMobileMenuOpen(false)}
         >
           <Button

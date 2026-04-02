@@ -42,6 +42,7 @@ interface ImportEvent {
 }
 
 interface AdminStats {
+  totalAuthUsers: number
   usersWithMorgues: number
   totalParsedMorgues: number
   totalMorgueFiles: number
@@ -282,7 +283,7 @@ export default function AdminPage() {
                 value="users"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent font-mono text-sm px-4 pb-2 -mb-0.5"
               >
-                Users{` (${usersFetched ? users.length : stats.usersWithMorgues})`}
+                Users{` (${usersFetched ? users.length : stats.totalAuthUsers})`}
               </TabsTrigger>
               <TabsTrigger
                 value="import-summary"

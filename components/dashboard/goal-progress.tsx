@@ -36,7 +36,7 @@ const PLAY_TIME_ACHIEVEMENTS = [
   { title: SNORG_TITLES.S_BRANCH_ASSASSIN, hours: 500 },
   { title: SNORG_TITLES.VAULT_MERCENARY, hours: 1000 },
   { title: SNORG_TITLES.ZOT_SPECIAL_OPS, hours: 2000 },
-  { title: SNORG_TITLES.NERD_GOD_KING, hours: 4000 },
+  { title: SNORG_TITLES.NERD_GOD_KING, hours: 3000 },
 ].map((a) => ({ ...a, thresholdSeconds: a.hours * 3600 }))
 
 /** Font size for hours-played tooltip by achievement index (D1 Padawan → Nerd God-King) */

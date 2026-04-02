@@ -49,6 +49,8 @@ export async function GET(request: Request) {
       for (const u of list) {
         const id = u.id
         if (!id) continue
+        const meta = u.user_metadata as Record<string, unknown> | undefined
+        if (meta?.browse_sharing_enabled === false) continue
         const fromProfile = slugByUserId.get(id)
         const usernameSlug =
           fromProfile?.trim() ||

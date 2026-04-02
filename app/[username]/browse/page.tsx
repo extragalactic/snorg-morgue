@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { Navigation } from "@/components/dashboard/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { useBrowse } from "@/contexts/browse-context"
+import { useTheme } from "@/contexts/theme-context"
 import { supabase } from "@/lib/supabase"
 import type { BrowseUserListItem } from "@/app/api/browse/users/route"
 import { slugifyUsername, TAB_TO_PAGE } from "@/lib/slug"
@@ -19,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import Image from "next/image"
+import { cn } from "@/lib/utils"
 
 export default function BrowsePage() {
   const params = useParams()
@@ -26,10 +28,13 @@ export default function BrowsePage() {
   const username = params?.username as string
   const { user, userId } = useAuth()
   const { browseTarget, setBrowseTarget, clearBrowseTarget } = useBrowse()
+  const { themeStyle } = useTheme()
   const [profiles, setProfiles] = useState<BrowseUserListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string>("")
+  /** Controlled so we can close before router.push; otherwise Radix can leave outside pointer-events disabled. */
+  const [playerSelectOpen, setPlayerSelectOpen] = useState(false)
 
   const slugFromUser = user?.name ? slugifyUsername(user.name) : null
 
@@ -69,18 +74,30 @@ export default function BrowsePage() {
     loadProfiles()
   }, [loadProfiles])
 
+  const pushAfterSelectReleased = useCallback(
+    (path: string) => {
+      setPlayerSelectOpen(false)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          router.push(path)
+        })
+      })
+    },
+    [router],
+  )
+
   const handleView = () => {
     if (!selectedId || !slugFromUser) return
     const row = profiles.find((p) => p.id === selectedId)
     if (!row) return
     setBrowseTarget({ userId: row.id, usernameSlug: row.usernameSlug })
-    router.push(`/${slugFromUser}/${TAB_TO_PAGE.analysis}`)
+    pushAfterSelectReleased(`/${slugFromUser}/${TAB_TO_PAGE.analysis}`)
   }
 
   const handleReturn = () => {
     clearBrowseTarget()
     if (slugFromUser) {
-      router.push(`/${slugFromUser}/${TAB_TO_PAGE.analysis}`)
+      pushAfterSelectReleased(`/${slugFromUser}/${TAB_TO_PAGE.analysis}`)
     }
   }
 
@@ -88,10 +105,33 @@ export default function BrowsePage() {
     <div className="min-h-screen bg-background">
       <Navigation activeTab="" onTabChange={() => {}} usernameSlug={slugFromUser ?? username} />
 
+      {browseTarget && (
+        <div className="shrink-0 border-b-2 border-amber-500/60 bg-amber-500/10">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2.5">
+            <p className="font-mono text-lg text-foreground">
+              Viewing data for user:{" "}
+              <span className="text-xl font-semibold text-primary">{browseTarget.usernameSlug}</span>
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "nav-signout rounded-none border-2 text-primary hover:bg-destructive/10 font-mono text-sm",
+                themeStyle === "tiles" ? "border-primary/50" : "border-red-500/50",
+              )}
+              onClick={handleReturn}
+            >
+              Return to your data
+            </Button>
+          </div>
+        </div>
+      )}
+
       <main className="mx-auto max-w-7xl px-4 py-6">
         <div className="mb-6 flex flex-wrap items-center gap-3">
           <Image
-            src="/images/angelic-guardian-icon.png"
+            src="/images/book-icon.png"
             alt=""
             width={TITLE_GRAPHIC_SIZE_LARGE}
             height={TITLE_GRAPHIC_SIZE_LARGE}
@@ -103,23 +143,6 @@ export default function BrowsePage() {
             <p className={typography.bodyMuted}>View another player&apos;s Snorg dashboard</p>
           </div>
         </div>
-
-        {browseTarget && (
-          <div className="mb-6 flex flex-wrap items-center gap-3 rounded-none border-2 border-primary/40 bg-primary/10 px-4 py-3">
-            <p className="font-mono text-sm text-foreground">
-              Viewing data for{" "}
-              <span className="text-primary font-semibold">{browseTarget.usernameSlug}</span>
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-none border-2 border-primary font-mono text-xs"
-              onClick={handleReturn}
-            >
-              Return to your data
-            </Button>
-          </div>
-        )}
 
         <Card className="border-2 border-primary/30 rounded-none">
           <CardHeader className="border-b-2 border-primary/20 pb-3">
@@ -134,7 +157,12 @@ export default function BrowsePage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
                   <div className="space-y-2 flex-1 min-w-[200px]">
                     <label className="font-mono text-xs text-muted-foreground">Select user</label>
-                    <Select value={selectedId} onValueChange={setSelectedId}>
+                    <Select
+                      open={playerSelectOpen}
+                      onOpenChange={setPlayerSelectOpen}
+                      value={selectedId}
+                      onValueChange={setSelectedId}
+                    >
                       <SelectTrigger className="rounded-none border-2 border-primary/50 font-mono text-sm">
                         <SelectValue placeholder="Choose a player…" />
                       </SelectTrigger>
