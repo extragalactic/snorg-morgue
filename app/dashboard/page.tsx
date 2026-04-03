@@ -25,6 +25,7 @@ import { RuneCollectionChart } from "@/components/dashboard/rune-collection-char
 import { TestPerformanceChart } from "@/components/dashboard/test-performance-chart"
 import { Top10Killers } from "@/components/dashboard/top-10-killers"
 import { SpeciesBackgroundComboGrid } from "@/components/dashboard/species-background-combo-grid"
+import { DcssChargenSelectionGrid } from "@/components/dashboard/dcss-chargen-selection-grid"
 import { UploadDialog } from "@/components/dashboard/upload-dialog"
 import { OnlineImportDialog } from "@/components/dashboard/online-import-dialog"
 import { UploadsTable } from "@/components/dashboard/uploads-table"
@@ -779,8 +780,11 @@ export default function DashboardPage({
                 </>
               )}
             </div>
-            {!morguesLoading && morgues.length > 0 && (
-              <SpeciesBackgroundComboGrid morgues={morgues} />
+            {!morguesLoading && (
+              <>
+                <DcssChargenSelectionGrid morgues={morgues} />
+                {morgues.length > 0 && <SpeciesBackgroundComboGrid morgues={morgues} />}
+              </>
             )}
           </>
         )}
