@@ -192,6 +192,20 @@ const SERVERS_UNSORTED: DcssServerConfig[] = [
       { path: "/mirror/meta/0.33/logfile", version: "0.33" },
     ],
   },
+  {
+    name: "crawl-br.roguelikes.gg",
+    abbreviation: "CBRG",
+    baseUrl: "https://crawl-br.roguelikes.gg",
+    morgueUrl: "https://crawl-br.roguelikes.gg/morgue",
+    country: "Brazil",
+    // New server; placeholder gameCount keeps sort order sensible until dcss-stats (or similar) has a total.
+    gameCount: 1,
+    logfiles: [
+      { path: "/meta/git/logfile", version: "git" },
+      { path: "/meta/0.34/logfile", version: "0.34" },
+      { path: "/meta/0.33/logfile", version: "0.33" },
+    ],
+  },
 ]
 
 /** Sorted: CDI first, then by gameCount descending (dormant last). */

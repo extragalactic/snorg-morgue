@@ -42,11 +42,15 @@ export default function UsernamePagePage() {
 
   const handleTabChange = (tabId: string) => {
     const nextPage = TAB_TO_PAGE[tabId]
-    if (!nextPage || !username) return
+    if (!nextPage) return
+    const path = typeof window !== "undefined" ? window.location.pathname : ""
+    const segments = path.split("/").filter(Boolean)
+    const slug = segments[0] || username
+    if (!slug) return
     setActiveTab(tabId)
-    const path = `/${username}/${nextPage}`
+    const newPath = `/${slug}/${nextPage}`
     if (typeof window !== "undefined") {
-      window.history.pushState(null, "", path)
+      window.history.pushState(null, "", newPath)
     }
   }
 

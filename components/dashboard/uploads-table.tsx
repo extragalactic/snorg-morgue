@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Search, Eye, ChevronLeft, ChevronRight, Skull, Trophy, ChevronUp, ChevronDown, Trash2, X, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -57,15 +57,31 @@ type GodFilter = "all" | string
 type SortField = "character" | "combo" | "god" | "xl" | "place" | "duration" | "date" | "result"
 type SortDirection = "asc" | "desc"
 
+const DEFAULT_PAGE_SIZE = 15
+const MIN_DYNAMIC_ROWS = 3
+const FALLBACK_ROW_PX = 46
+const FALLBACK_HEADER_PX = 41
+
 interface UploadsTableProps {
   morgues: GameRecord[]
   loading?: boolean
   onRefresh?: () => void
   /** When set, row click navigates to /usernameSlug/morgues/shortId for shareable URL. */
   usernameSlug?: string
+  /** Grow with the parent flex column and fit page size to available table body height. */
+  fillViewportHeight?: boolean
+  /** When true, hide delete and other mutations (e.g. viewing another user's morgues). */
+  readOnly?: boolean
 }
 
-export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: UploadsTableProps) {
+export function UploadsTable({
+  morgues,
+  loading,
+  onRefresh,
+  usernameSlug,
+  fillViewportHeight,
+  readOnly,
+}: UploadsTableProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { userId } = useAuth()
@@ -89,7 +105,10 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
   const [godFilter, setGodFilter] = useState<GodFilter>(settings.morguesTable.godFilter as GodFilter)
   const [sortField, setSortField] = useState<SortField | null>(settings.morguesTable.sortField as SortField | null)
   const [sortDirection, setSortDirection] = useState<SortDirection>(settings.morguesTable.sortDirection as SortDirection)
-  const itemsPerPage = 15
+  const [measuredItemsPerPage, setMeasuredItemsPerPage] = useState(DEFAULT_PAGE_SIZE)
+  const tableBodySlotRef = useRef<HTMLDivElement>(null)
+
+  const itemsPerPage = fillViewportHeight ? measuredItemsPerPage : DEFAULT_PAGE_SIZE
 
   // Keep local state in sync if settings change elsewhere
   useEffect(() => {
@@ -126,17 +145,20 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
           ? "Dr"
           : species === "Mountain Dwarf"
             ? "MD"
-            : species === "Demonspawn"
-              ? "Ds"
-              : species === "Gargoyle"
-                ? "Gr"
-                : species.substring(0, 2)
+            : species === "Demigod"
+              ? "Dg"
+              : species === "Demonspawn"
+                ? "Ds"
+                : species === "Gargoyle"
+                  ? "Gr"
+                  : species.substring(0, 2)
     const backgroundCodes: Record<string, string> = {
       "Chaos Knight": "CK",
       "Fire Elementalist": "FE",
       "Ice Elementalist": "IE",
       "Air Elementalist": "AE",
       "Earth Elementalist": "EE",
+      "Forgewright": "FW",
       "Hedge Wizard": "HW",
       "Warper": "Wr",
       "Wanderer": "Wn",
@@ -226,9 +248,32 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
     return data
   }, [morgues, searchQuery, resultFilter, speciesFilter, backgroundFilter, godFilter, sortField, sortDirection])
 
-  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedData.length / itemsPerPage) || 1)
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedData = filteredAndSortedData.slice(startIndex, startIndex + itemsPerPage)
+
+  useLayoutEffect(() => {
+    if (!fillViewportHeight) return
+    const el = tableBodySlotRef.current
+    if (!el) return
+
+    const measure = () => {
+      const rect = el.getBoundingClientRect()
+      const theadRow = el.querySelector("thead tr")
+      const headerH = theadRow?.getBoundingClientRect().height ?? FALLBACK_HEADER_PX
+      const firstBodyRow = el.querySelector("tbody tr")
+      const rowH = firstBodyRow?.getBoundingClientRect().height ?? FALLBACK_ROW_PX
+      const available = rect.height - headerH
+      if (available <= 0 || rowH <= 0) return
+      const next = Math.max(MIN_DYNAMIC_ROWS, Math.floor(available / rowH))
+      setMeasuredItemsPerPage((prev) => (prev === next ? prev : next))
+    }
+
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    measure()
+    return () => ro.disconnect()
+  }, [fillViewportHeight, loading, morgues.length, filteredAndSortedData.length, measuredItemsPerPage])
   const totalCount = morgues.length
   const filteredCount = filteredAndSortedData.length
   const pct = totalCount > 0 ? Math.round((filteredCount / totalCount) * 100) : 0
@@ -236,6 +281,18 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
     filteredCount === totalCount
       ? `${totalCount} Files`
       : `${filteredCount} of ${totalCount} Files (${pct}%)`
+
+  useEffect(() => {
+    if (!fillViewportHeight) return
+    const tp = Math.max(1, Math.ceil(filteredAndSortedData.length / itemsPerPage) || 1)
+    if (currentPage > tp) {
+      setCurrentPage(tp)
+      setSettings((prev) => ({
+        ...prev,
+        morguesTable: { ...prev.morguesTable, currentPage: tp },
+      }))
+    }
+  }, [fillViewportHeight, filteredAndSortedData.length, itemsPerPage, currentPage, setSettings])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -324,11 +381,16 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
 
   if (loading) {
     return (
-      <Card className="border-2 border-primary/30 rounded-none">
-        <CardHeader className="border-b-2 border-primary/20 pb-3">
+      <Card
+        className={cn(
+          "w-full min-w-0 border-2 border-primary/30 rounded-none",
+          fillViewportHeight && "min-h-0 flex-1 gap-0 py-0",
+        )}
+      >
+        <CardHeader className={cn("border-b-2 border-primary/20 py-3", fillViewportHeight && "shrink-0")}>
           <CardTitle>Files</CardTitle>
         </CardHeader>
-        <CardContent className="p-8">
+        <CardContent className={cn("p-8", fillViewportHeight && "flex min-h-0 flex-1 items-center justify-center")}>
           <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
             <div className="h-4 w-4 animate-spin border-2 border-primary border-t-transparent rounded-full" />
             Loading morgues…
@@ -340,14 +402,18 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
 
   if (morgues.length === 0) {
     return (
-      <Card className="border-2 border-primary/30 rounded-none">
-        <CardHeader className="border-b-2 border-primary/20 pb-3">
+      <Card
+        className={cn(
+          "w-full min-w-0 border-2 border-primary/30 rounded-none",
+          fillViewportHeight && "min-h-0 flex-1 gap-0 py-0",
+        )}
+      >
+        <CardHeader className={cn("border-b-2 border-primary/20 py-3", fillViewportHeight && "shrink-0")}>
           <CardTitle>0 Files</CardTitle>
         </CardHeader>
-        <CardContent className="p-8 text-center">
-          <p className="font-mono text-primary mb-2">No morgue files yet</p>
+        <CardContent className={cn("p-8 text-center", fillViewportHeight && "flex min-h-0 flex-1 items-center justify-center")}>
           <p className="text-sm text-muted-foreground">
-            Upload morgue files using the &quot;Upload Morgue&quot; button above to list them here.
+            Add morgue files by either syncing with the DCSS game servers or manually uploading the files from your computer.
           </p>
         </CardContent>
       </Card>
@@ -356,13 +422,18 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
 
   return (
     <>
-    <Card className="border-2 border-primary/30 rounded-none">
-      <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle>
-            {titleText}
-          </CardTitle>
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto sm:justify-end">
+    <Card
+      className={cn(
+        "w-full min-w-0 border-2 border-primary/30 rounded-none",
+        fillViewportHeight && "min-h-0 flex-1 gap-0 py-0",
+      )}
+    >
+      <CardHeader
+        className={cn("border-b-2 border-primary/20 pt-3 pb-0", fillViewportHeight && "shrink-0")}
+      >
+        <div className="flex w-full min-w-0 flex-col gap-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <CardTitle className="shrink-0">{titleText}</CardTitle>
+          <div className="flex w-full min-w-0 flex-col gap-3 py-3 sm:w-auto sm:flex-row sm:justify-end">
             {/* Result Filter */}
             <div className="flex gap-1">
               {(["all", "win", "death"] as const).map((filter) => (
@@ -527,8 +598,16 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
+      <CardContent
+        className={cn("p-0", fillViewportHeight && "flex min-h-0 flex-1 flex-col overflow-hidden")}
+      >
+        <div
+          ref={tableBodySlotRef}
+          className={cn(
+            "w-full min-w-0",
+            fillViewportHeight ? "min-h-0 flex-1 overflow-x-auto overflow-y-hidden" : "overflow-x-auto",
+          )}
+        >
           <Table>
             <TableHeader>
               <TableRow className="border-b-2 border-primary/20 hover:bg-transparent">
@@ -540,7 +619,9 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                 <SortableHeader field="duration" className="hidden md:table-cell">Duration</SortableHeader>
                 <SortableHeader field="date">Date</SortableHeader>
                 <SortableHeader field="result">Result</SortableHeader>
-                <TableHead className="font-mono text-xs text-primary w-24 text-right">Actions</TableHead>
+                <TableHead className={cn("font-mono text-xs text-primary text-right", readOnly ? "w-14" : "w-24")}>
+                  {readOnly ? "View" : "Actions"}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -554,7 +635,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                   <TableCell className="text-sm text-foreground">
                     {getCombo(game)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs">
+                  <TableCell className="font-mono">
                     {getGodShort(game)}
                   </TableCell>
                   <TableCell>{game.xl}</TableCell>
@@ -593,17 +674,19 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn("h-8 w-8 rounded-none hover:bg-destructive/20", colors.destructive)}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeleteConfirmGame(game)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!readOnly && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn("h-8 w-8 rounded-none hover:bg-destructive/20", colors.destructive)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteConfirmGame(game)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -612,7 +695,7 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
           </Table>
         </div>
 
-        <AlertDialog open={!!deleteConfirmGame} onOpenChange={(open) => !open && setDeleteConfirmGame(null)}>
+        <AlertDialog open={!readOnly && !!deleteConfirmGame} onOpenChange={(open) => !open && setDeleteConfirmGame(null)}>
           <AlertDialogContent className="rounded-none border-2 border-primary/30">
             <AlertDialogHeader>
               <AlertDialogTitle className="font-mono">Delete morgue?</AlertDialogTitle>
@@ -642,7 +725,12 @@ export function UploadsTable({ morgues, loading, onRefresh, usernameSlug }: Uplo
         </AlertDialog>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between border-t-2 border-primary/20 p-4">
+        <div
+          className={cn(
+            "flex items-center justify-between border-t-2 border-primary/20 p-4",
+            fillViewportHeight && "shrink-0",
+          )}
+        >
           <p className="text-xs text-muted-foreground">
             Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredAndSortedData.length)} of{" "}
             {filteredAndSortedData.length}

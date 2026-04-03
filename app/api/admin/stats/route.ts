@@ -16,6 +16,24 @@ type ImportEventRow = {
   created_at: string
 }
 
+/** Total rows in auth.users (same pagination as /api/admin/users). */
+async function countAuthUsers(supabase: SupabaseClient): Promise<number> {
+  let total = 0
+  let page = 1
+  const perPage = 1000
+  while (true) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage })
+    if (error) {
+      throw new Error(error.message ?? "Failed to list users")
+    }
+    const list = data?.users ?? []
+    total += list.length
+    if (list.length < perPage) break
+    page++
+  }
+  return total
+}
+
 async function fetchImportEvents(supabase: SupabaseClient): Promise<ImportEventRow[]> {
   try {
     const { data } = await supabase
@@ -46,9 +64,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [countsRes, dbSizeRes] = await Promise.all([
+    const [countsRes, dbSizeRes, totalAuthUsers] = await Promise.all([
       supabase.rpc("admin_counts").maybeSingle(),
       supabase.rpc("admin_db_size").maybeSingle(),
+      countAuthUsers(supabase),
     ])
 
     const events = await fetchImportEvents(supabase)
@@ -89,6 +108,7 @@ export async function GET(request: Request) {
     }))
 
     return NextResponse.json({
+      totalAuthUsers,
       usersWithMorgues: counts.users_with_morgues ?? 0,
       totalParsedMorgues: counts.total_parsed_morgues ?? 0,
       totalMorgueFiles: counts.total_morgue_files ?? 0,

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import { Trophy, Skull, Target, Flame, Zap, Timer, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -24,11 +25,14 @@ import { RuneCollectionChart } from "@/components/dashboard/rune-collection-char
 import { TestPerformanceChart } from "@/components/dashboard/test-performance-chart"
 import { Top10Killers } from "@/components/dashboard/top-10-killers"
 import { SpeciesBackgroundComboGrid } from "@/components/dashboard/species-background-combo-grid"
+import { DcssChargenSelectionGrid } from "@/components/dashboard/dcss-chargen-selection-grid"
 import { UploadDialog } from "@/components/dashboard/upload-dialog"
 import { OnlineImportDialog } from "@/components/dashboard/online-import-dialog"
 import { UploadsTable } from "@/components/dashboard/uploads-table"
 import { Extras } from "@/components/dashboard/extras"
 import { useAuth } from "@/contexts/auth-context"
+import { useBrowse } from "@/contexts/browse-context"
+import { useTheme } from "@/contexts/theme-context"
 import { supabase } from "@/lib/supabase"
 import { toast } from "@/hooks/use-toast"
 import {
@@ -44,10 +48,11 @@ import {
 } from "@/lib/morgue-api"
 import { GOD_SHORT_FORMS } from "@/lib/dcss-constants"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { slugifyUsername } from "@/lib/slug"
+import { slugifyUsername, TAB_TO_PAGE } from "@/lib/slug"
 import { typography, TITLE_GRAPHIC_SIZE_LARGE } from "@/lib/typography"
 import { SkillingAnalysis } from "@/components/dashboard/skilling-analysis"
 import { AverageLevelByGodChart } from "@/components/dashboard/average-level-by-god-chart"
+import { cn } from "@/lib/utils"
 
 function speciesCode(species: string): string {
   const s = (species ?? "").trim()
@@ -57,6 +62,7 @@ function speciesCode(species: string): string {
   if (s === "Deep Elf") return "DE"
   if (s === "Draconian") return "Dr"
   if (s === "Mountain Dwarf") return "MD"
+  if (s === "Demigod") return "Dg"
   if (s === "Demonspawn") return "Ds"
   if (s === "Gargoyle") return "Gr"
   if (s.endsWith(" Draconian")) return "Dr"
@@ -72,6 +78,7 @@ function backgroundCode(background: string): string {
     "Ice Elementalist": "IE",
     "Air Elementalist": "AE",
     "Earth Elementalist": "EE",
+    "Forgewright": "FW",
     "Hedge Wizard": "HW",
     "Warper": "Wr",
     "Wanderer": "Wn",
@@ -150,7 +157,11 @@ export default function DashboardPage({
   usernameSlug?: string
 } = {}) {
   const { userId, user } = useAuth()
+  const { browseTarget, clearBrowseTarget } = useBrowse()
+  const { themeStyle } = useTheme()
   const router = useRouter()
+  const isBrowsingOther = !!(browseTarget && userId && browseTarget.userId !== userId)
+  const morguePublicSlug = browseTarget?.usernameSlug ?? usernameSlug
   const [internalTab, setInternalTab] = useState("analysis")
   const activeTab = activeTabProp ?? internalTab
   const setActiveTab = onTabChangeProp ?? setInternalTab
@@ -184,21 +195,63 @@ export default function DashboardPage({
     setMorguesLoading(true)
     setStatsLoading(true)
 
-    const [morgueList, statsRow, globalAnalysis] = await Promise.all([
-      userId ? fetchMorgues(supabase, userId) : Promise.resolve([]),
-      userId ? fetchUserStats(supabase, userId) : Promise.resolve(null),
-      fetchGlobalAnalysisStats(supabase),
-    ])
+    const targetBrowseId = browseTarget?.userId
+    const useBrowseApi = !!(targetBrowseId && userId && targetBrowseId !== userId)
 
-    setMorgues(morgueList)
-    setStats(statsRow)
-    setGlobalStats(globalAnalysis)
-    setGlobalLevelDeathAverages(globalAnalysis?.levelDeath.averages ?? null)
-    setGlobalLevelDeathUserCount(globalAnalysis?.levelDeath.userCount ?? null)
+    try {
+      const globalAnalysis = await fetchGlobalAnalysisStats(supabase)
 
-    setMorguesLoading(false)
-    setStatsLoading(false)
-  }, [userId])
+      if (useBrowseApi) {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        const token = session?.access_token
+        if (!token) {
+          setMorgues([])
+          setStats(null)
+        } else {
+          const res = await fetch(
+            `/api/browse/dashboard?userId=${encodeURIComponent(targetBrowseId)}`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          )
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}))
+            toast({
+              title: "Could not load player data",
+              description: (body.error as string) || res.statusText,
+              variant: "destructive",
+            })
+            setMorgues([])
+            setStats(null)
+          } else {
+            const payload = await res.json()
+            setMorgues(payload.morgues ?? [])
+            setStats(payload.stats ?? null)
+          }
+        }
+      } else {
+        const [morgueList, statsRow] = await Promise.all([
+          userId ? fetchMorgues(supabase, userId) : Promise.resolve([]),
+          userId ? fetchUserStats(supabase, userId) : Promise.resolve(null),
+        ])
+        setMorgues(morgueList)
+        setStats(statsRow)
+      }
+
+      setGlobalStats(globalAnalysis)
+      setGlobalLevelDeathAverages(globalAnalysis?.levelDeath.averages ?? null)
+      setGlobalLevelDeathUserCount(globalAnalysis?.levelDeath.userCount ?? null)
+    } catch (e) {
+      toast({
+        title: "Load failed",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      })
+    } finally {
+      setMorguesLoading(false)
+      setStatsLoading(false)
+    }
+  }, [userId, browseTarget?.userId])
 
   useEffect(() => {
     loadData()
@@ -206,6 +259,13 @@ export default function DashboardPage({
 
   const hasStats = stats && stats.total_games > 0
   const isEmpty = !statsLoading && !morguesLoading && morgues.length === 0
+  const routeSlug = usernameSlug || (user?.name ? slugifyUsername(user.name) : "")
+  const morguesPageHref =
+    isBrowsingOther && browseTarget
+      ? `/${browseTarget.usernameSlug}/${TAB_TO_PAGE.morgues}`
+      : routeSlug
+        ? `/${routeSlug}/${TAB_TO_PAGE.morgues}`
+        : null
   const statsData = stats
     ? {
         totalWins: stats.total_wins,
@@ -271,7 +331,7 @@ export default function DashboardPage({
   const gamesReachedLair5Value = `${lair5Pct}%`
 
   const handleDownloadAllMorgues = useCallback(async () => {
-    if (!userId || morgues.length === 0 || isDownloading) return
+    if (!userId || isBrowsingOther || morgues.length === 0 || isDownloading) return
     setIsDownloading(true)
     try {
       const { default: JSZip } = await import("jszip")
@@ -311,15 +371,55 @@ export default function DashboardPage({
       setIsDownloading(false)
       setDownloadConfirmOpen(false)
     }
-  }, [userId, morgues, isDownloading])
+  }, [userId, morgues, isDownloading, isBrowsingOther])
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} usernameSlug={usernameSlug} />
+    <div
+      className={cn(
+        "bg-background",
+        activeTab === "morgues" ? "flex h-dvh min-h-0 flex-col overflow-hidden" : "min-h-screen",
+      )}
+    >
+      <div className={cn(activeTab === "morgues" && "shrink-0")}>
+        <Navigation activeTab={activeTab} onTabChange={setActiveTab} usernameSlug={usernameSlug} />
+      </div>
 
-      <main className="mx-auto max-w-7xl px-4 py-6">
+      {browseTarget && (
+        <div className="shrink-0 border-b-2 border-amber-500/60 bg-amber-500/10">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2.5">
+            <p className="font-mono text-lg text-foreground">
+              Viewing data for user:{" "}
+              <span className="text-xl font-semibold text-primary">{browseTarget.usernameSlug}</span>
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "nav-signout rounded-none border-2 text-primary hover:bg-destructive/10 font-mono text-sm",
+                themeStyle === "tiles" ? "border-primary/50" : "border-red-500/50",
+              )}
+              onClick={() => {
+                clearBrowseTarget()
+              }}
+            >
+              Return to your data
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <main
+        className={cn(
+          "mx-auto max-w-7xl px-4 py-6",
+          activeTab === "morgues" && "flex w-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+        )}
+      >
         <div
-          className={`flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between ${activeTab === "morgues" ? "mb-2" : "mb-6"}`}
+          className={cn(
+            "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
+            activeTab === "morgues" ? "mb-2 shrink-0" : "mb-6",
+          )}
         >
           <div>
             <div className="flex flex-wrap items-center gap-3">
@@ -372,9 +472,9 @@ export default function DashboardPage({
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-6">
               {activeTab === "analysis" && globalStats && globalStats.userCount > 0 && (
-                <div className="flex items-center gap-2 pr-5">
+                <div className="flex items-center gap-2 pr-5 sm:pr-0">
                   <div className="flex flex-col items-center">
                     <span className={typography.captionMono}>Show averages</span>
                     <span className={typography.captionMono}>
@@ -388,8 +488,35 @@ export default function DashboardPage({
                   />
                 </div>
               )}
-              <UploadDialog onUploadComplete={loadData} />
-              {activeTab === "morgues" && (
+              {activeTab === "analysis" && !isBrowsingOther && userId && (
+                <div className="flex items-center gap-2 pr-5 sm:pr-0">
+                  <div className="flex flex-col items-center max-w-[11rem] text-center">
+                    <span className={typography.captionMono}>Enable sharing</span>
+                  </div>
+                  <Switch
+                    checked={user?.browseSharingEnabled ?? true}
+                    onCheckedChange={async (enabled) => {
+                      if (!userId) return
+                      const { error } = await supabase.auth.updateUser({
+                        data: { browse_sharing_enabled: enabled },
+                      })
+                      if (error) {
+                        toast({
+                          title: "Could not update sharing",
+                          description: error.message,
+                          variant: "destructive",
+                        })
+                        return
+                      }
+                    }}
+                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                </div>
+              )}
+              {activeTab === "morgues" && !isBrowsingOther && (
+                <UploadDialog onUploadComplete={loadData} />
+              )}
+              {activeTab === "morgues" && !isBrowsingOther && (
                 <Button
                   className="gap-2 rounded-none border-2 border-primary bg-background text-primary hover:bg-primary/10 font-mono text-xs"
                   onClick={() => setOnlineImportOpen(true)}
@@ -398,7 +525,7 @@ export default function DashboardPage({
                   Server Import
                 </Button>
               )}
-              {activeTab === "morgues" && morgues.length > 0 && (
+              {activeTab === "morgues" && !isBrowsingOther && morgues.length > 0 && (
                 <Button
                   className="gap-2 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs"
                   onClick={() => setDownloadConfirmOpen(true)}
@@ -538,7 +665,7 @@ export default function DashboardPage({
                 />
               )}
               {isEmpty ? (
-                <AnalysisEmptyState />
+                <AnalysisEmptyState morguesPageHref={morguesPageHref} />
               ) : statsLoading ? (
                 <AnalysisLoadingState />
               ) : (
@@ -653,7 +780,12 @@ export default function DashboardPage({
                 </>
               )}
             </div>
-            <SpeciesBackgroundComboGrid morgues={morgues} />
+            {!morguesLoading && (
+              <>
+                <DcssChargenSelectionGrid morgues={morgues} />
+                {morgues.length > 0 && <SpeciesBackgroundComboGrid morgues={morgues} />}
+              </>
+            )}
           </>
         )}
 
@@ -670,8 +802,8 @@ export default function DashboardPage({
         )}
 
         {activeTab === "morgues" && (
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center justify-end gap-3">
+          <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-2 pb-2">
+            <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-3">
               <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
                 <span>Version range:</span>
                 <Select value={versionStart} onValueChange={setVersionStart}>
@@ -709,31 +841,35 @@ export default function DashboardPage({
                 </Select>
               </div>
             </div>
-            <div className="space-y-3">
+            <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3">
               <UploadsTable
                 morgues={filteredMorguesByVersion}
                 loading={morguesLoading}
                 onRefresh={loadData}
-                usernameSlug={usernameSlug}
+                usernameSlug={morguePublicSlug}
+                fillViewportHeight
+                readOnly={isBrowsingOther}
               />
-              <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
-                <Button
-                  variant="destructive"
-                  className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
-                  onClick={() => setRefreshConfirmOpen(true)}
-                  disabled={isRefreshing || isNuking}
-                >
-                  {isRefreshing ? "Refreshing…" : "Refresh Morgues"}
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="rounded-none border-2 font-mono text-xs"
-                  onClick={() => setNukeConfirmOpen(true)}
-                  disabled={isNuking || isRefreshing}
-                >
-                  {isNuking ? "Nuking…" : "Nuke Morgue"}
-                </Button>
-              </div>
+              {!isBrowsingOther && (
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 pt-1">
+                  <Button
+                    variant="destructive"
+                    className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
+                    onClick={() => setRefreshConfirmOpen(true)}
+                    disabled={isRefreshing || isNuking}
+                  >
+                    {isRefreshing ? "Refreshing…" : "Refresh Morgues"}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="rounded-none border-2 font-mono text-xs"
+                    onClick={() => setNukeConfirmOpen(true)}
+                    disabled={isNuking || isRefreshing}
+                  >
+                    {isNuking ? "Nuking…" : "Nuke Morgue"}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -749,7 +885,12 @@ export default function DashboardPage({
         onImportComplete={loadData}
       />
 
-      <footer className="border-t-4 border-primary/30 bg-card mt-8">
+      <footer
+        className={cn(
+          "border-t-4 border-primary/30 bg-card",
+          activeTab === "morgues" ? "mt-0 shrink-0" : "mt-8",
+        )}
+      >
         <div className="mx-auto max-w-7xl px-4 py-6">
           <p className="text-center text-sm text-muted-foreground font-mono">
             Snorg.
@@ -760,13 +901,21 @@ export default function DashboardPage({
   )
 }
 
-function AnalysisEmptyState() {
+function AnalysisEmptyState({ morguesPageHref }: { morguesPageHref: string | null }) {
   return (
     <div className="rounded-none border-2 border-primary/30 bg-card p-8 text-center">
       <p className="font-mono text-primary mb-2">No morgue data yet</p>
       <p className={typography.bodyMuted}>
-        Upload morgue files from the &quot;Upload Morgue&quot; button to see your stats here.
+        Add some morgues files to start tracking your progress...
       </p>
+      {morguesPageHref && (
+        <Button
+          asChild
+          className="mt-6 rounded-none border-2 border-primary bg-background font-mono text-xs text-primary hover:bg-primary/10"
+        >
+          <Link href={morguesPageHref}>Go to morgue page</Link>
+        </Button>
+      )}
     </div>
   )
 }

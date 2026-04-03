@@ -30,6 +30,7 @@ function speciesCode(species: string): string {
   if (s === "Deep Elf") return "DE"
   if (s === "Draconian") return "Dr"
   if (s === "Mountain Dwarf") return "MD"
+  if (s === "Demigod") return "Dg"
   if (s === "Demonspawn") return "Ds"
   if (s === "Gargoyle") return "Gr"
   // Coloured draconians use the base Dr code
@@ -46,6 +47,7 @@ function backgroundCode(background: string): string {
     "Ice Elementalist": "IE",
     "Air Elementalist": "AE",
     "Earth Elementalist": "EE",
+    "Forgewright": "FW",
     "Hedge Wizard": "HW",
     "Warper": "Wr",
     "Wanderer": "Wn",

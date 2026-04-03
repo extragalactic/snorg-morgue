@@ -36,7 +36,7 @@ const PLAY_TIME_ACHIEVEMENTS = [
   { title: SNORG_TITLES.S_BRANCH_ASSASSIN, hours: 500 },
   { title: SNORG_TITLES.VAULT_MERCENARY, hours: 1000 },
   { title: SNORG_TITLES.ZOT_SPECIAL_OPS, hours: 2000 },
-  { title: SNORG_TITLES.NERD_GOD_KING, hours: 4000 },
+  { title: SNORG_TITLES.NERD_GOD_KING, hours: 3000 },
 ].map((a) => ({ ...a, thresholdSeconds: a.hours * 3600 }))
 
 /** Font size for hours-played tooltip by achievement index (D1 Padawan → Nerd God-King) */
@@ -382,12 +382,9 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
       ? GOD_NAMES_FOR_CHART.filter(
           (godName) => (discipleMaps.godSpeciesWins.get(godName)?.size ?? 0) >= 3
         )
-      : ["Trog"]
+      : []
 
-  const hasDiscipleProgress =
-    morgues.length > 0
-      ? discipleGods.length > 0
-      : true
+  const hasDiscipleProgress = morgues.length > 0 && discipleGods.length > 0
 
   if (loading) {
     return (
@@ -481,15 +478,14 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
       </Card>
 
       {/* Greater Species card */}
-      {greaterSpeciesGoals.length > 0 && (
-        <Card className="mt-6 border-2 border-primary/30 rounded-none">
-          <CardHeader className="border-b-2 border-primary/20 pb-3">
-            <CardTitle>GREATER SPECIES</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            {hasGreaterSpeciesProgress ? (
-              <div className="grid gap-6 md:grid-cols-4">
-                {greaterSpeciesWithProgress.map((goal) => {
+      <Card className="mt-6 border-2 border-primary/30 rounded-none">
+        <CardHeader className="border-b-2 border-primary/20 pb-3">
+          <CardTitle>GREATER SPECIES</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {hasGreaterSpeciesProgress ? (
+            <div className="grid gap-6 md:grid-cols-4">
+              {greaterSpeciesWithProgress.map((goal) => {
                   const percentage = (goal.current / goal.max) * 100
                   const isComplete = goal.current >= goal.max
                   const speciesName = goal.name.replace(/^Greater /, "")
@@ -541,15 +537,16 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                     </Tooltip>
                   )
                 })}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground font-mono">
-                Before you see the Greater Species tracking you must have at least 3 wins with a species with different backgrounds.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+            </div>
+          ) : morgues.length === 0 ? (
+            <p className="text-sm text-muted-foreground font-mono">No awards yet.</p>
+          ) : (
+            <p className="text-sm text-muted-foreground font-mono">
+              Before you see the Greater Species tracking you must have at least 3 wins with a species with different backgrounds.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Snorg Awards section title */}
       <div className="mt-10 mb-5 flex items-center gap-3">
@@ -683,9 +680,167 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
         </CardContent>
       </Card>
 
-      {/* Enthusiastic Species card */}
-      {enthusiasticSpeciesGoals.length > 0 && (
-        <Card className="mt-6 border-2 border-primary/30 rounded-none">
+      {/* Divine Disciples card */}
+      <Card className="mt-6 border-2 border-primary/30 rounded-none">
+        <CardHeader className="border-b-2 border-primary/20 pb-3">
+          <CardTitle>DIVINE DISCIPLES</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {hasDiscipleProgress ? (
+            <div className="grid gap-6 md:grid-cols-4">
+              {discipleGods.map((godName) => {
+                const speciesSet = discipleMaps.godSpeciesWins.get(godName) ?? new Set<string>()
+                const current = speciesSet.size
+                // Compute eligible species for this god, subtracting species that can never worship this god.
+                const ineligibleSpecies = ALL_SPECIES_NAMES.filter((sp) => {
+                  const excludedForSpecies = SPECIES_EXCLUDED_GODS[sp] ?? []
+                  return excludedForSpecies.includes(godName)
+                })
+                const eligibleSpecies = ALL_SPECIES_NAMES.filter(
+                  (sp) => !ineligibleSpecies.includes(sp),
+                )
+                const maxForGod = eligibleSpecies.length
+                const percentage = (current / maxForGod) * 100
+                const isComplete = current >= maxForGod
+                const wonSpecies = new Set(speciesSet)
+                const tooltipSpecies = eligibleSpecies
+                return (
+                  <Tooltip key={godName}>
+                    <TooltipTrigger asChild>
+                      <div className="space-y-2 cursor-default">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1 font-mono text-sm text-foreground">
+                            Disciple of {godName}
+                            {isComplete && (
+                              <Check
+                                className={`h-3.5 w-3.5 ${
+                                  themeStyle === "ascii" ? "text-emerald-300" : "text-emerald-400"
+                                }`}
+                              />
+                            )}
+                          </span>
+                          <span
+                            className={`font-mono text-sm ${
+                              isComplete
+                                ? themeStyle === "ascii"
+                                  ? "text-emerald-300"
+                                  : "text-emerald-400"
+                                : "text-primary"
+                            }`}
+                          >
+                            {current}/{maxForGod}
+                          </span>
+                        </div>
+                        <Progress
+                          value={percentage}
+                          className="h-3 rounded-none bg-secondary border border-primary/30"
+                          indicatorClassName={isComplete ? completeIndicatorClass : undefined}
+                        />
+                        <p className="text-xs text-muted-foreground whitespace-pre-line">
+                          Win with all {maxForGod} eligible species while worshipping {godName}.
+                        </p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
+                      <div className="grid grid-cols-3 gap-x-4 gap-y-0.5 py-0.5">
+                        {tooltipSpecies.map((sp) => {
+                          const hasWin = wonSpecies.has(sp)
+                          return (
+                            <span
+                              key={sp}
+                              className={`font-mono text-sm ${
+                                hasWin ? "text-foreground font-semibold" : "text-foreground/60"
+                              }`}
+                            >
+                              {sp}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                )
+              })}
+            </div>
+          ) : morgues.length === 0 ? (
+            <p className="text-sm text-muted-foreground font-mono">No awards yet.</p>
+          ) : (
+            <p className="text-sm text-muted-foreground font-mono">
+              Before you see the Divine Disciples tracking you must have at least 3 wins with a god on different species.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Devoted Species card */}
+      <Card className="mt-6 border-2 border-primary/30 rounded-none">
+          <CardHeader className="border-b-2 border-primary/20 pb-3">
+            <CardTitle>DEVOTED SPECIES</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {hasDevotedSpeciesProgress ? (
+              <div className="grid gap-6 md:grid-cols-4">
+                {devotedSpeciesWithProgress.map((goal) => {
+                  const percentage = (goal.current / goal.max) * 100
+                  const isComplete = goal.current >= goal.max
+                  const speciesName = goal.name.replace(/^Devoted /, "")
+                  const hasWins = speciesMaps.speciesGodWins.get(speciesName) ?? new Set<string>()
+                  return (
+                    <Tooltip key={goal.name}>
+                      <TooltipTrigger asChild>
+                        <div className="space-y-2 cursor-default">
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-1 font-mono text-sm text-foreground">
+                              {goal.name}
+                              {isComplete && (
+                                <Check
+                                  className={`h-3.5 w-3.5 ${
+                                    themeStyle === "ascii" ? "text-emerald-300" : "text-emerald-400"
+                                  }`}
+                                />
+                              )}
+                            </span>
+                            <span
+                              className={`font-mono text-sm ${
+                                isComplete
+                                  ? themeStyle === "ascii"
+                                    ? "text-emerald-300"
+                                    : "text-emerald-400"
+                                  : "text-primary"
+                              }`}
+                            >
+                              {goal.current}/{goal.max}
+                            </span>
+                          </div>
+                          <Progress
+                            value={percentage}
+                            className="h-3 rounded-none bg-secondary border border-primary/30"
+                            indicatorClassName={isComplete ? completeIndicatorClass : undefined}
+                          />
+                          <p className="text-xs text-muted-foreground whitespace-pre-line">
+                            {goal.description}
+                          </p>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
+                        <AchievementDetailGrid items={GOD_NAMES_FOR_CHART} hasWins={hasWins} />
+                      </TooltipContent>
+                    </Tooltip>
+                  )
+                })}
+              </div>
+            ) : morgues.length === 0 ? (
+              <p className="text-sm text-muted-foreground font-mono">No awards yet.</p>
+            ) : (
+              <p className="text-sm text-muted-foreground font-mono">
+                Before you see the Devoted Species tracking you must have at least 3 wins with a species while worshipping different gods (except for Ignis, only the final god counts for all god calculations).
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+      {/* Enthusiastic Species card (bottom of achievements page) */}
+      <Card className="mt-6 border-2 border-primary/30 rounded-none">
           <CardHeader className="border-b-2 border-primary/20 pb-3">
             <CardTitle className="flex items-baseline gap-2">
               <span>ENTHUSIASTIC SPECIES</span>
@@ -750,6 +905,8 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                   )
                 })}
               </div>
+            ) : morgues.length === 0 ? (
+              <p className="text-sm text-muted-foreground font-mono">No awards yet.</p>
             ) : (
               <p className="text-sm text-muted-foreground font-mono">
                 Before you see the Enthusiastic Species tracking you must attempt a win with a species using a minimum of 3 different backgrounds.
@@ -757,168 +914,6 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
             )}
           </CardContent>
         </Card>
-      )}
-
-      {/* Divine Disciples card */}
-      <Card className="mt-6 border-2 border-primary/30 rounded-none">
-        <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle>DIVINE DISCIPLES</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          {hasDiscipleProgress ? (
-            <div className="grid gap-6 md:grid-cols-4">
-              {discipleGods.map((godName) => {
-                const speciesSet =
-                  morgues.length > 0
-                    ? discipleMaps.godSpeciesWins.get(godName) ?? new Set<string>()
-                    : new Set<string>(["Minotaur", "Troll", "Hill Orc"])
-                const current = speciesSet.size
-                // Compute eligible species for this god, subtracting species that can never worship this god.
-                const ineligibleSpecies = ALL_SPECIES_NAMES.filter((sp) => {
-                  const excludedForSpecies = SPECIES_EXCLUDED_GODS[sp] ?? []
-                  return excludedForSpecies.includes(godName)
-                })
-                const eligibleSpecies = ALL_SPECIES_NAMES.filter(
-                  (sp) => !ineligibleSpecies.includes(sp),
-                )
-                const maxForGod = eligibleSpecies.length
-                const percentage = (current / maxForGod) * 100
-                const isComplete = current >= maxForGod
-                const wonSpecies =
-                  morgues.length > 0 ? new Set(speciesSet) : new Set<string>(["Minotaur", "Troll", "Hill Orc"])
-                const tooltipSpecies = eligibleSpecies
-                return (
-                  <Tooltip key={godName}>
-                    <TooltipTrigger asChild>
-                      <div className="space-y-2 cursor-default">
-                        <div className="flex items-center justify-between">
-                          <span className="flex items-center gap-1 font-mono text-sm text-foreground">
-                            Disciple of {godName}
-                            {isComplete && (
-                              <Check
-                                className={`h-3.5 w-3.5 ${
-                                  themeStyle === "ascii" ? "text-emerald-300" : "text-emerald-400"
-                                }`}
-                              />
-                            )}
-                          </span>
-                          <span
-                            className={`font-mono text-sm ${
-                              isComplete
-                                ? themeStyle === "ascii"
-                                  ? "text-emerald-300"
-                                  : "text-emerald-400"
-                                : "text-primary"
-                            }`}
-                          >
-                            {current}/{maxForGod}
-                          </span>
-                        </div>
-                        <Progress
-                          value={percentage}
-                          className="h-3 rounded-none bg-secondary border border-primary/30"
-                          indicatorClassName={isComplete ? completeIndicatorClass : undefined}
-                        />
-                        <p className="text-xs text-muted-foreground whitespace-pre-line">
-                          Win with all {maxForGod} eligible species while worshipping {godName}.
-                        </p>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
-                      <div className="grid grid-cols-3 gap-x-4 gap-y-0.5 py-0.5">
-                        {tooltipSpecies.map((sp) => {
-                          const hasWin = wonSpecies.has(sp)
-                          return (
-                            <span
-                              key={sp}
-                              className={`font-mono text-sm ${
-                                hasWin ? "text-foreground font-semibold" : "text-foreground/60"
-                              }`}
-                            >
-                              {sp}
-                            </span>
-                          )
-                        })}
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                )
-              })}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground font-mono">
-              Before you see the Divine Disciples tracking you must have at least 3 wins with a god on different species.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Devoted Species card */}
-      {devotedSpeciesGoals.length > 0 && (
-        <Card className="mt-6 border-2 border-primary/30 rounded-none">
-          <CardHeader className="border-b-2 border-primary/20 pb-3">
-            <CardTitle>DEVOTED SPECIES</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            {hasDevotedSpeciesProgress ? (
-              <div className="grid gap-6 md:grid-cols-4">
-                {devotedSpeciesWithProgress.map((goal) => {
-                  const percentage = (goal.current / goal.max) * 100
-                  const isComplete = goal.current >= goal.max
-                  const speciesName = goal.name.replace(/^Devoted /, "")
-                  const hasWins = speciesMaps.speciesGodWins.get(speciesName) ?? new Set<string>()
-                  return (
-                    <Tooltip key={goal.name}>
-                      <TooltipTrigger asChild>
-                        <div className="space-y-2 cursor-default">
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1 font-mono text-sm text-foreground">
-                              {goal.name}
-                              {isComplete && (
-                                <Check
-                                  className={`h-3.5 w-3.5 ${
-                                    themeStyle === "ascii" ? "text-emerald-300" : "text-emerald-400"
-                                  }`}
-                                />
-                              )}
-                            </span>
-                            <span
-                              className={`font-mono text-sm ${
-                                isComplete
-                                  ? themeStyle === "ascii"
-                                    ? "text-emerald-300"
-                                    : "text-emerald-400"
-                                  : "text-primary"
-                              }`}
-                            >
-                              {goal.current}/{goal.max}
-                            </span>
-                          </div>
-                          <Progress
-                            value={percentage}
-                            className="h-3 rounded-none bg-secondary border border-primary/30"
-                            indicatorClassName={isComplete ? completeIndicatorClass : undefined}
-                          />
-                          <p className="text-xs text-muted-foreground whitespace-pre-line">
-                            {goal.description}
-                          </p>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
-                        <AchievementDetailGrid items={GOD_NAMES_FOR_CHART} hasWins={hasWins} />
-                      </TooltipContent>
-                    </Tooltip>
-                  )
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground font-mono">
-                Before you see the Devoted Species tracking you must have at least 3 wins with a species while worshipping different gods (except for Ignis, only the final god counts for all god calculations).
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
     </>
   )

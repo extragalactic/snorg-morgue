@@ -416,6 +416,59 @@ export async function recalcUserStats(
   )
 }
 
+/** DB row shape from parsed_morgues select — shared by client fetch and browse API. */
+export function parsedMorgueRowsToGameRecords(data: unknown[] | null | undefined): GameRecord[] {
+  return (data ?? []).map((r) => {
+    const row = r as {
+      id: string
+      character_name: string
+      species: string
+      background: string
+      xl: number
+      place: string
+      turns: number
+      duration_formatted: string
+      created_at: string
+      is_win: boolean
+      runes_count: number
+      morgue_file_id?: string | null
+      game_completion_date?: string | null
+      short_id?: string
+      morgue_url?: string | null
+      version?: string | null
+      duration_seconds?: number
+      runes_text?: string
+      killer?: string | null
+      god?: string | null
+      reached_lair_5?: boolean
+    }
+    return {
+      id: row.id,
+      shortId: row.short_id ?? "",
+      morgueFileId: row.morgue_file_id ?? undefined,
+      morgueUrl: row.morgue_url?.trim() || undefined,
+      character: row.character_name,
+      species: row.species,
+      background: row.background,
+      xl: row.xl,
+      place: row.place,
+      turns: row.turns,
+      duration: row.duration_formatted,
+      durationSeconds: row.duration_seconds,
+      date: row.game_completion_date?.trim()
+        ? row.game_completion_date
+        : row.created_at.slice(0, 10),
+      result: row.is_win ? ("win" as const) : ("death" as const),
+      runes: row.runes_count,
+      runesText: row.runes_text ?? undefined,
+      killer: row.killer ?? undefined,
+      god: row.god ?? undefined,
+      reachedLair5: row.reached_lair_5 ?? false,
+      version: row.version?.trim() || undefined,
+    }
+  })
+}
+
 /**
  * Fetch parsed morgues for the current user as GameRecord[].
  * Tries to include short_id if the column exists; if the column is missing (migration not run), retries without it.
@@ -445,38 +498,7 @@ export async function fetchMorgues(
     data = fallback.data
   }
 
-  return (data ?? []).map((r) => {
-    const row = r as {
-      game_completion_date?: string | null
-      created_at: string
-      short_id?: string
-      morgue_url?: string | null
-      version?: string | null
-      [k: string]: unknown
-    }
-    return {
-      id: r.id,
-      shortId: row.short_id ?? "",
-      morgueFileId: (r.morgue_file_id as string | null) ?? undefined,
-      morgueUrl: row.morgue_url?.trim() || undefined,
-      character: r.character_name,
-      species: r.species,
-      background: r.background,
-      xl: r.xl,
-      place: r.place,
-      turns: r.turns,
-      duration: r.duration_formatted,
-      durationSeconds: (r as { duration_seconds?: number }).duration_seconds,
-      date: row.game_completion_date?.trim() ? row.game_completion_date : row.created_at.slice(0, 10),
-      result: r.is_win ? ("win" as const) : ("death" as const),
-      runes: r.runes_count,
-      runesText: (r as { runes_text?: string }).runes_text ?? undefined,
-      killer: r.killer ?? undefined,
-      god: r.god ?? undefined,
-      reachedLair5: (r as { reached_lair_5?: boolean }).reached_lair_5 ?? false,
-      version: row.version?.trim() || undefined,
-    }
-  })
+  return parsedMorgueRowsToGameRecords(data as unknown[])
 }
 
 /**

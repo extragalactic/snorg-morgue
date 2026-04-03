@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, ScrollText, Menu, X, LogOut, ExternalLink, Monitor, Terminal, Trophy, Shield, Flame } from "lucide-react"
+import { BarChart3, ScrollText, Menu, X, LogOut, ExternalLink, Monitor, Terminal, Trophy, Shield, Flame, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -44,10 +44,33 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
   const isAdminPage = adminActive ?? pathname === "/dashboard/admin"
   const slugFromUser = user?.name ? slugifyUsername(user.name) : null
   const useNavLinks = !usernameSlug && slugFromUser && isAdminPage
+  const pathSegments = pathname?.split("/").filter(Boolean) ?? []
+  const isBrowsePage = pathSegments.length >= 2 && pathSegments[1] === "browse"
+  const browseBaseSlug = usernameSlug ?? slugFromUser
+  const browseHref = browseBaseSlug ? `/${browseBaseSlug}/browse` : undefined
+
+  const renderBrowseButton = (mobile = false) => {
+    if (!browseHref) return null
+    const buttonClass = cn(
+      "rounded-none border-2 font-mono text-sm",
+      isBrowsePage
+        ? "border-primary bg-primary text-primary-foreground"
+        : "border-transparent hover:border-primary/50 hover:bg-primary/10 hover:text-primary",
+      mobile && "w-full justify-start mb-1",
+    )
+    return (
+      <Link href={browseHref} onClick={() => mobile && setMobileMenuOpen(false)}>
+        <Button variant="ghost" size="default" className={cn(buttonClass, mobile && "w-full justify-start")}>
+          <Users className="h-4 w-4" />
+          Browse
+        </Button>
+      </Link>
+    )
+  }
 
   const renderNavItem = (item: (typeof navItems)[0], mobile = false) => {
     const Icon = item.icon
-    const isActive = activeTab === item.id
+    const isActive = !isBrowsePage && activeTab === item.id
     const buttonClass = cn(
       "rounded-none border-2 font-mono text-sm",
       isActive
@@ -56,13 +79,15 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
       mobile && "w-full justify-start mb-1"
     )
     const pagePath = TAB_TO_PAGE[item.id]
-    const href = pagePath && slugFromUser ? `/${slugFromUser}/${pagePath}` : undefined
+    const tabHref = pagePath && slugFromUser ? `/${slugFromUser}/${pagePath}` : undefined
+    /** Dashboard tabs use client pushState; admin uses Link; Browse route must use Link (parent often passes onTabChange no-op). */
+    const useTabLink = Boolean(tabHref) && (useNavLinks || isBrowsePage)
 
-    if (useNavLinks && href) {
+    if (useTabLink && tabHref) {
       return (
         <Link
           key={item.id}
-          href={href}
+          href={tabHref}
           onClick={() => mobile && setMobileMenuOpen(false)}
         >
           <Button
@@ -100,7 +125,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
       <div className="border-b-2 border-green-500/30 bg-gradient-to-b from-green-950/50 to-transparent">
         <div className="mx-auto max-w-7xl px-4 py-4">
           {themeStyle === "ascii" ? (
-            <pre className="text-center text-green-400/80 text-[13px] sm:text-[1rem] font-mono leading-none">
+            <pre className="max-w-full text-left text-green-400/80 text-[13px] sm:text-[1rem] font-mono leading-none overflow-x-auto overflow-y-hidden">
 {`                                                                          
  ___ _ __   ___  _ __ __ _       _ __ ___   ___  _ __ __ _ _   _  ___   ___  _ __ __ _ 
 / __| '_ \\ / _ \\| '__/ _\` |_____| '_ \` _ \\ / _ \\| '__/ _\` | | | |/ _ \\ / _ \\| '__/ _\` |
@@ -109,7 +134,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
                      |___/                          |___/                       |___/ `}
             </pre>
           ) : (
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-start gap-4">
               <Image 
                 src="/images/snorg.png" 
                 alt="Snorg the Troll" 
@@ -134,6 +159,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
             {navItems.map((item) => renderNavItem(item))}
+            {renderBrowseButton(false)}
             {showAdmin && (
               <Link href="/dashboard/admin">
                 <Button
@@ -223,6 +249,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
         {mobileMenuOpen && (
           <div className="md:hidden border-t-2 border-primary/30 py-2">
             {navItems.map((item) => renderNavItem(item, true))}
+            {renderBrowseButton(true)}
             {showAdmin && (
               <Link href="/dashboard/admin" className="block mb-1" onClick={() => setMobileMenuOpen(false)}>
                 <Button

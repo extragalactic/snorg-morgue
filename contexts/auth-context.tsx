@@ -10,6 +10,8 @@ import { slugifyUsername } from "@/lib/slug"
 interface User {
   email: string
   name: string
+  /** When false, profile is hidden from Browse user list. Default true when unset in metadata. */
+  browseSharingEnabled: boolean
 }
 
 interface AuthContextType {
@@ -31,7 +33,11 @@ function mapSupabaseUser(sbUser: SupabaseUser | null): User | null {
     (sbUser.user_metadata?.full_name as string) ||
     (sbUser.user_metadata?.name as string) ||
     sbUser.email.split("@")[0]
-  return { email: sbUser.email, name }
+  return {
+    email: sbUser.email,
+    name,
+    browseSharingEnabled: sbUser.user_metadata?.browse_sharing_enabled !== false,
+  }
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
