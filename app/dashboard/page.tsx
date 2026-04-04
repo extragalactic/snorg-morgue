@@ -21,6 +21,7 @@ import { Navigation } from "@/components/dashboard/navigation"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { GoalProgress } from "@/components/dashboard/goal-progress"
 import { LevelAtDeathChart } from "@/components/dashboard/level-at-death-chart"
+import { TotalTimeSpentAtEachLevelChart } from "@/components/dashboard/level-time-distribution-chart"
 import { RuneCollectionChart } from "@/components/dashboard/rune-collection-chart"
 import { TestPerformanceChart } from "@/components/dashboard/test-performance-chart"
 import { Top10Killers } from "@/components/dashboard/top-10-killers"
@@ -657,12 +658,15 @@ export default function DashboardPage({
           <>
             <div className="space-y-6">
               {!statsLoading && !isEmpty && (
-                <LevelAtDeathChart
-                  morgues={morgues}
-                  loading={statsLoading}
-                  globalAverageDeathsPerLevel={showGlobalAverages ? (globalLevelDeathAverages ?? undefined) : undefined}
-                  globalAverageUserCount={showGlobalAverages ? globalLevelDeathUserCount ?? undefined : undefined}
-                />
+                <>
+                  <LevelAtDeathChart
+                    morgues={morgues}
+                    loading={statsLoading}
+                    globalAverageDeathsPerLevel={showGlobalAverages ? (globalLevelDeathAverages ?? undefined) : undefined}
+                    globalAverageUserCount={showGlobalAverages ? globalLevelDeathUserCount ?? undefined : undefined}
+                  />
+                  <TotalTimeSpentAtEachLevelChart morgues={morgues} loading={statsLoading} />
+                </>
               )}
               {isEmpty ? (
                 <AnalysisEmptyState morguesPageHref={morguesPageHref} />
@@ -773,10 +777,7 @@ export default function DashboardPage({
                   showGlobalAverages={showGlobalAverages}
                   globalStats={globalStats}
                 />
-                <AverageLevelByGodChart
-                  morgues={morgues}
-                  globalGodAverages={showGlobalAverages ? globalStats?.avgXlByGod : undefined}
-                />
+                <AverageLevelByGodChart morgues={morgues} />
                 </>
               )}
             </div>

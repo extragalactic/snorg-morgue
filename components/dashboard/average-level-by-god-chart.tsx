@@ -3,35 +3,38 @@
 import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useTheme } from "@/contexts/theme-context"
-import type { GameRecord, GlobalGodAvgXl } from "@/lib/morgue-api"
+import type { GameRecord } from "@/lib/morgue-api"
 import { ALL_GOD_NAMES, GOD_SHORT_FORMS } from "@/lib/dcss-constants"
 import {
   Bar,
-  BarChart,
   CartesianGrid,
   Cell,
+  ComposedChart,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts"
 
+/** Half-width (px) of the horizontal average marker on each bar. */
+function avgMarkerHalfWidth(godCount: number): number {
+  return Math.max(9, Math.min(20, 280 / Math.max(1, godCount)))
+}
+
 interface AverageLevelByGodChartProps {
   morgues: GameRecord[]
-  /** Global average XL at death per god across all users (from global stats). */
-  globalGodAverages?: GlobalGodAvgXl[]
 }
 
 type GodDatum = {
   god: string
   short: string
   userAvgXl: number
+  /** Highest XL in any single game with this god. */
+  userMaxXl: number
+  /** True if you have at least one win worshipping this god. */
+  userHasWinWithGod: boolean
   userCount: number
-  globalAvgXl: number
-  globalCount: number
-  firstSeg: number
-  secondSeg: number
-  isGlobalFirst: boolean
 }
 
 function normalizeGod(raw: string | undefined | null): string {
@@ -45,46 +48,36 @@ function normalizeGod(raw: string | undefined | null): string {
   return name
 }
 
-export function AverageLevelByGodChart({ morgues, globalGodAverages = [] }: AverageLevelByGodChartProps) {
+export function AverageLevelByGodChart({ morgues }: AverageLevelByGodChartProps) {
   const { themeStyle } = useTheme()
 
   const data: GodDatum[] = useMemo(() => {
-    const userSums = new Map<string, { xlTotal: number; count: number }>()
+    const userSums = new Map<
+      string,
+      { xlTotal: number; count: number; maxXl: number; hasWin: boolean }
+    >()
 
     for (const game of morgues) {
       const godName = normalizeGod(game.god)
-      const current = userSums.get(godName) ?? { xlTotal: 0, count: 0 }
+      const current = userSums.get(godName) ?? {
+        xlTotal: 0,
+        count: 0,
+        maxXl: 0,
+        hasWin: false,
+      }
       current.xlTotal += game.xl
       current.count += 1
+      current.maxXl = Math.max(current.maxXl, game.xl)
+      if (game.result === "win") current.hasWin = true
       userSums.set(godName, current)
-    }
-
-    const globalMap = new Map<string, { avgXlAtDeath: number; deathCount: number }>()
-    for (const g of globalGodAverages) {
-      const name = normalizeGod(g.god)
-      globalMap.set(name, {
-        avgXlAtDeath: g.avgXlAtDeath,
-        deathCount: g.deathCount,
-      })
     }
 
     return ALL_GOD_NAMES.map((name) => {
       const userStats = userSums.get(name)
       const userAvgXl = userStats && userStats.count > 0 ? userStats.xlTotal / userStats.count : 0
+      const userMaxXl = userStats && userStats.count > 0 ? userStats.maxXl : 0
+      const userHasWinWithGod = userStats?.hasWin ?? false
       const userCount = userStats?.count ?? 0
-
-      const globalStats = globalMap.get(name)
-      const globalAvgXl = globalStats?.avgXlAtDeath ?? 0
-      const globalCount = globalStats?.deathCount ?? 0
-
-      const userVal = userAvgXl
-      const globalVal = globalAvgXl
-
-      const low = Math.min(userVal, globalVal)
-      const high = Math.max(userVal, globalVal)
-      const firstSeg = low
-      const secondSeg = high - low
-      const isGlobalFirst = globalVal <= userVal
 
       const short = GOD_SHORT_FORMS[name] ?? name
 
@@ -92,38 +85,30 @@ export function AverageLevelByGodChart({ morgues, globalGodAverages = [] }: Aver
         god: name,
         short,
         userAvgXl,
+        userMaxXl,
+        userHasWinWithGod,
         userCount,
-        globalAvgXl,
-        globalCount,
-        firstSeg,
-        secondSeg,
-        isGlobalFirst,
       }
     })
-  }, [morgues, globalGodAverages])
+  }, [morgues])
 
   const youColor =
     themeStyle === "ascii" ? "oklch(0.62 0.2 145)" : "rgba(250, 204, 21, 0.9)"
+  /** Dimmer bars when you have no win with that god yet. */
+  const youColorMuted =
+    themeStyle === "ascii" ? "oklch(0.4 0.11 145)" : "rgba(161, 98, 7, 0.92)"
   const gridColor = themeStyle === "ascii" ? "rgba(34,197,94,0.15)" : "rgba(212,165,116,0.15)"
   const avgColor = "var(--average)"
-
-  const hasAnyData = data.some((d) => d.userCount > 0 || d.globalCount > 0)
+  const avgMarkHalfW = avgMarkerHalfWidth(data.length)
 
   return (
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <CardTitle className="flex items-center justify-between gap-2">
-          <span>AVERAGE LEVEL PROGRESSION BY GOD</span>
-          {hasAnyData && (
-            <span className="font-mono text-[13px] sm:text-sm font-normal text-muted-foreground">
-              Based on {morgues.length} games
-            </span>
-          )}
-        </CardTitle>
+        <CardTitle className="tracking-tight">LEVEL PROGRESSION BY GOD</CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
         <ResponsiveContainer width="100%" height={360}>
-          <BarChart
+          <ComposedChart
             data={data}
             margin={{ top: 10, right: 20, left: 10, bottom: 10 }}
           >
@@ -142,7 +127,7 @@ export function AverageLevelByGodChart({ morgues, globalGodAverages = [] }: Aver
               tickLine={false}
               allowDecimals={false}
               label={{
-                value: "Average XL reached",
+                value: "Best & average XL",
                 angle: -90,
                 position: "insideLeft",
                 style: { fill: "var(--muted-foreground)", fontSize: 12, textAnchor: "middle" },
@@ -158,54 +143,77 @@ export function AverageLevelByGodChart({ morgues, globalGodAverages = [] }: Aver
                   <div className="border-2 border-primary bg-card p-2">
                     <p className="font-mono text-xs text-primary mb-1">{d.god}</p>
                     <p className="text-xs text-muted-foreground">
-                      You: {d.userCount > 0 ? d.userAvgXl.toFixed(1) : "—"} XL
-                      {d.userCount > 0 ? ` (from ${d.userCount} games)` : ""}
+                      Your best: {d.userCount > 0 ? d.userMaxXl : "—"} XL
+                      {d.userCount > 0 ? ` (from ${d.userCount} games with this god)` : ""}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Average: {d.globalCount > 0 ? d.globalAvgXl.toFixed(1) : "—"} XL
-                      {d.globalCount > 0 ? ` (from ${d.globalCount} games)` : ""}
+                      Your average: {d.userCount > 0 ? d.userAvgXl.toFixed(1) : "—"} XL
                     </p>
+                    {d.userCount > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {d.userHasWinWithGod ? "Includes a win with this god." : "No win with this god yet."}
+                      </p>
+                    )}
                   </div>
                 )
               }}
             />
-            <Bar dataKey="firstSeg" stackId="stack" radius={[2, 2, 0, 0]}>
+            <Bar dataKey="userMaxXl" radius={[2, 2, 0, 0]}>
               {data.map((d, index) => (
                 <Cell
-                  key={`first-${index}`}
-                  fill={d.isGlobalFirst ? avgColor : youColor}
+                  key={`best-${index}`}
+                  fill={d.userCount > 0 && d.userHasWinWithGod ? youColor : youColorMuted}
                 />
               ))}
             </Bar>
-            <Bar dataKey="secondSeg" stackId="stack" radius={[2, 2, 0, 0]}>
-              {data.map((d, index) => (
-                <Cell
-                  key={`second-${index}`}
-                  fill={d.isGlobalFirst ? youColor : avgColor}
-                />
-              ))}
-            </Bar>
-          </BarChart>
+            <Line
+              type="linear"
+              dataKey="userAvgXl"
+              stroke="transparent"
+              strokeWidth={0}
+              isAnimationActive={false}
+              dot={(props) => {
+                const { cx, cy, payload } = props
+                const row = payload as GodDatum | undefined
+                if (cx == null || cy == null || !row?.userCount) return null
+                return (
+                  <line
+                    key={`avg-cap-${row.short}`}
+                    x1={cx - avgMarkHalfW}
+                    x2={cx + avgMarkHalfW}
+                    y1={cy}
+                    y2={cy}
+                    stroke={avgColor}
+                    strokeWidth={2.5}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                )
+              }}
+              activeDot={false}
+              legendType="none"
+            />
+          </ComposedChart>
         </ResponsiveContainer>
         <div className="mt-1 flex flex-col items-center gap-2">
           <p className="text-xs text-muted-foreground font-mono text-center">
             God Worshipped
           </p>
-          {globalGodAverages.length > 0 && (
-            <div className="mt-1 flex flex-wrap items-center justify-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-6" style={{ backgroundColor: youColor }} />
-                <span className="text-xs text-muted-foreground">You</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-6" style={{ backgroundColor: avgColor }} />
-                <span className="text-xs text-muted-foreground">Global Average</span>
-              </div>
+          <div className="mt-1 flex flex-wrap items-center justify-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-6" style={{ backgroundColor: youColorMuted }} />
+              <span className="text-xs text-muted-foreground">Best run (no win)</span>
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-6" style={{ backgroundColor: youColor }} />
+              <span className="text-xs text-muted-foreground">Best run (won)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-0.5 w-6 rounded-none" style={{ backgroundColor: avgColor }} />
+              <span className="text-xs text-muted-foreground">Your average XL</span>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
   )
 }
-
