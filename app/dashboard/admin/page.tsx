@@ -289,7 +289,7 @@ export default function AdminPage() {
                 value="import-summary"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent font-mono text-sm px-4 pb-2 -mb-0.5"
               >
-                Import Summary
+                Import History
               </TabsTrigger>
             </TabsList>
 
@@ -518,7 +518,7 @@ export default function AdminPage() {
             {/* Import activity summaries */}
             <Card className="rounded-none border-2 border-primary/30">
               <CardHeader>
-                <CardTitle className="font-mono">Import activity</CardTitle>
+                <CardTitle className="font-mono">Import History</CardTitle>
                 <CardDescription>
                   Upload and sync events: manual uploads and server syncs by user
                 </CardDescription>

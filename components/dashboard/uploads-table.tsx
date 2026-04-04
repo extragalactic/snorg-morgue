@@ -2,10 +2,9 @@
 
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Search, Eye, ChevronLeft, ChevronRight, Skull, Trophy, ChevronUp, ChevronDown, Trash2, X, ArrowLeft } from "lucide-react"
+import { Eye, ChevronLeft, ChevronRight, Skull, Trophy, ChevronUp, ChevronDown, Trash2, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { colors } from "@/lib/colors"
@@ -86,7 +85,6 @@ export function UploadsTable({
   const searchParams = useSearchParams()
   const { userId } = useAuth()
   const { settings, setSettings } = useSettings()
-  const [searchQuery, setSearchQuery] = useState(settings.morguesTable.searchQuery)
   const [currentPage, setCurrentPage] = useState(1)
   const [viewingMorgue, setViewingMorgue] = useState<GameRecord | null>(null)
   const viewId = searchParams.get("view")
@@ -112,7 +110,6 @@ export function UploadsTable({
 
   // Keep local state in sync if settings change elsewhere
   useEffect(() => {
-    setSearchQuery(settings.morguesTable.searchQuery)
     setResultFilter(settings.morguesTable.resultFilter as ResultFilter)
     setSpeciesFilter(settings.morguesTable.speciesFilter as SpeciesFilter)
     setBackgroundFilter(settings.morguesTable.backgroundFilter as BackgroundFilter)
@@ -172,17 +169,7 @@ export function UploadsTable({
   }
 
   const filteredAndSortedData = useMemo(() => {
-    // First filter by search query (including combo)
-    let data = morgues.filter((game) => {
-      const combo = getCombo(game).toLowerCase()
-      const query = searchQuery.toLowerCase()
-      return (
-        game.character.toLowerCase().includes(query) ||
-        game.species.toLowerCase().includes(query) ||
-        game.background.toLowerCase().includes(query) ||
-        combo.includes(query)
-      )
-    })
+    let data = [...morgues]
 
     // Then filter by result
     if (resultFilter !== "all") {
@@ -246,7 +233,7 @@ export function UploadsTable({
     }
 
     return data
-  }, [morgues, searchQuery, resultFilter, speciesFilter, backgroundFilter, godFilter, sortField, sortDirection])
+  }, [morgues, resultFilter, speciesFilter, backgroundFilter, godFilter, sortField, sortDirection])
 
   const totalPages = Math.max(1, Math.ceil(filteredAndSortedData.length / itemsPerPage) || 1)
   const startIndex = (currentPage - 1) * itemsPerPage
@@ -558,43 +545,6 @@ export function UploadsTable({
                 })}
               </SelectContent>
             </Select>
-            {/* Search */}
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-              <Input
-                placeholder="Search morgues..."
-                value={searchQuery}
-                onChange={(e) => {
-                  const value = e.target.value
-                  setSearchQuery(value)
-                  setCurrentPage(1)
-                  updateMorguesSettings({
-                    searchQuery: value,
-                    currentPage: 1,
-                  })
-                }}
-                className="rounded-none border-2 border-primary/50 bg-input pl-9 pr-9 text-sm focus:border-primary"
-              />
-              {searchQuery.length > 0 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-none text-muted-foreground hover:text-foreground hover:bg-primary/10"
-                  onClick={() => {
-                    setSearchQuery("")
-                    setCurrentPage(1)
-                    updateMorguesSettings({
-                      searchQuery: "",
-                      currentPage: 1,
-                    })
-                  }}
-                  aria-label="Clear search"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
           </div>
         </div>
       </CardHeader>

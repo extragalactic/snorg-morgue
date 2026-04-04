@@ -4,7 +4,16 @@ import { useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useTheme } from "@/contexts/theme-context"
 import type { GameRecord } from "@/lib/morgue-api"
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  LabelList,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
 import { typography } from "@/lib/typography"
 
 export interface MilestoneProgressionChartProps {
@@ -29,14 +38,16 @@ function buildRows(morgues: GameRecord[], globalLair5ReachRate?: number): Row[] 
     count: reached,
   })
 
-  const d7 = morgues.filter((m) => m.reachedDungeon7 === true).length
+  const temple = morgues.filter((m) => m.reachedTemple === true).length
+  const d8 = morgues.filter((m) => m.reachedDungeon8 === true).length
   const lair = morgues.filter((m) => m.reachedLair5 === true).length
   const depths = morgues.filter((m) => m.reachedDepthsMilestone === true).length
   const zot = morgues.filter((m) => m.reachedZotMilestone === true).length
 
   const global = globalLair5ReachRate
   return [
-    row("D:7", d7),
+    row("Temple", temple),
+    row("D:8", d8),
     {
       ...row("Lair:5", lair),
       globalPct: global != null && Number.isFinite(global) ? Math.round(global) : undefined,
@@ -100,7 +111,7 @@ export function MilestoneProgressionChart({
           <CardDescription className="pt-2">Share of games reaching each milestone</CardDescription>
         </CardHeader>
         <CardContent className="pt-4">
-          <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
+          <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
             Loading…
           </div>
         </CardContent>
@@ -120,12 +131,12 @@ export function MilestoneProgressionChart({
             No games yet
           </div>
         ) : (
-          <div className="h-[260px] w-full min-w-0">
+          <div className="h-[320px] w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 layout="vertical"
                 data={data}
-                margin={{ top: 8, right: 16, left: 4, bottom: 8 }}
+                margin={{ top: 8, right: 52, left: 4, bottom: 8 }}
                 barGap={0}
                 barCategoryGap="30%"
               >
@@ -153,7 +164,16 @@ export function MilestoneProgressionChart({
                   name="% of games"
                   fill={barColor}
                   radius={[0, 2, 2, 0]}
-                />
+                >
+                  <LabelList
+                    dataKey="pct"
+                    position="right"
+                    offset={8}
+                    fill={barColor}
+                    fontSize={15}
+                    formatter={(v: number | string) => (v == null ? "" : `${v}%`)}
+                  />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -110,39 +110,19 @@ function PerformanceAndRunesLayout({
   showGlobalAverages: boolean
   globalStats: GlobalAnalysisStats | null
 }) {
-  const rightRef = useRef<HTMLDivElement>(null)
-  const [rightHeight, setRightHeight] = useState<number | null>(null)
-
-  useEffect(() => {
-    const el = rightRef.current
-    if (!el) return
-    const ro = new ResizeObserver((entries) => {
-      const entry = entries[0]
-      if (entry) setRightHeight(entry.contentRect.height)
-    })
-    ro.observe(el)
-    setRightHeight(el.getBoundingClientRect().height)
-    return () => ro.disconnect()
-  }, [morgues, statsLoading])
-
   return (
     <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
-      <div
-        className="flex min-h-0 flex-1 flex-col"
-        style={rightHeight != null ? { height: rightHeight } : undefined}
-      >
-        <div className="min-h-0 flex-1">
-          <TestPerformanceChart
-            speciesStats={stats?.species_stats ?? []}
-            backgroundStats={stats?.background_stats ?? []}
-            godStats={stats?.god_stats ?? []}
-            showAverages={showGlobalAverages}
-            averagePlayerCount={globalStats?.userCount}
-            fillHeight
-          />
-        </div>
+      <div className="flex min-h-0 flex-col">
+        <TestPerformanceChart
+          speciesStats={stats?.species_stats ?? []}
+          backgroundStats={stats?.background_stats ?? []}
+          godStats={stats?.god_stats ?? []}
+          showAverages={showGlobalAverages}
+          averagePlayerCount={globalStats?.userCount}
+          fillHeight
+        />
       </div>
-      <div ref={rightRef} className="flex min-h-0 flex-col space-y-6">
+      <div className="flex min-h-0 flex-col space-y-6">
         <RuneCollectionChart morgues={morgues} />
         <Top10Killers morgues={morgues} loading={statsLoading} />
       </div>

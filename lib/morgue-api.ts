@@ -44,7 +44,8 @@ export interface GameRecord {
   god?: string
   /** True if player reached Lair:5 in this game. */
   reachedLair5?: boolean
-  reachedDungeon7?: boolean
+  reachedDungeon8?: boolean
+  reachedTemple?: boolean
   reachedDepthsMilestone?: boolean
   reachedZotMilestone?: boolean
   /** Short DCSS version for this game (e.g. "0.33", "0.34", "git"). */
@@ -444,7 +445,8 @@ export function parsedMorgueRowsToGameRecords(data: unknown[] | null | undefined
       killer?: string | null
       god?: string | null
       reached_lair_5?: boolean
-      reached_dungeon_7?: boolean
+      reached_dungeon_8?: boolean
+      reached_temple?: boolean
       reached_depths_milestone?: boolean
       reached_zot_milestone?: boolean
     }
@@ -470,7 +472,8 @@ export function parsedMorgueRowsToGameRecords(data: unknown[] | null | undefined
       killer: row.killer ?? undefined,
       god: row.god ?? undefined,
       reachedLair5: row.reached_lair_5 ?? false,
-      reachedDungeon7: row.reached_dungeon_7 ?? false,
+      reachedDungeon8: row.reached_dungeon_8 ?? false,
+      reachedTemple: row.reached_temple ?? false,
       reachedDepthsMilestone: row.reached_depths_milestone ?? false,
       reachedZotMilestone: row.reached_zot_milestone ?? false,
       version: row.version?.trim() || undefined,
@@ -487,9 +490,9 @@ export async function fetchMorgues(
   userId: string
 ): Promise<GameRecord[]> {
   const withShortId =
-    "id, short_id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_7, reached_depths_milestone, reached_zot_milestone, version"
+    "id, short_id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_8, reached_temple, reached_depths_milestone, reached_zot_milestone, version"
   const withoutShortId =
-    "id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_7, reached_depths_milestone, reached_zot_milestone, version"
+    "id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_8, reached_temple, reached_depths_milestone, reached_zot_milestone, version"
 
   let { data, error } = await supabase
     .from("parsed_morgues")
@@ -682,7 +685,7 @@ export async function fetchRawMorgue(
 }
 
 const PARSED_COLUMNS_NO_SHORT =
-  "id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_7, reached_depths_milestone, reached_zot_milestone"
+  "id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_8, reached_temple, reached_depths_milestone, reached_zot_milestone"
 
 /**
  * Fetch a single morgue by id for the current user (RLS). Returns null if not found or not allowed.
@@ -703,7 +706,8 @@ export async function fetchMorgueById(
     game_completion_date?: string | null
     created_at: string
     reached_lair_5?: boolean
-    reached_dungeon_7?: boolean
+    reached_dungeon_8?: boolean
+    reached_temple?: boolean
     reached_depths_milestone?: boolean
     reached_zot_milestone?: boolean
     morgue_url?: string | null
@@ -728,7 +732,8 @@ export async function fetchMorgueById(
     killer: r.killer ?? undefined,
     god: r.god ?? undefined,
     reachedLair5: row.reached_lair_5 ?? false,
-    reachedDungeon7: row.reached_dungeon_7 ?? false,
+    reachedDungeon8: row.reached_dungeon_8 ?? false,
+    reachedTemple: row.reached_temple ?? false,
     reachedDepthsMilestone: row.reached_depths_milestone ?? false,
     reachedZotMilestone: row.reached_zot_milestone ?? false,
   }

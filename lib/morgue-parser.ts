@@ -29,8 +29,10 @@ export interface ParsedMorgue {
   gameCompletionDate: string
   /** True if the Branches section shows Lair (5/5), i.e. player reached Lair:5. */
   reachedLair5: boolean
-  /** Dungeon depth 7+ (branch notation, action log, final place), or a win. */
-  reachedDungeon7: boolean
+  /** Dungeon depth 8+ (branch notation, action log, final place), or a win. */
+  reachedDungeon8: boolean
+  /** Ecumenical Temple discovered or entered (Branches Temple (x/y), any “Ecumenical Temple” in text, place Temple:N), or a win. */
+  reachedTemple: boolean
   /** Stepped into Depths:1+ (branch / action log / final place), or a win. */
   reachedDepthsMilestone: boolean
   /** Stepped into Zot:1+ (branch / action log / final place), or a win. */
@@ -228,6 +230,7 @@ function maxDungeonDepthFromMessages(text: string): number {
 
 /**
  * Branch progress milestones from morgue text (Branches section, action lines, final place).
+ * Dungeon uses depth 8+; Temple counts if the morgue shows discovery or visit (any “Ecumenical Temple” mention, Branches `Temple (x/y)` including 0 depth, or death on Temple:N).
  * Depths / Zot count only when the branch shows progress (Depths (1+/4), Zot (1+/5)),
  * the action log records entering those branches, or death/place on that branch — not Dungeon 15 / Depths 4 proxies.
  */
@@ -235,10 +238,11 @@ export function computeMorgueMilestones(
   text: string,
   place: string,
   isWin: boolean,
-): Pick<ParsedMorgue, "reachedDungeon7" | "reachedDepthsMilestone" | "reachedZotMilestone"> {
+): Pick<ParsedMorgue, "reachedDungeon8" | "reachedTemple" | "reachedDepthsMilestone" | "reachedZotMilestone"> {
   if (isWin) {
     return {
-      reachedDungeon7: true,
+      reachedDungeon8: true,
+      reachedTemple: true,
       reachedDepthsMilestone: true,
       reachedZotMilestone: true,
     }
@@ -263,15 +267,23 @@ export function computeMorgueMilestones(
 
   const placeInfo = parsePlaceBranchDepth(place)
 
-  const reachedDungeon7 =
-    effectiveDungeon >= 7 || (placeInfo?.branch === "D" && placeInfo.depth >= 7)
+  // Temple: any morgue mention of the branch counts as discovered (incl. Branches Temple (0/1) before entry).
+  const reachedTemple =
+    /\bEcumenical\s+Temple\b/i.test(text) ||
+    /\bTemple\s*\(\s*\d+\s*\/\s*\d+\s*\)/i.test(text) ||
+    (placeInfo != null &&
+      /^Temple$/i.test(placeInfo.branch) &&
+      placeInfo.depth >= 1)
+
+  const reachedDungeon8 =
+    effectiveDungeon >= 8 || (placeInfo?.branch === "D" && placeInfo.depth >= 8)
 
   const reachedDepthsMilestone =
     enteredDepths || (placeInfo?.branch === "Depths" && placeInfo.depth >= 1)
 
   const reachedZotMilestone = enteredZot || (placeInfo?.branch === "Zot" && placeInfo.depth >= 1)
 
-  return { reachedDungeon7, reachedDepthsMilestone, reachedZotMilestone }
+  return { reachedDungeon8, reachedTemple, reachedDepthsMilestone, reachedZotMilestone }
 }
 
 /**

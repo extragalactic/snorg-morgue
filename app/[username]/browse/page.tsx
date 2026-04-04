@@ -10,15 +10,8 @@ import { supabase } from "@/lib/supabase"
 import type { BrowseUserListItem } from "@/app/api/browse/users/route"
 import { slugifyUsername, TAB_TO_PAGE } from "@/lib/slug"
 import { typography, TITLE_GRAPHIC_SIZE_LARGE } from "@/lib/typography"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
@@ -26,15 +19,12 @@ export default function BrowsePage() {
   const params = useParams()
   const router = useRouter()
   const username = params?.username as string
-  const { user, userId } = useAuth()
+  const { user } = useAuth()
   const { browseTarget, setBrowseTarget, clearBrowseTarget } = useBrowse()
   const { themeStyle } = useTheme()
   const [profiles, setProfiles] = useState<BrowseUserListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedId, setSelectedId] = useState<string>("")
-  /** Controlled so we can close before router.push; otherwise Radix can leave outside pointer-events disabled. */
-  const [playerSelectOpen, setPlayerSelectOpen] = useState(false)
 
   const slugFromUser = user?.name ? slugifyUsername(user.name) : null
 
@@ -74,30 +64,19 @@ export default function BrowsePage() {
     loadProfiles()
   }, [loadProfiles])
 
-  const pushAfterSelectReleased = useCallback(
-    (path: string) => {
-      setPlayerSelectOpen(false)
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          router.push(path)
-        })
-      })
+  const openPlayer = useCallback(
+    (row: BrowseUserListItem) => {
+      if (!slugFromUser) return
+      setBrowseTarget({ userId: row.id, usernameSlug: row.usernameSlug })
+      router.push(`/${slugFromUser}/${TAB_TO_PAGE.analysis}`)
     },
-    [router],
+    [router, setBrowseTarget, slugFromUser],
   )
-
-  const handleView = () => {
-    if (!selectedId || !slugFromUser) return
-    const row = profiles.find((p) => p.id === selectedId)
-    if (!row) return
-    setBrowseTarget({ userId: row.id, usernameSlug: row.usernameSlug })
-    pushAfterSelectReleased(`/${slugFromUser}/${TAB_TO_PAGE.analysis}`)
-  }
 
   const handleReturn = () => {
     clearBrowseTarget()
     if (slugFromUser) {
-      pushAfterSelectReleased(`/${slugFromUser}/${TAB_TO_PAGE.analysis}`)
+      router.push(`/${slugFromUser}/${TAB_TO_PAGE.analysis}`)
     }
   }
 
@@ -146,47 +125,49 @@ export default function BrowsePage() {
 
         <Card className="border-2 border-primary/30 rounded-none">
           <CardHeader className="border-b-2 border-primary/20 pb-3">
-            <CardTitle>All players</CardTitle>
+            <CardTitle>
+              {loading
+                ? "All players"
+                : `All ${profiles.length} ${profiles.length === 1 ? "player" : "players"}`}
+            </CardTitle>
+            <CardDescription className="pt-2">(with number of wins)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
             {error && <p className="text-destructive font-mono text-sm">{error}</p>}
             {loading ? (
               <p className="text-muted-foreground font-mono text-sm">Loading…</p>
+            ) : profiles.length === 0 ? (
+              <p className="text-muted-foreground font-mono text-sm">No players to show.</p>
             ) : (
               <>
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-                  <div className="space-y-2 flex-1 min-w-[200px]">
-                    <label className="font-mono text-xs text-muted-foreground">Select user</label>
-                    <Select
-                      open={playerSelectOpen}
-                      onOpenChange={setPlayerSelectOpen}
-                      value={selectedId}
-                      onValueChange={setSelectedId}
-                    >
-                      <SelectTrigger className="rounded-none border-2 border-primary/50 font-mono text-sm">
-                        <SelectValue placeholder="Choose a player…" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-none border-2 border-primary/50 max-h-72">
-                        {profiles.map((p) => (
-                          <SelectItem key={p.id} value={p.id} className="font-mono text-sm">
-                            {p.usernameSlug}
-                            {p.id === userId ? " (you)" : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    type="button"
-                    className="rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-sm"
-                    disabled={!selectedId}
-                    onClick={handleView}
-                  >
-                    View
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground font-mono">
-                  Opens their analytics, achievements, morgues, and skills in read-only mode (no uploads while viewing).
+                <ul
+                  className="grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
+                  role="list"
+                >
+                  {profiles.map((p) => (
+                    <li key={p.id} className="min-w-0">
+                      <button
+                        type="button"
+                        disabled={!slugFromUser}
+                        onClick={() => openPlayer(p)}
+                        className={cn(
+                          "w-full rounded-none border-2 border-primary/25 bg-card px-3 py-2 text-left font-mono text-sm transition-colors",
+                          "hover:border-primary/60 hover:bg-primary/5",
+                          "disabled:pointer-events-none disabled:opacity-50",
+                        )}
+                      >
+                        <span className="break-words text-foreground">
+                          {p.usernameSlug}{" "}
+                          <span className="whitespace-nowrap text-muted-foreground">
+                            ({p.totalWins})
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-sm text-muted-foreground font-mono">
+                  Click a player to view their analytics, achievements and morgues in read-only mode.
                 </p>
               </>
             )}

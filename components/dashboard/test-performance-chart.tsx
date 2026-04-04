@@ -215,8 +215,10 @@ export function TestPerformanceChart({
     [sortedData, showMode, showAverages]
   )
 
+  /** Per-row vertical budget (bar + gap). Must not hard-cap below `n * rowPitchPx` or pitch tweaks have no effect. */
+  const rowPitchPx = 37
   const chartHeight = displayData.length > 0
-    ? Math.min(chartType === "gods" ? 850 : 900, Math.max(200, displayData.length * 36))
+    ? Math.min(6000, Math.max(200, displayData.length * rowPitchPx))
     : 400
 
   const categoryLabel = chartType === "species" ? "Species" : chartType === "background" ? "Background" : "God"
@@ -347,20 +349,21 @@ export function TestPerformanceChart({
       </CardHeader>
       <CardContent
         className={
-          fillHeight ? "flex min-h-0 flex-1 flex-col pt-1.5 pb-[50px]" : "pt-1.5 pb-[50px]"
+          fillHeight ? "flex min-h-0 flex-1 flex-col pt-1.5 pb-0" : "pt-1.5 pb-0"
         }
       >
-        <div className={fillHeight ? "min-h-0 flex-1" : undefined}>
-          <ResponsiveContainer
-            width="100%"
-            height={fillHeight ? "100%" : chartHeight}
-          >
+        <div className="w-full shrink-0" style={{ height: chartHeight }}>
+            <ResponsiveContainer
+              width="100%"
+              height={chartHeight}
+              key={`${displayData.length}-${rowPitchPx}-${chartHeight}`}
+            >
           <BarChart
             data={displayData}
             layout="vertical"
             barGap={0}
-            barCategoryGap="30%"
-            margin={{ top: 5, right: 5, bottom: 36, left: 5 }}
+            barCategoryGap="23%"
+            margin={{ top: 5, right: 5, bottom: 26, left: 5 }}
           >
             <XAxis
               type="number"
@@ -483,7 +486,7 @@ export function TestPerformanceChart({
               ))}
             </Bar>
           </BarChart>
-        </ResponsiveContainer>
+            </ResponsiveContainer>
         </div>
         <div className="mt-[31px] flex flex-shrink-0 flex-wrap items-center justify-center gap-4">
           {showAverages && (
@@ -504,6 +507,7 @@ export function TestPerformanceChart({
             <span className="text-xs text-muted-foreground">Avg shown as estimated until global data is loaded</span>
           )} */}
         </div>
+        {fillHeight && <div className="min-h-0 flex-1" aria-hidden />}
       </CardContent>
     </Card>
   )

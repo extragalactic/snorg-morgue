@@ -42,7 +42,8 @@ export interface ParsedMorgueRow {
   game_completion_date?: string
   /** True if player reached Lair:5 (Branches shows Lair (5/5)). */
   reached_lair_5?: boolean
-  reached_dungeon_7?: boolean
+  reached_dungeon_8?: boolean
+  reached_temple?: boolean
   reached_depths_milestone?: boolean
   reached_zot_milestone?: boolean
 }
@@ -100,7 +101,8 @@ export function parsedToRow(
     killer: p.killer,
     game_completion_date: p.gameCompletionDate || "",
     reached_lair_5: p.reachedLair5,
-    reached_dungeon_7: p.reachedDungeon7,
+    reached_dungeon_8: p.reachedDungeon8,
+    reached_temple: p.reachedTemple,
     reached_depths_milestone: p.reachedDepthsMilestone,
     reached_zot_milestone: p.reachedZotMilestone,
   }

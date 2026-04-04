@@ -6,11 +6,13 @@ import { usernameSlugFromAuthUser } from "@/lib/auth-display-slug"
 export interface BrowseUserListItem {
   id: string
   usernameSlug: string
+  /** From `user_stats.total_wins`; 0 if no stats row. */
+  totalWins: number
 }
 
 /**
- * All registered users for the Browse picker. Includes users without a `profiles` row
- * (e.g. OAuth-only accounts) using the same slug rules as session display names.
+ * Browseable players for the signed-in viewer: all registered users who opted in to sharing,
+ * except the viewer themselves. Same slug rules as session display names (incl. OAuth-only).
  */
 export async function GET(request: Request) {
   let supabase: ReturnType<typeof createServerSupabase>
@@ -26,6 +28,8 @@ export async function GET(request: Request) {
   }
 
   try {
+    const viewerId = authResult.userId
+
     const { data: profileRows } = await supabase.from("profiles").select("id, username_slug")
     const slugByUserId = new Map<string, string>()
     for (const row of profileRows ?? []) {
@@ -33,7 +37,7 @@ export async function GET(request: Request) {
       if (r.id && r.username_slug) slugByUserId.set(r.id, r.username_slug)
     }
 
-    const users: BrowseUserListItem[] = []
+    const users: { id: string; usernameSlug: string }[] = []
     let page = 1
     const perPage = 1000
 
@@ -66,7 +70,23 @@ export async function GET(request: Request) {
 
     users.sort((a, b) => a.usernameSlug.localeCompare(b.usernameSlug, undefined, { sensitivity: "base" }))
 
-    return NextResponse.json({ users })
+    const winsByUserId = new Map<string, number>()
+    const { data: statsRows } = await supabase.from("user_stats").select("user_id, total_wins")
+    for (const row of statsRows ?? []) {
+      const r = row as { user_id: string; total_wins: number | null }
+      if (r.user_id) {
+        winsByUserId.set(r.user_id, Number(r.total_wins) || 0)
+      }
+    }
+
+    const usersWithWins: BrowseUserListItem[] = users
+      .filter((u) => u.id !== viewerId)
+      .map((u) => ({
+        ...u,
+        totalWins: winsByUserId.get(u.id) ?? 0,
+      }))
+
+    return NextResponse.json({ users: usersWithWins })
   } catch (e) {
     console.error("[browse/users]", e)
     return NextResponse.json({ error: "Failed to load users" }, { status: 500 })

@@ -163,7 +163,8 @@ export function validateAndSanitizeParsedMorgue(p: ParsedMorgue): ParsedMorgue {
         : null,
     gameCompletionDate,
     reachedLair5: Boolean(p.reachedLair5),
-    reachedDungeon7: Boolean(p.reachedDungeon7),
+    reachedDungeon8: Boolean(p.reachedDungeon8),
+    reachedTemple: Boolean(p.reachedTemple),
     reachedDepthsMilestone: Boolean(p.reachedDepthsMilestone),
     reachedZotMilestone: Boolean(p.reachedZotMilestone),
   }

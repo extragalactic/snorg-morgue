@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { useAuth } from "@/contexts/auth-context"
+import { useBrowse } from "@/contexts/browse-context"
 import { useTheme } from "@/contexts/theme-context"
 import { isAdminEmail } from "@/lib/admin-auth"
 import { slugifyUsername, TAB_TO_PAGE } from "@/lib/slug"
@@ -38,7 +39,11 @@ const navItems = [
 export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }: NavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
-  const { user, signOut } = useAuth()
+  const { user, userId, signOut } = useAuth()
+  const { browseTarget } = useBrowse()
+  const browsingAnotherPlayer = Boolean(
+    browseTarget && userId && browseTarget.userId !== userId,
+  )
   const { themeStyle, setThemeStyle } = useTheme()
   const showAdmin = isAdminEmail(user?.email)
   const isAdminPage = adminActive ?? pathname === "/dashboard/admin"
@@ -50,7 +55,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
   const browseHref = browseBaseSlug ? `/${browseBaseSlug}/browse` : undefined
 
   const renderBrowseButton = (mobile = false) => {
-    if (!browseHref) return null
+    if (!browseHref || browsingAnotherPlayer) return null
     const buttonClass = cn(
       "rounded-none border-2 font-mono text-sm",
       isBrowsePage
