@@ -4,9 +4,9 @@ import { slugifyUsername } from "@/lib/slug"
 import type { GameRecord } from "@/lib/morgue-api"
 
 const SELECT_COLUMNS =
-  "id, short_id, morgue_file_id, morgue_url, user_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
+  "id, short_id, morgue_file_id, morgue_url, user_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_7, reached_depths_milestone, reached_zot_milestone"
 const SELECT_COLUMNS_NO_SHORT_ID =
-  "id, morgue_file_id, morgue_url, user_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5"
+  "id, morgue_file_id, morgue_url, user_id, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_7, reached_depths_milestone, reached_zot_milestone"
 
 export async function GET(
   _request: Request,
@@ -81,7 +81,17 @@ export async function GET(
     "user"
   const ownerSlug = slugifyUsername(name)
 
-  const row = parsed as { game_completion_date?: string | null; created_at: string; reached_lair_5?: boolean; short_id?: string; morgue_url?: string | null; morgue_file_id?: string | null }
+  const row = parsed as {
+    game_completion_date?: string | null
+    created_at: string
+    reached_lair_5?: boolean
+    reached_dungeon_7?: boolean
+    reached_depths_milestone?: boolean
+    reached_zot_milestone?: boolean
+    short_id?: string
+    morgue_url?: string | null
+    morgue_file_id?: string | null
+  }
   let rawText: string | null = null
   let filename: string | null = null
   if (row.morgue_file_id) {
@@ -117,6 +127,9 @@ export async function GET(
     killer: (parsed.killer as string) ?? undefined,
     god: (parsed.god as string) ?? undefined,
     reachedLair5: row.reached_lair_5 ?? false,
+    reachedDungeon7: row.reached_dungeon_7 ?? false,
+    reachedDepthsMilestone: row.reached_depths_milestone ?? false,
+    reachedZotMilestone: row.reached_zot_milestone ?? false,
   }
 
   return NextResponse.json({

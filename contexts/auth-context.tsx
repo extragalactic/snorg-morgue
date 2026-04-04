@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import type { User as SupabaseUser, Session } from "@supabase/supabase-js"
 import { toast } from "@/hooks/use-toast"
-import { slugifyUsername } from "@/lib/slug"
+import { slugifyUsername, TAB_TO_PAGE } from "@/lib/slug"
 
 interface User {
   email: string
@@ -81,12 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Redirect: if logged in and on login page → /username/analytics; if not logged in on app route → login or permission-denied
+  // Redirect: if logged in and on login page → /username/statistics; if not logged in on app route → login or permission-denied
   useEffect(() => {
     if (isLoading) return
     const slug = user ? slugifyUsername(user.name) : ""
     if (user && pathname === "/") {
-      if (slug) router.replace(`/${slug}/analytics`)
+      if (slug) router.replace(`/${slug}/${TAB_TO_PAGE.analysis}`)
       return
     }
     // Allow public morgue URL without auth: /username/morgues/shortId
@@ -123,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data.session?.user?.email?.split("@")[0] ||
       "user"
     )
-    router.push(s ? `/${s}/analytics` : "/")
+    router.push(s ? `/${s}/${TAB_TO_PAGE.analysis}` : "/")
   }
 
   const signInWithGoogle = async () => {
@@ -242,7 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session?.user?.email?.split("@")[0] ||
       "user"
     )
-    router.push(s ? `/${s}/analytics` : "/")
+    router.push(s ? `/${s}/${TAB_TO_PAGE.analysis}` : "/")
   }
 
   const signOut = async () => {

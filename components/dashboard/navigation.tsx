@@ -28,8 +28,8 @@ interface NavigationProps {
 }
 
 const navItems = [
-  { id: "analysis", label: "Analytics", icon: BarChart3 },
-  { id: "skills", label: "Skills", icon: Flame },
+  { id: "analysis", label: "Statistics", icon: BarChart3 },
+  { id: "skills", label: "Analysis", icon: Flame },
   { id: "achievements", label: "Achievements", icon: Trophy },
   { id: "morgues", label: "Morgues", icon: ScrollText },
   // { id: "extras", label: "Resources", icon: ExternalLink }, // Hidden - uncomment to restore

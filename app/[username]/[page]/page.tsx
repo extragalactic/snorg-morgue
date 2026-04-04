@@ -36,7 +36,7 @@ export default function UsernamePagePage() {
 
   useEffect(() => {
     if (username && page && !validPage) {
-      router.replace(`/${username}/analytics`)
+      router.replace(`/${username}/${TAB_TO_PAGE.analysis}`)
     }
   }, [username, page, validPage, router])
 

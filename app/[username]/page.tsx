@@ -2,6 +2,7 @@
 
 import { useRouter, useParams } from "next/navigation"
 import { useEffect } from "react"
+import { TAB_TO_PAGE } from "@/lib/slug"
 
 export default function UsernameIndexPage() {
   const router = useRouter()
@@ -9,7 +10,7 @@ export default function UsernameIndexPage() {
   const username = params?.username as string
 
   useEffect(() => {
-    if (username) router.replace(`/${username}/analytics`)
+    if (username) router.replace(`/${username}/${TAB_TO_PAGE.analysis}`)
   }, [username, router])
 
   return (

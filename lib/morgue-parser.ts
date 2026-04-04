@@ -29,6 +29,12 @@ export interface ParsedMorgue {
   gameCompletionDate: string
   /** True if the Branches section shows Lair (5/5), i.e. player reached Lair:5. */
   reachedLair5: boolean
+  /** Dungeon depth 7+ (branch notation, action log, final place), or a win. */
+  reachedDungeon7: boolean
+  /** Stepped into Depths:1+ (branch / action log / final place), or a win. */
+  reachedDepthsMilestone: boolean
+  /** Stepped into Zot:1+ (branch / action log / final place), or a win. */
+  reachedZotMilestone: boolean
 }
 
 const ERR_PREFIX = "This doesn’t look like a valid DCSS morgue file."
@@ -198,6 +204,74 @@ function formatDuration(totalSeconds: number): string {
   const s = totalSeconds % 60
   if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`
   return `${m}:${s.toString().padStart(2, "0")}`
+}
+
+function parsePlaceBranchDepth(place: string): { branch: string; depth: number } | null {
+  const p = place.trim()
+  if (!p || p === "unknown" || p === "Escaped with Orb") return null
+  const m = p.match(/^([^:]+):(\d+)$/)
+  if (!m) return null
+  const depth = parseInt(m[2], 10)
+  if (!Number.isFinite(depth)) return null
+  return { branch: m[1].trim(), depth }
+}
+
+function maxDungeonDepthFromMessages(text: string): number {
+  let max = 0
+  const re = /(?:Entered|entered)\s+Level\s+(\d+)\s+of\s+(?:the\s+)?Dungeon\b/gi
+  for (const m of text.matchAll(re)) {
+    const n = parseInt(m[1], 10)
+    if (Number.isFinite(n) && n > max) max = n
+  }
+  return max
+}
+
+/**
+ * Branch progress milestones from morgue text (Branches section, action lines, final place).
+ * Depths / Zot count only when the branch shows progress (Depths (1+/4), Zot (1+/5)),
+ * the action log records entering those branches, or death/place on that branch — not Dungeon 15 / Depths 4 proxies.
+ */
+export function computeMorgueMilestones(
+  text: string,
+  place: string,
+  isWin: boolean,
+): Pick<ParsedMorgue, "reachedDungeon7" | "reachedDepthsMilestone" | "reachedZotMilestone"> {
+  if (isWin) {
+    return {
+      reachedDungeon7: true,
+      reachedDepthsMilestone: true,
+      reachedZotMilestone: true,
+    }
+  }
+
+  const dungeonM = text.match(/\bDungeon\s*\(\s*(\d+)\s*\/\s*\d+\s*\)/i)
+  const dungeonFromBranch = dungeonM ? parseInt(dungeonM[1], 10) : 0
+  const effectiveDungeon = Math.max(dungeonFromBranch, maxDungeonDepthFromMessages(text))
+
+  const depthsM = text.match(/\bDepths\s*\(\s*(\d+)\s*\/\s*\d+\s*\)/i)
+  const depthsMax = depthsM ? parseInt(depthsM[1], 10) : null
+
+  const zotM = text.match(/\bZot\s*\(\s*(\d+)\s*\/\s*\d+\s*\)/i)
+  const zotMax = zotM ? parseInt(zotM[1], 10) : null
+
+  const enteredDepths =
+    (depthsMax != null && depthsMax >= 1) ||
+    /(?:Entered|entered)\s+Level\s+\d+\s+of\s+(?:the\s+)?Depths\b/i.test(text)
+  const enteredZot =
+    (zotMax != null && zotMax >= 1) ||
+    /(?:Entered|entered)\s+Level\s+\d+\s+of\s+(?:the\s+)?(?:Realm of Zot|Zot)\b/i.test(text)
+
+  const placeInfo = parsePlaceBranchDepth(place)
+
+  const reachedDungeon7 =
+    effectiveDungeon >= 7 || (placeInfo?.branch === "D" && placeInfo.depth >= 7)
+
+  const reachedDepthsMilestone =
+    enteredDepths || (placeInfo?.branch === "Depths" && placeInfo.depth >= 1)
+
+  const reachedZotMilestone = enteredZot || (placeInfo?.branch === "Zot" && placeInfo.depth >= 1)
+
+  return { reachedDungeon7, reachedDepthsMilestone, reachedZotMilestone }
 }
 
 /**
@@ -479,6 +553,7 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     killer,
     gameCompletionDate: gameCompletionDate || "",
     reachedLair5: /Lair\s*\(\s*5\s*\/\s*5\s*\)/.test(text),
+    ...computeMorgueMilestones(text, place, isWin),
   }
 }
 

@@ -120,23 +120,23 @@ type RuneByTypeDatum = {
 function RuneTooltip({
   active,
   payload,
-  label,
 }: TooltipProps<number, string>) {
   if (!active || !payload || payload.length === 0) return null
   const p = payload[0].payload as RuneDatum | undefined
   if (!p) return null
 
-  const showWins = p.runes > 2 && p.wins > 0
+  const title = p.runes === 1 ? "1 Rune" : `${p.runes} Runes`
 
   return (
     <div className="border-2 border-primary bg-card p-3">
-      <p className={typography.bodyMono}>{`Runes: ${p.runes}`}</p>
-      {showWins && (
+      <p className={typography.bodyMono}>{title}</p>
+      {p.wins > 0 && (
         <p className={cn("text-base", colors.success)}>Wins: {p.wins}</p>
       )}
-      <p className="text-base text-muted-foreground">
-        Attempts (wins + deaths): {p.attemptsTotal}
-      </p>
+      {p.attemptsNonWin > 0 && (
+        <p className="text-base text-muted-foreground">Attempts: {p.attemptsNonWin}</p>
+      )}
+      <p className="text-base text-muted-foreground">Total: {p.attemptsTotal}</p>
     </div>
   )
 }
@@ -148,10 +148,18 @@ function RuneByTypeTooltip({
   if (!active || !payload || payload.length === 0) return null
   const p = payload[0].payload as RuneByTypeDatum | undefined
   if (!p) return null
+  const secondary = (p.runeTypeSecondary ?? "").trim()
+  const title = secondary !== "" ? `${p.runeType} / ${secondary}` : p.runeType
   return (
     <div className="border-2 border-primary bg-card p-3">
-      <p className={typography.bodyMono}>{p.runeType}</p>
-      <p className="text-base text-muted-foreground">Total runes found: {p.attemptsTotal}</p>
+      <p className={typography.bodyMono}>{title}</p>
+      {p.wins > 0 && (
+        <p className={cn("text-base", colors.success)}>Wins: {p.wins}</p>
+      )}
+      {p.attemptsNonWin > 0 && (
+        <p className="text-base text-muted-foreground">Attempts: {p.attemptsNonWin}</p>
+      )}
+      <p className="text-base text-muted-foreground">Total: {p.attemptsTotal}</p>
     </div>
   )
 }
@@ -243,7 +251,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                     {
                       id: "attemptsNonWin",
                       type: "square",
-                      value: "Attempts (wins + deaths)",
+                      value: "Attempts",
                       color: attemptsColor,
                     },
                     {
@@ -255,16 +263,16 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                   ]}
                 />
                 <Bar
+                  dataKey="attemptsNonWin"
+                  stackId="runes"
+                  fill={attemptsColor}
+                  radius={[0, 0, 2, 2]}
+                />
+                <Bar
                   dataKey="wins"
                   stackId="runes"
                   fill={winsColor}
                   radius={[2, 2, 0, 0]}
-                />
-                <Bar
-                  dataKey="attemptsNonWin"
-                  stackId="runes"
-                  fill={attemptsColor}
-                  radius={[0, 0, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -281,7 +289,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
               <BarChart
                 layout="vertical"
                 data={runeByTypeData}
-                margin={{ top: 10, right: 20, left: 8, bottom: 24 }}
+                margin={{ top: 10, right: 20, left: 8, bottom: 48 }}
                 barCategoryGap="30%"
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" horizontal={false} />
@@ -348,11 +356,42 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                   content={<RuneByTypeTooltip />}
                   cursor={{ fill: "rgba(148, 163, 184, 0.06)", stroke: "transparent" }}
                 />
+                <Legend
+                  verticalAlign="bottom"
+                  align="center"
+                  wrapperStyle={{
+                    fontFamily: "var(--font-body)",
+                    fontSize: 11,
+                    paddingTop: 25,
+                  }}
+                  payload={[
+                    {
+                      id: "attemptsNonWin",
+                      type: "square",
+                      value: "Attempts",
+                      color: attemptsColor,
+                    },
+                    {
+                      id: "wins",
+                      type: "square",
+                      value: "Wins",
+                      color: winsColor,
+                    },
+                  ]}
+                />
                 <Bar
-                  dataKey="attemptsTotal"
+                  dataKey="attemptsNonWin"
+                  stackId="byType"
+                  fill={attemptsColor}
+                  name="Attempts"
+                  radius={[2, 0, 0, 2]}
+                />
+                <Bar
+                  dataKey="wins"
+                  stackId="byType"
                   fill={winsColor}
+                  name="Wins"
                   radius={[0, 2, 2, 0]}
-                  name="Total runes found"
                 />
               </BarChart>
             </ResponsiveContainer>

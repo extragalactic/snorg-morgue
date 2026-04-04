@@ -15,17 +15,22 @@ export function slugifyUsername(name: string): string {
 
 /** Map URL segment -> dashboard tab id */
 export const PAGE_TO_TAB: Record<string, string> = {
+  statistics: "analysis",
+  /** Legacy path; same tab as statistics */
   analytics: "analysis",
+  /** Skill / winning analysis tab */
+  analysis: "skills",
+  /** Legacy path; same tab as analysis */
   skills: "skills",
   achievements: "achievements",
   morgues: "morgues",
   // resources: "extras", // Hidden - uncomment to restore
 }
 
-/** Map dashboard tab id -> URL segment */
+/** Map dashboard tab id -> canonical URL segment */
 export const TAB_TO_PAGE: Record<string, string> = {
-  analysis: "analytics",
-  skills: "skills",
+  analysis: "statistics",
+  skills: "analysis",
   achievements: "achievements",
   morgues: "morgues",
   // extras: "resources", // Hidden - uncomment to restore

@@ -3,9 +3,9 @@ Snorg-Morge ToDo
 Features:
 - Runes Collected per Game needs testing/fixing for data with 15 runes
 - make a random stats section, such as:
-    number of times you died with exactly 0 HP
-    number of times you died with exactly -1 HP
-
+    number of games you died with exactly 0 HP
+    number of games you died with exactly -1 HP
+    number of games you got abyssed against your will
 - enable Google auth
 - new section to show: best score, average score
 - would be cool to have a Congrats modal after uploading/detecting a new Win 
@@ -14,14 +14,14 @@ Features:
 - need a morgue "character sheet" exporter (to resemble a D&D sheet)
 - new chart: Arch Nemesis Chart = top 10 unique killers
 - the Species Performance should have a toggle to show old species instead of current ones
-- add more variations of the "games that reached xxx" stat, like games that entered Depths, that got 1/2/3 runes,that found the Zot portal, etc.
 - beside the stats on the tooltips, put explanations of each stat, such as: "Out of 24 games where you found at least 3 runes, you had a 40% win rate".
 - make a coloured grid chart that show the Skills used per level, with bright coloured segments showing high usage
 - figure out how to calculate the proportion of all your play time spent at each leavel. Can probably calculate this by taking the average playtime for all games that ended at level X, then the average playtime for all games that ended at level X + 1, and this would give the average time spent during that interval. Perhaps plot points and draw a line of best fit. Remember that the reason anyone will use the site is to calculate some interesting stats that are not available elsewhere.
 - can make a morgue file summary option that shows all the important stuff in a D&D character sheet (not everything, just the important stuff)
-- the chart that shows average level per god should also have an option to show "how far you got" with each god (max level attained)
+
 
 Fixes:
+- sharing a morgue needs better feedback after clicking button, then the morgue file needs to show the player name at the top and remove the Back to Morgues button
 - all of the tooltips should be made with larger text with simplified presentation (to convey useful data quickly)
 - overall the font should globally increase a point or two
 - remove red from Sign Out button

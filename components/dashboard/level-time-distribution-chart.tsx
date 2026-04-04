@@ -1,6 +1,6 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useTheme } from "@/contexts/theme-context"
 import type { GameRecord } from "@/lib/morgue-api"
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
@@ -271,6 +271,8 @@ function EstimatedTimeTooltip({ active, payload }: TipProps) {
 }
 
 const CARD_TITLE = "ESTIMATED TOTAL TIME SPENT ACROSS LEVELS"
+const CARD_SUBTITLE =
+  "For all of your DCSS play time, about how much time was spent at each XL"
 
 export function TotalTimeSpentAtEachLevelChart({
   morgues = [],
@@ -292,19 +294,12 @@ export function TotalTimeSpentAtEachLevelChart({
   const maxSmoothed = data.reduce((m, d) => Math.max(m, d.smoothedHours), 0)
   const yAxisMax = maxSmoothed <= 0 ? 1 : Math.ceil(maxSmoothed * 11) / 10
 
-  const runsWithDuration = morgues.filter(
-    (m) =>
-      endingLevel(m) != null &&
-      m.durationSeconds != null &&
-      Number.isFinite(m.durationSeconds) &&
-      m.durationSeconds > 0,
-  ).length
-
   if (loading) {
     return (
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
           <CardTitle>{CARD_TITLE}</CardTitle>
+          <CardDescription className="pt-2">{CARD_SUBTITLE}</CardDescription>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm">
@@ -318,14 +313,8 @@ export function TotalTimeSpentAtEachLevelChart({
   return (
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <CardTitle className="flex flex-wrap items-center justify-between gap-2">
-          <span>{CARD_TITLE}</span>
-          {morgues.length > 0 && (
-            <span className="font-mono text-[13px] sm:text-sm font-normal text-muted-foreground">
-              Runs with duration: {runsWithDuration}
-            </span>
-          )}
-        </CardTitle>
+        <CardTitle>{CARD_TITLE}</CardTitle>
+        <CardDescription className="pt-2">{CARD_SUBTITLE}</CardDescription>
       </CardHeader>
       <CardContent className="pt-4 space-y-3">
         <ResponsiveContainer width="100%" height={300}>
