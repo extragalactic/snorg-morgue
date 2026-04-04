@@ -170,7 +170,7 @@ export default function DashboardPage({
   const [globalLevelDeathAverages, setGlobalLevelDeathAverages] = useState<number[] | null>(null)
   const [globalLevelDeathUserCount, setGlobalLevelDeathUserCount] = useState<number | null>(null)
   const [globalStats, setGlobalStats] = useState<GlobalAnalysisStats | null>(null)
-  const [showGlobalAverages, setShowGlobalAverages] = useState(true)
+  const [showGlobalAverages, setShowGlobalAverages] = useState(false)
 
   // Redirect /dashboard to /username/analytics when not using URL-driven tabs
   useEffect(() => {

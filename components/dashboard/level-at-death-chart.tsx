@@ -36,25 +36,33 @@ interface LevelDeathTooltipProps {
     value: number
     name: string
     color: string
+    dataKey?: string
     payload: { level: number; deaths: number; avgDeaths?: number }
   }>
 }
 
 function LevelDeathTooltip({ active, payload }: LevelDeathTooltipProps) {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload
-    return (
-      <div className="border-2 border-primary bg-card p-3">
-        <p className="font-mono text-sm text-primary">Level {data.level}</p>
-        {payload.map((p) => (
-          <p key={p.name} className="text-base" style={{ color: p.color }}>
-            {p.name}: {p.value.toFixed ? p.value.toFixed(2) : p.value}
-          </p>
-        ))}
-      </div>
-    )
-  }
-  return null
+  if (!active || !payload?.length) return null
+  const data = payload[0].payload
+  const avgEntry = payload.find(
+    (p) =>
+      p.dataKey === "avgDeaths" ||
+      (typeof p.name === "string" && p.name.toLowerCase().startsWith("average"))
+  )
+  const deathCount = Math.round(Number(data.deaths))
+  return (
+    <div className="border-2 border-primary bg-card p-3">
+      <p className="font-mono text-sm text-primary">Level {data.level}</p>
+      <p className="text-base text-muted-foreground">
+        {deathCount} {deathCount === 1 ? "Death" : "Deaths"}
+      </p>
+      {avgEntry != null && (
+        <p className="text-base text-muted-foreground" style={{ color: avgEntry.color }}>
+          {avgEntry.name}: {Number(avgEntry.value).toFixed(2)}
+        </p>
+      )}
+    </div>
+  )
 }
 
 export function LevelAtDeathChart({
@@ -148,7 +156,7 @@ export function LevelAtDeathChart({
               strokeWidth={2}
               dot={{ fill: lineColor, strokeWidth: 0, r: 3 }}
               activeDot={{ fill: lineColor, strokeWidth: 0, r: 5 }}
-              name="You"
+              name="Deaths"
             />
             {hasGlobal && (
               <Line

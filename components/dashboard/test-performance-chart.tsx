@@ -13,13 +13,6 @@ import {
 } from "@/components/dashboard/player-stats-chart"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
   Bar,
   BarChart,
   Cell,
@@ -255,28 +248,69 @@ export function TestPerformanceChart({
       }
     >
       <CardHeader className="flex-shrink-0 border-b-2 border-primary/20 pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <Select value={chartType} onValueChange={(v: ChartType) => {
-            setChartType(v)
-            updatePerformanceSettings({ chartType: v })
-          }}>
-            <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 hover:text-primary">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="rounded-none border-2 border-primary/50">
-              <SelectItem value="species" className="font-mono text-sm cursor-pointer hover:text-primary">Species</SelectItem>
-              <SelectItem value="background" className="font-mono text-sm cursor-pointer hover:text-primary">Background</SelectItem>
-              <SelectItem value="gods" className="font-mono text-sm cursor-pointer hover:text-primary">Gods</SelectItem>
-            </SelectContent>
-          </Select>
-          <span>PERFORMANCE</span>
-          {chartType === "gods" && (
-            <span className="text-muted-foreground text-sm font-normal" style={{ marginLeft: 20 }}>
-              {noGodSummary.pct.toFixed(0)}% of games had no god
-            </span>
-          )}
-        </CardTitle>
+        <div className="space-y-3">
+          <CardTitle className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-lg sm:text-xl">
+            <span className="tracking-tight">Win Performance</span>
+            {chartType === "gods" && (
+              <span className="text-sm font-normal text-muted-foreground">
+                {noGodSummary.pct.toFixed(0)}% of games had no god
+              </span>
+            )}
+          </CardTitle>
+          <div className="flex flex-wrap gap-2">
+            <FilterToggleButton
+              selected={chartType === "species"}
+              onClick={() => {
+                setChartType("species")
+                updatePerformanceSettings({ chartType: "species" })
+              }}
+            >
+              Species
+            </FilterToggleButton>
+            <FilterToggleButton
+              selected={chartType === "background"}
+              onClick={() => {
+                setChartType("background")
+                updatePerformanceSettings({ chartType: "background" })
+              }}
+            >
+              Background
+            </FilterToggleButton>
+            <FilterToggleButton
+              selected={chartType === "gods"}
+              onClick={() => {
+                setChartType("gods")
+                updatePerformanceSettings({ chartType: "gods" })
+              }}
+            >
+              God
+            </FilterToggleButton>
+          </div>
+        </div>
         <div className="flex flex-col gap-3 pt-3">
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-xs text-primary">SHOW:</span>
+            <div className="flex gap-2">
+              <FilterToggleButton
+                selected={showMode === "wins"}
+                onClick={() => {
+                  setShowMode("wins")
+                  updatePerformanceSettings({ showMode: "wins" })
+                }}
+              >
+                Wins
+              </FilterToggleButton>
+              <FilterToggleButton
+                selected={showMode === "attempts"}
+                onClick={() => {
+                  setShowMode("attempts")
+                  updatePerformanceSettings({ showMode: "attempts" })
+                }}
+              >
+                Attempts
+              </FilterToggleButton>
+            </div>
+          </div>
           <div className="flex items-center gap-3">
             <span className="font-mono text-xs text-primary">SORT BY:</span>
             <div className="flex gap-2">
@@ -306,29 +340,6 @@ export function TestPerformanceChart({
                 }}
               >
                 Default
-              </FilterToggleButton>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-xs text-primary">SHOW:</span>
-            <div className="flex gap-2">
-              <FilterToggleButton
-                selected={showMode === "wins"}
-                onClick={() => {
-                  setShowMode("wins")
-                  updatePerformanceSettings({ showMode: "wins" })
-                }}
-              >
-                Wins
-              </FilterToggleButton>
-              <FilterToggleButton
-                selected={showMode === "attempts"}
-                onClick={() => {
-                  setShowMode("attempts")
-                  updatePerformanceSettings({ showMode: "attempts" })
-                }}
-              >
-                Attempts
               </FilterToggleButton>
             </div>
           </div>
@@ -421,8 +432,11 @@ export function TestPerformanceChart({
                   isAvgFirstDisplay: boolean
                 }
                 const total = p.firstSegDisplay + p.secondSegDisplay
-                const label =
-                  showMode === "wins"
+                const label = !showAverages
+                  ? showMode === "wins"
+                    ? "Max wins"
+                    : "Max attempts"
+                  : showMode === "wins"
                     ? "Max wins shown (You vs Avg)"
                     : "Max attempts shown (You vs Avg)"
                 return [total, label]
@@ -440,11 +454,14 @@ export function TestPerformanceChart({
                   <div className="border-2 border-primary bg-card p-3">
                     <p className="font-mono text-sm text-primary">{displayName}</p>
                     <p className="text-base text-muted-foreground">
-                      You: {p.userAttempts} attempts, {p.userWins} wins
+                      {showAverages ? "You: " : ""}
+                      {p.userAttempts} attempts, {p.userWins} wins
                     </p>
-                    <p className="text-base text-muted-foreground">
-                      Avg: {p.avgAttempts} attempts{p.avgIsEstimated ? " (est.)" : ""}, {p.avgWins} wins
-                    </p>
+                    {showAverages && (
+                      <p className="text-base text-muted-foreground">
+                        Avg: {p.avgAttempts} attempts{p.avgIsEstimated ? " (est.)" : ""}, {p.avgWins} wins
+                      </p>
+                    )}
                   </div>
                 )
               }}

@@ -266,11 +266,11 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                           return (
                             <Tooltip key={sp}>
                               <TooltipTrigger asChild>
-                                <div className="cursor-default">{row}</div>
+                                <div className="w-fit max-w-full cursor-default">{row}</div>
                               </TooltipTrigger>
                               <TooltipContent
                                 side="right"
-                                className="rounded-none border border-primary/40 bg-black/95 px-3 py-2 font-mono text-sm text-neutral-100"
+                                className="rounded-none border border-primary/40 bg-black/95 py-2 pr-3 pl-[calc(0.75rem+5px)] font-mono text-sm text-neutral-100"
                               >
                                 Wins: {w} · Attempts: {a}
                               </TooltipContent>
@@ -339,11 +339,11 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                               return (
                                 <Tooltip key={bg}>
                                   <TooltipTrigger asChild>
-                                    <div className="cursor-default">{row}</div>
+                                    <div className="w-fit max-w-full cursor-default">{row}</div>
                                   </TooltipTrigger>
                                   <TooltipContent
                                     side="right"
-                                    className="rounded-none border border-primary/40 bg-black/95 px-3 py-2 font-mono text-sm text-neutral-100"
+                                    className="rounded-none border border-primary/40 bg-black/95 py-2 pr-3 pl-[calc(0.75rem+5px)] font-mono text-sm text-neutral-100"
                                   >
                                     Wins: {w} · Attempts: {a}
                                   </TooltipContent>
