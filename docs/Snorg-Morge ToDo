@@ -11,14 +11,13 @@ Features:
 - would be cool to have a Congrats modal after uploading/detecting a new Win 
 - when you rollover a Snorg Award show a tooltip with something fun
 - have a Help tooltip somewhere perhaps for help on first upload/sync
-- need a morgue "character sheet" exporter (to resemble a D&D sheet)
 - new chart: Arch Nemesis Chart = top 10 unique killers
 - the Species Performance should have a toggle to show old species instead of current ones
 - beside the stats on the tooltips, put explanations of each stat, such as: "Out of 24 games where you found at least 3 runes, you had a 40% win rate".
 - make a coloured grid chart that show the Skills used per level, with bright coloured segments showing high usage
-- figure out how to calculate the proportion of all your play time spent at each leavel. Can probably calculate this by taking the average playtime for all games that ended at level X, then the average playtime for all games that ended at level X + 1, and this would give the average time spent during that interval. Perhaps plot points and draw a line of best fit. Remember that the reason anyone will use the site is to calculate some interesting stats that are not available elsewhere.
-- can make a morgue file summary option that shows all the important stuff in a D&D character sheet (not everything, just the important stuff)
-
+- can make a morgue file summary option that shows all the important stuff in a D&D character sheet (not everything, just the important stuff, make is a printable single page)
+- add an extra Browse variant where instead of switching to the other account it will instead become overlaid data (on some charts) like the current global average data
+- add a full calendar that shows hom much you played every day
 
 Fixes:
 - sharing a morgue needs better feedback after clicking button, then the morgue file needs to show the player name at the top and remove the Back to Morgues button
@@ -31,6 +30,7 @@ Fixes:
 - Avg species performance data is broken for Wins, and also wrong on Level at Death graph
 - server import cards have wobbly text when you click
 - need to review all the minor branch names like: gauntlet, volcano, etc. and ensure they are shown correctly in various spots
+- investigate why "divine providence" appears as a top killer
 
 Tests:
 - need to test logic for email/username duplicates on signup

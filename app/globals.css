@@ -288,6 +288,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Align centered layouts across tabs: Morgues uses dvh + overflow-hidden (no body scrollbar)
+     while other pages scroll the document; stable gutter keeps max-w-7xl aligned. */
+  html {
+    scrollbar-gutter: stable;
+  }
   body {
     @apply bg-background text-foreground;
   }

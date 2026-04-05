@@ -374,7 +374,9 @@ export function UploadsTable({
           fillViewportHeight && "min-h-0 flex-1 gap-0 py-0",
         )}
       >
-        <CardHeader className={cn("border-b-2 border-primary/20 py-3", fillViewportHeight && "shrink-0")}>
+        <CardHeader
+          className={cn("border-b-2 border-primary/20 py-3 px-4", fillViewportHeight && "shrink-0")}
+        >
           <CardTitle>Files</CardTitle>
         </CardHeader>
         <CardContent className={cn("p-8", fillViewportHeight && "flex min-h-0 flex-1 items-center justify-center")}>
@@ -395,7 +397,9 @@ export function UploadsTable({
           fillViewportHeight && "min-h-0 flex-1 gap-0 py-0",
         )}
       >
-        <CardHeader className={cn("border-b-2 border-primary/20 py-3", fillViewportHeight && "shrink-0")}>
+        <CardHeader
+          className={cn("border-b-2 border-primary/20 py-3 px-4", fillViewportHeight && "shrink-0")}
+        >
           <CardTitle>0 Files</CardTitle>
         </CardHeader>
         <CardContent className={cn("p-8 text-center", fillViewportHeight && "flex min-h-0 flex-1 items-center justify-center")}>
@@ -416,7 +420,10 @@ export function UploadsTable({
       )}
     >
       <CardHeader
-        className={cn("border-b-2 border-primary/20 pt-3 pb-0", fillViewportHeight && "shrink-0")}
+        className={cn(
+          "border-b-2 border-primary/20 pt-3 pb-0 px-4",
+          fillViewportHeight && "shrink-0",
+        )}
       >
         <div className="flex w-full min-w-0 flex-col gap-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <CardTitle className="shrink-0">{titleText}</CardTitle>
@@ -554,8 +561,8 @@ export function UploadsTable({
         <div
           ref={tableBodySlotRef}
           className={cn(
-            "w-full min-w-0",
-            fillViewportHeight ? "min-h-0 flex-1 overflow-x-auto overflow-y-hidden" : "overflow-x-auto",
+            "w-full min-w-0 min-h-0",
+            fillViewportHeight && "flex-1 overflow-y-hidden",
           )}
         >
           <Table>

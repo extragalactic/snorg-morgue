@@ -24,7 +24,7 @@ import { LevelAtDeathChart } from "@/components/dashboard/level-at-death-chart"
 import { TotalTimeSpentAtEachLevelChart } from "@/components/dashboard/level-time-distribution-chart"
 import { RuneCollectionChart } from "@/components/dashboard/rune-collection-chart"
 import { TestPerformanceChart } from "@/components/dashboard/test-performance-chart"
-import { Top10Killers } from "@/components/dashboard/top-10-killers"
+import { Top10Killers, Top10NotoriousKillers } from "@/components/dashboard/top-10-killers"
 import { SpeciesBackgroundComboGrid } from "@/components/dashboard/species-background-combo-grid"
 import { DcssChargenSelectionGrid } from "@/components/dashboard/dcss-chargen-selection-grid"
 import { UploadDialog } from "@/components/dashboard/upload-dialog"
@@ -125,6 +125,7 @@ function PerformanceAndRunesLayout({
       <div className="flex min-h-0 flex-col space-y-6">
         <RuneCollectionChart morgues={morgues} />
         <Top10Killers morgues={morgues} loading={statsLoading} />
+        <Top10NotoriousKillers morgues={morgues} loading={statsLoading} />
       </div>
     </div>
   )
@@ -381,7 +382,7 @@ export default function DashboardPage({
   return (
     <div
       className={cn(
-        "bg-background",
+        "bg-background min-w-0",
         activeTab === "morgues" ? "flex h-dvh min-h-0 flex-col overflow-hidden" : "min-h-screen",
       )}
     >
@@ -416,8 +417,8 @@ export default function DashboardPage({
 
       <main
         className={cn(
-          "mx-auto max-w-7xl px-4 py-6",
-          activeTab === "morgues" && "flex w-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+          "mx-auto w-full min-w-0 max-w-7xl px-4 py-6",
+          activeTab === "morgues" && "flex min-h-0 flex-1 flex-col overflow-hidden",
         )}
       >
         <div
@@ -431,6 +432,16 @@ export default function DashboardPage({
               {activeTab === "analysis" && (
                 <Image
                   src="/images/tesseract-icon.png"
+                  alt=""
+                  width={TITLE_GRAPHIC_SIZE_LARGE}
+                  height={TITLE_GRAPHIC_SIZE_LARGE}
+                  className="object-contain shrink-0"
+                  style={{ width: TITLE_GRAPHIC_SIZE_LARGE, height: TITLE_GRAPHIC_SIZE_LARGE }}
+                />
+              )}
+              {activeTab === "skills" && (
+                <Image
+                  src="/images/tentacled-monstrosity-icon.png"
                   alt=""
                   width={TITLE_GRAPHIC_SIZE_LARGE}
                   height={TITLE_GRAPHIC_SIZE_LARGE}

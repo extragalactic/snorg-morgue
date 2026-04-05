@@ -107,7 +107,7 @@ export function MilestoneProgressionChart({
     return (
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
-          <CardTitle className={typography.secondaryTitle}>Milestone Progression</CardTitle>
+          <CardTitle className={typography.secondaryTitle}>MILESTONE PROGRESSION</CardTitle>
           <CardDescription className="pt-2">Share of games reaching each milestone</CardDescription>
         </CardHeader>
         <CardContent className="pt-4">
@@ -122,7 +122,7 @@ export function MilestoneProgressionChart({
   return (
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
-        <CardTitle className={typography.secondaryTitle}>Milestone Progression</CardTitle>
+        <CardTitle className={typography.secondaryTitle}>MILESTONE PROGRESSION</CardTitle>
         <CardDescription className="pt-2">Share of games reaching each milestone</CardDescription>
       </CardHeader>
       <CardContent className="pt-4">

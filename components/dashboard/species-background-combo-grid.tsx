@@ -201,14 +201,20 @@ export function SpeciesBackgroundComboGrid({
                   <div />
                   {/* Column headers (background codes) */}
                   {ALL_BACKGROUND_NAMES.map((bg) => (
-                    <div
-                      key={bg}
-                      className={`aspect-square w-full flex items-end justify-center text-sm font-mono text-muted-foreground rotate-[-60deg] origin-bottom mb-2 transition-colors ${
-                        hoveredBackground === bg ? "bg-muted/40" : ""
-                      }`}
-                    >
-                      {backgroundCode(bg)}
-                    </div>
+                    <Tooltip key={bg}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={`aspect-square w-full flex items-end justify-center text-sm font-mono text-muted-foreground rotate-[-60deg] origin-bottom mb-2 transition-colors cursor-pointer select-none ${
+                            hoveredBackground === bg ? "bg-muted/40" : ""
+                          }`}
+                        >
+                          {backgroundCode(bg)}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs text-base">
+                        {bg}
+                      </TooltipContent>
+                    </Tooltip>
                   ))}
 
                   {/* Rows: species labels + grid cells */}
@@ -217,13 +223,20 @@ export function SpeciesBackgroundComboGrid({
                     const isRowHovered = hoveredSpecies === sp
                     return (
                       <Fragment key={sp}>
-                        <div
-                          className={`flex items-center justify-end pr-2 font-mono text-sm text-muted-foreground h-full transition-colors ${
-                            isRowHovered ? "bg-muted/40" : ""
-                          }`}
-                        >
-                          {spCode}
-                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className={`flex items-center justify-end pr-2 font-mono text-sm text-muted-foreground h-full min-h-[2rem] transition-colors cursor-pointer select-none ${
+                                isRowHovered ? "bg-muted/40" : ""
+                              }`}
+                            >
+                              {spCode}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs text-base">
+                            {sp}
+                          </TooltipContent>
+                        </Tooltip>
                         {ALL_BACKGROUND_NAMES.map((bg) => {
                           const isColHovered = hoveredBackground === bg
                           const isCellHighlighted = isRowHovered || isColHovered

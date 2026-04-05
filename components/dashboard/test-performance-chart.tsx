@@ -252,7 +252,7 @@ export function TestPerformanceChart({
       <CardHeader className="flex-shrink-0 border-b-2 border-primary/20 pb-3">
         <div className="space-y-3">
           <CardTitle className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-lg sm:text-xl">
-            <span className="tracking-tight">Win Performance</span>
+            <span className="tracking-tight">WIN PERFORMANCE</span>
             {chartType === "gods" && (
               <span className="text-sm font-normal text-muted-foreground">
                 {noGodSummary.pct.toFixed(0)}% of games had no god
