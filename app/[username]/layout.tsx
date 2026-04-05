@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-import { slugifyUsername } from "@/lib/slug"
+import { slugifyUsername, TAB_TO_PAGE } from "@/lib/slug"
 
 /** True if path is a public morgue detail URL: /username/morgues/shortId */
 function isPublicMorguePath(pathname: string | null): boolean {
@@ -40,11 +40,11 @@ export default function UsernameLayout({ children }: { children: React.ReactNode
     const segments = pathname?.split("/").filter(Boolean) ?? []
     const usernameInPath = segments[0]
     if (usernameInPath && usernameInPath !== slug) {
-      router.replace(`/${slug}/analytics`)
+      router.replace(`/${slug}/${TAB_TO_PAGE.analysis}`)
       return
     }
     if (usernameInPath === slug && segments.length === 1) {
-      router.replace(`/${slug}/analytics`)
+      router.replace(`/${slug}/${TAB_TO_PAGE.analysis}`)
     }
   }, [user, isLoading, pathname, router, publicMorgue, permissionDenied])
 

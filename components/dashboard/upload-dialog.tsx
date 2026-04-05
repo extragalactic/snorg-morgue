@@ -169,14 +169,14 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
               ? {
                   ...f,
                   status: "error" as const,
-                  error: "Partial game files cannot be uploaded. Morgue filenames must start with 'morgue-'.",
+                  error: "Can only upload completed games.",
                 }
               : f
           )
         )
         failedReads.push({
           name: p.name,
-          error: "Partial game files cannot be uploaded. Morgue filenames must start with 'morgue-'.",
+          error: "Can only upload completed games.",
         })
         continue
       }
@@ -263,7 +263,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
           Upload Morgue
         </Button>
       </DialogTrigger>
-      <DialogContent className="border-4 border-primary rounded-none bg-card sm:max-w-[532px]">
+      <DialogContent className="border-4 border-primary rounded-none bg-card sm:max-w-[547px]">
         <DialogHeader className="border-b-2 border-primary/30 pb-4">
           <DialogTitle className="font-mono text-primary">
             UPLOAD MORGUE FILES

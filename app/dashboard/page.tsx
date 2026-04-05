@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { Trophy, Skull, Target, Flame, Zap, Timer, MapPin } from "lucide-react"
+import { Trophy, Skull, Target, Flame, Zap, Timer, ChartColumnBig } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -21,9 +21,10 @@ import { Navigation } from "@/components/dashboard/navigation"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { GoalProgress } from "@/components/dashboard/goal-progress"
 import { LevelAtDeathChart } from "@/components/dashboard/level-at-death-chart"
+import { TotalTimeSpentAtEachLevelChart } from "@/components/dashboard/level-time-distribution-chart"
 import { RuneCollectionChart } from "@/components/dashboard/rune-collection-chart"
 import { TestPerformanceChart } from "@/components/dashboard/test-performance-chart"
-import { Top10Killers } from "@/components/dashboard/top-10-killers"
+import { Top10Killers, Top10NotoriousKillers } from "@/components/dashboard/top-10-killers"
 import { SpeciesBackgroundComboGrid } from "@/components/dashboard/species-background-combo-grid"
 import { DcssChargenSelectionGrid } from "@/components/dashboard/dcss-chargen-selection-grid"
 import { UploadDialog } from "@/components/dashboard/upload-dialog"
@@ -52,7 +53,9 @@ import { slugifyUsername, TAB_TO_PAGE } from "@/lib/slug"
 import { typography, TITLE_GRAPHIC_SIZE_LARGE } from "@/lib/typography"
 import { SkillingAnalysis } from "@/components/dashboard/skilling-analysis"
 import { AverageLevelByGodChart } from "@/components/dashboard/average-level-by-god-chart"
+import { MilestoneProgressionChart } from "@/components/dashboard/milestone-progression-chart"
 import { cn } from "@/lib/utils"
+import { isAdminEmail } from "@/lib/admin-auth"
 
 function speciesCode(species: string): string {
   const s = (species ?? "").trim()
@@ -107,41 +110,22 @@ function PerformanceAndRunesLayout({
   showGlobalAverages: boolean
   globalStats: GlobalAnalysisStats | null
 }) {
-  const rightRef = useRef<HTMLDivElement>(null)
-  const [rightHeight, setRightHeight] = useState<number | null>(null)
-
-  useEffect(() => {
-    const el = rightRef.current
-    if (!el) return
-    const ro = new ResizeObserver((entries) => {
-      const entry = entries[0]
-      if (entry) setRightHeight(entry.contentRect.height)
-    })
-    ro.observe(el)
-    setRightHeight(el.getBoundingClientRect().height)
-    return () => ro.disconnect()
-  }, [morgues, statsLoading])
-
   return (
     <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
-      <div
-        className="flex min-h-0 flex-1 flex-col"
-        style={rightHeight != null ? { height: rightHeight } : undefined}
-      >
-        <div className="min-h-0 flex-1">
-          <TestPerformanceChart
-            speciesStats={stats?.species_stats ?? []}
-            backgroundStats={stats?.background_stats ?? []}
-            godStats={stats?.god_stats ?? []}
-            showAverages={showGlobalAverages}
-            averagePlayerCount={globalStats?.userCount}
-            fillHeight
-          />
-        </div>
+      <div className="flex min-h-0 flex-col">
+        <TestPerformanceChart
+          speciesStats={stats?.species_stats ?? []}
+          backgroundStats={stats?.background_stats ?? []}
+          godStats={stats?.god_stats ?? []}
+          showAverages={showGlobalAverages}
+          averagePlayerCount={globalStats?.userCount}
+          fillHeight
+        />
       </div>
-      <div ref={rightRef} className="flex min-h-0 flex-col space-y-6">
+      <div className="flex min-h-0 flex-col space-y-6">
         <RuneCollectionChart morgues={morgues} />
         <Top10Killers morgues={morgues} loading={statsLoading} />
+        <Top10NotoriousKillers morgues={morgues} loading={statsLoading} />
       </div>
     </div>
   )
@@ -157,6 +141,7 @@ export default function DashboardPage({
   usernameSlug?: string
 } = {}) {
   const { userId, user } = useAuth()
+  const isAdmin = isAdminEmail(user?.email)
   const { browseTarget, clearBrowseTarget } = useBrowse()
   const { themeStyle } = useTheme()
   const router = useRouter()
@@ -169,14 +154,20 @@ export default function DashboardPage({
   const [globalLevelDeathAverages, setGlobalLevelDeathAverages] = useState<number[] | null>(null)
   const [globalLevelDeathUserCount, setGlobalLevelDeathUserCount] = useState<number | null>(null)
   const [globalStats, setGlobalStats] = useState<GlobalAnalysisStats | null>(null)
-  const [showGlobalAverages, setShowGlobalAverages] = useState(true)
+  const [showGlobalAverages, setShowGlobalAverages] = useState(false)
+  /** Global player averages (charts + secondary stats) — only when admin turns the switch on. */
+  const showGlobalComparison = isAdmin && showGlobalAverages
 
-  // Redirect /dashboard to /username/analytics when not using URL-driven tabs
+  useEffect(() => {
+    if (!isAdmin) setShowGlobalAverages(false)
+  }, [isAdmin])
+
+  // Redirect /dashboard to /username/statistics when not using URL-driven tabs
   useEffect(() => {
     if (activeTabProp != null || onTabChangeProp != null) return
     if (!user?.name) return
     const slug = slugifyUsername(user.name)
-    if (slug) router.replace(`/${slug}/analytics`)
+    if (slug) router.replace(`/${slug}/${TAB_TO_PAGE.analysis}`)
   }, [user?.name, activeTabProp, onTabChangeProp, router])
   const [stats, setStats] = useState<Awaited<ReturnType<typeof fetchUserStats>>>(null)
   const [statsLoading, setStatsLoading] = useState(true)
@@ -325,10 +316,25 @@ export default function DashboardPage({
       )
     : undefined
 
-  const reachedLair5Count = morgues.filter((m) => m.reachedLair5 === true).length
-  const totalGames = morgues.length
-  const lair5Pct = totalGames > 0 ? Math.round((reachedLair5Count / totalGames) * 100) : 0
-  const gamesReachedLair5Value = `${lair5Pct}%`
+  /** Modal (most common) XL among death games; ties favor the lower level. */
+  const medianXlAtDeathMode = useMemo(() => {
+    const deaths = morgues.filter((m) => m.result === "death" && Number.isFinite(m.xl))
+    if (deaths.length === 0) return null
+    const counts = new Map<number, number>()
+    for (const m of deaths) {
+      const xl = Math.min(27, Math.max(1, Math.round(m.xl)))
+      counts.set(xl, (counts.get(xl) ?? 0) + 1)
+    }
+    let modeXl: number | null = null
+    let maxC = -1
+    for (const [xl, c] of counts) {
+      if (c > maxC || (c === maxC && modeXl !== null && xl < modeXl)) {
+        maxC = c
+        modeXl = xl
+      }
+    }
+    return modeXl
+  }, [morgues])
 
   const handleDownloadAllMorgues = useCallback(async () => {
     if (!userId || isBrowsingOther || morgues.length === 0 || isDownloading) return
@@ -376,7 +382,7 @@ export default function DashboardPage({
   return (
     <div
       className={cn(
-        "bg-background",
+        "bg-background min-w-0",
         activeTab === "morgues" ? "flex h-dvh min-h-0 flex-col overflow-hidden" : "min-h-screen",
       )}
     >
@@ -411,8 +417,8 @@ export default function DashboardPage({
 
       <main
         className={cn(
-          "mx-auto max-w-7xl px-4 py-6",
-          activeTab === "morgues" && "flex w-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+          "mx-auto w-full min-w-0 max-w-7xl px-4 py-6",
+          activeTab === "morgues" && "flex min-h-0 flex-1 flex-col overflow-hidden",
         )}
       >
         <div
@@ -426,6 +432,16 @@ export default function DashboardPage({
               {activeTab === "analysis" && (
                 <Image
                   src="/images/tesseract-icon.png"
+                  alt=""
+                  width={TITLE_GRAPHIC_SIZE_LARGE}
+                  height={TITLE_GRAPHIC_SIZE_LARGE}
+                  className="object-contain shrink-0"
+                  style={{ width: TITLE_GRAPHIC_SIZE_LARGE, height: TITLE_GRAPHIC_SIZE_LARGE }}
+                />
+              )}
+              {activeTab === "skills" && (
+                <Image
+                  src="/images/tentacled-monstrosity-icon.png"
                   alt=""
                   width={TITLE_GRAPHIC_SIZE_LARGE}
                   height={TITLE_GRAPHIC_SIZE_LARGE}
@@ -455,15 +471,15 @@ export default function DashboardPage({
               )}
               <div className="min-w-0">
                 <h1 className={typography.primaryTitle}>
-                  {activeTab === "analysis" && "PERFORMANCE ANALYTICS"}
-                  {activeTab === "skills" && "WINNING SKILLS"}
+                  {activeTab === "analysis" && "GAME STATS"}
+                  {activeTab === "skills" && "ANALYSIS"}
                   {activeTab === "achievements" && "OFFICIAL ACHIEVEMENTS"}
                   {activeTab === "morgues" && "MORGUE FILES"}
                   {activeTab === "extras" && "RESOURCES"}
                 </h1>
                 <p className={typography.bodyMuted}>
-                  {activeTab === "analysis" && "Track and analyze your DCSS progress"}
-                  {activeTab === "skills" && "Learn techniques from winning players"}
+                  {activeTab === "analysis" && "Track your DCSS progress"}
+                  {activeTab === "skills" && "Deeper analysis to find the patterns"}
                   {activeTab === "achievements" && "Impressive metrics of DCSS prowess"}
                   {activeTab === "morgues" && "Upload and browse your morgue files"}
                   {activeTab === "extras" && "Helpful links and community resources"}
@@ -473,21 +489,24 @@ export default function DashboardPage({
           </div>
           <div className="flex flex-col items-end gap-2">
             <div className="flex flex-wrap items-center justify-end gap-6">
-              {activeTab === "analysis" && globalStats && globalStats.userCount > 0 && (
-                <div className="flex items-center gap-2 pr-5 sm:pr-0">
-                  <div className="flex flex-col items-center">
-                    <span className={typography.captionMono}>Show averages</span>
-                    <span className={typography.captionMono}>
-                      ({globalStats.userCount} total players)
-                    </span>
+              {activeTab === "analysis" &&
+                isAdmin &&
+                globalStats &&
+                globalStats.userCount > 0 && (
+                  <div className="flex items-center gap-2 pr-5 sm:pr-0">
+                    <div className="flex flex-col items-center">
+                      <span className={typography.captionMono}>Show averages</span>
+                      <span className={typography.captionMono}>
+                        ({globalStats.userCount} total players)
+                      </span>
+                    </div>
+                    <Switch
+                      checked={showGlobalAverages}
+                      onCheckedChange={setShowGlobalAverages}
+                      className="data-[state=checked]:bg-average data-[state=checked]:border-average"
+                    />
                   </div>
-                  <Switch
-                    checked={showGlobalAverages}
-                    onCheckedChange={setShowGlobalAverages}
-                    className="data-[state=checked]:bg-average data-[state=checked]:border-average"
-                  />
-                </div>
-              )}
+                )}
               {activeTab === "analysis" && !isBrowsingOther && userId && (
                 <div className="flex items-center gap-2 pr-5 sm:pr-0">
                   <div className="flex flex-col items-center max-w-[11rem] text-center">
@@ -656,14 +675,6 @@ export default function DashboardPage({
         {activeTab === "analysis" && (
           <>
             <div className="space-y-6">
-              {!statsLoading && !isEmpty && (
-                <LevelAtDeathChart
-                  morgues={morgues}
-                  loading={statsLoading}
-                  globalAverageDeathsPerLevel={showGlobalAverages ? (globalLevelDeathAverages ?? undefined) : undefined}
-                  globalAverageUserCount={showGlobalAverages ? globalLevelDeathUserCount ?? undefined : undefined}
-                />
-              )}
               {isEmpty ? (
                 <AnalysisEmptyState morguesPageHref={morguesPageHref} />
               ) : statsLoading ? (
@@ -675,7 +686,7 @@ export default function DashboardPage({
                     title="Total Wins"
                     value={statsData?.totalWins ?? 0}
                     secondaryValue={
-                      showGlobalAverages && globalStats && globalStats.userCount > 0
+                      showGlobalComparison && globalStats && globalStats.userCount > 0
                         ? String(Math.floor(globalStats.totals.totalWins / globalStats.userCount))
                         : undefined
                     }
@@ -686,7 +697,7 @@ export default function DashboardPage({
                     title="Total Deaths"
                     value={statsData?.totalDeaths ?? 0}
                     secondaryValue={
-                      showGlobalAverages && globalStats && globalStats.userCount > 0
+                      showGlobalComparison && globalStats && globalStats.userCount > 0
                         ? String(Math.floor(globalStats.totals.totalDeaths / globalStats.userCount))
                         : undefined
                     }
@@ -697,7 +708,7 @@ export default function DashboardPage({
                     title="Win Rate"
                     value={statsData ? `${statsData.winRate.toFixed(1)}%` : "0%"}
                     secondaryValue={
-                      showGlobalAverages && globalStats
+                      showGlobalComparison && globalStats
                         ? `${globalStats.totals.overallWinRate.toFixed(1)}%`
                         : undefined
                     }
@@ -708,7 +719,7 @@ export default function DashboardPage({
                     title="Best Streak"
                     value={statsData?.bestStreak ?? 0}
                     secondaryValue={
-                      showGlobalAverages && globalStats
+                      showGlobalComparison && globalStats
                         ? String(Math.floor(globalStats.totals.avgBestStreak))
                         : undefined
                     }
@@ -721,7 +732,7 @@ export default function DashboardPage({
                     title="Avg XL at Death"
                     value={statsData ? statsData.avgXlAtDeath.toFixed(1) : "—"}
                     secondaryValue={
-                      showGlobalAverages && globalStats
+                      showGlobalComparison && globalStats
                         ? globalStats.totals.avgXlAtDeath.toFixed(1)
                         : undefined
                     }
@@ -729,21 +740,16 @@ export default function DashboardPage({
                     icon={Skull}
                   />
                   <StatCard
-                    title="Games that reached Lair:5"
-                    value={gamesReachedLair5Value}
-                    secondaryValue={
-                      showGlobalAverages && globalStats
-                        ? `${globalStats.totals.lair5ReachRate.toFixed(1)}%`
-                        : undefined
-                    }
-                    subtitle="Ratio of games that reached Lair level 5"
-                    icon={MapPin}
+                    title="Median XL at Death"
+                    value={medianXlAtDeathMode != null ? String(medianXlAtDeathMode) : "—"}
+                    subtitle="Most common death XL"
+                    icon={ChartColumnBig}
                   />
                   <StatCard
                     title="Fastest Win"
                     value={statsData?.fastestWin ?? "—"}
                     secondaryValue={
-                      showGlobalAverages && globalStats
+                      showGlobalComparison && globalStats
                         ? formatFastestWin(
                             globalStats.totals.fastestWinSeconds != null
                               ? Math.round(globalStats.totals.fastestWinSeconds)
@@ -758,7 +764,7 @@ export default function DashboardPage({
                     title="Smallest Turncount"
                     value={smallestTurncountValue}
                     secondaryValue={
-                      showGlobalAverages && globalStats?.totals.smallestTurncountWin != null
+                      showGlobalComparison && globalStats?.totals.smallestTurncountWin != null
                         ? Math.round(globalStats.totals.smallestTurncountWin)
                         : undefined
                     }
@@ -766,17 +772,27 @@ export default function DashboardPage({
                     icon={Timer}
                   />
                 </div>
+                <LevelAtDeathChart
+                  morgues={morgues}
+                  loading={statsLoading}
+                  globalAverageDeathsPerLevel={showGlobalComparison ? (globalLevelDeathAverages ?? undefined) : undefined}
+                  globalAverageUserCount={showGlobalComparison ? globalLevelDeathUserCount ?? undefined : undefined}
+                />
+                <MilestoneProgressionChart
+                  morgues={morgues}
+                  loading={statsLoading}
+                  globalLair5ReachRate={
+                    showGlobalComparison && globalStats ? globalStats.totals.lair5ReachRate : undefined
+                  }
+                />
                 <PerformanceAndRunesLayout
                   stats={stats}
                   statsLoading={statsLoading}
                   morgues={morgues}
-                  showGlobalAverages={showGlobalAverages}
+                  showGlobalAverages={showGlobalComparison}
                   globalStats={globalStats}
                 />
-                <AverageLevelByGodChart
-                  morgues={morgues}
-                  globalGodAverages={showGlobalAverages ? globalStats?.avgXlByGod : undefined}
-                />
+                <AverageLevelByGodChart morgues={morgues} />
                 </>
               )}
             </div>
@@ -791,7 +807,33 @@ export default function DashboardPage({
 
         {activeTab === "skills" && (
           <div className="space-y-6">
-            <SkillingAnalysis globalOnly />
+            {isEmpty ? (
+              <AnalysisEmptyState morguesPageHref={morguesPageHref} />
+            ) : statsLoading ? (
+              <AnalysisLoadingState />
+            ) : (
+              <>
+                {!isEmpty && (
+                  <TotalTimeSpentAtEachLevelChart morgues={morgues} loading={false} />
+                )}
+                {isAdmin && (
+                  <>
+                    <div
+                      className="flex items-center gap-4 py-2"
+                      role="separator"
+                      aria-label="Admin only charts"
+                    >
+                      <div className="h-px flex-1 bg-primary/30" />
+                      <span className="shrink-0 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                        Admin Only
+                      </span>
+                      <div className="h-px flex-1 bg-primary/30" />
+                    </div>
+                    <SkillingAnalysis globalOnly />
+                  </>
+                )}
+              </>
+            )}
           </div>
         )}
 

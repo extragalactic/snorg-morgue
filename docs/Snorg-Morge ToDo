@@ -3,24 +3,24 @@ Snorg-Morge ToDo
 Features:
 - Runes Collected per Game needs testing/fixing for data with 15 runes
 - make a random stats section, such as:
-    number of times you died with exactly 0 HP
-    number of times you died with exactly -1 HP
-
+    number of games you died with exactly 0 HP
+    number of games you died with exactly -1 HP
+    number of games you got abyssed against your will
 - enable Google auth
 - new section to show: best score, average score
 - would be cool to have a Congrats modal after uploading/detecting a new Win 
 - when you rollover a Snorg Award show a tooltip with something fun
 - have a Help tooltip somewhere perhaps for help on first upload/sync
-- need a morgue "character sheet" exporter (to resemble a D&D sheet)
 - new chart: Arch Nemesis Chart = top 10 unique killers
-- make a new chart on Skills page showing usage of abilities for winners
-- make a loader animation using graphics from the game, like animated orbs, hydra heads
 - the Species Performance should have a toggle to show old species instead of current ones
-- add more variations of the "games that reached xxx" stat, like games that found the Zot portal.
 - beside the stats on the tooltips, put explanations of each stat, such as: "Out of 24 games where you found at least 3 runes, you had a 40% win rate".
-- make a species-background grid that resembles the actual selection screen in the game. People are visually used to the layout so it would be good to have this for side-by-side comparison. It's like alt version of the existing grid chart.
+- make a coloured grid chart that show the Skills used per level, with bright coloured segments showing high usage
+- can make a morgue file summary option that shows all the important stuff in a D&D character sheet (not everything, just the important stuff, make is a printable single page)
+- add an extra Browse variant where instead of switching to the other account it will instead become overlaid data (on some charts) like the current global average data
+- add a full calendar that shows hom much you played every day
 
 Fixes:
+- sharing a morgue needs better feedback after clicking button, then the morgue file needs to show the player name at the top and remove the Back to Morgues button
 - all of the tooltips should be made with larger text with simplified presentation (to convey useful data quickly)
 - overall the font should globally increase a point or two
 - remove red from Sign Out button
@@ -30,6 +30,7 @@ Fixes:
 - Avg species performance data is broken for Wins, and also wrong on Level at Death graph
 - server import cards have wobbly text when you click
 - need to review all the minor branch names like: gauntlet, volcano, etc. and ensure they are shown correctly in various spots
+- investigate why "divine providence" appears as a top killer
 
 Tests:
 - need to test logic for email/username duplicates on signup

@@ -34,7 +34,7 @@ export interface UserSettings {
 
 const defaultSettings: UserSettings = {
   performanceChart: {
-    sortMethod: "default",
+    sortMethod: "wins",
     showMode: "wins",
     chartType: "species",
   },

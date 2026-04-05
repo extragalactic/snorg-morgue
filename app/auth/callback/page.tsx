@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { slugifyUsername } from "@/lib/slug"
+import { slugifyUsername, TAB_TO_PAGE } from "@/lib/slug"
 
 function AuthCallbackContent() {
   const searchParams = useSearchParams()
@@ -22,7 +22,7 @@ function AuthCallbackContent() {
         setStatus("done")
         const name = data?.session?.user?.user_metadata?.full_name || data?.session?.user?.user_metadata?.name || data?.session?.user?.email?.split("@")[0] || "user"
         const slug = slugifyUsername(name)
-        window.location.href = slug ? `/${slug}/analytics` : "/"
+        window.location.href = slug ? `/${slug}/${TAB_TO_PAGE.analysis}` : "/"
       })
       .catch(() => setStatus("error"))
   }, [searchParams])

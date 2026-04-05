@@ -10,6 +10,7 @@ import {
   DRACONIAN_COLOUR_NAMES,
 } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
+import { cn } from "@/lib/utils"
 
 const RLTILES_BASE =
   "https://raw.githubusercontent.com/crawl/crawl/master/crawl-ref/source/rltiles"
@@ -20,12 +21,6 @@ const DCSS_WIN = "#ffffff"
 const DCSS_ATTEMPT = "#888888"
 const DCSS_NONE = "#444444"
 const DCSS_PANEL_BG = "#000000"
-
-/**
- * Fixed height on md+ so Species and Background panels are identical (min-height follows content
- * and differed by a few px; lg: had a smaller min-h than md:, which also hurt consistency).
- */
-const PANEL_DESKTOP_BOX_CLASS = "md:h-[29rem] md:min-h-0 md:overflow-y-auto"
 
 type Mode = "species" | "background"
 type Tint = "win" | "attempt" | "none"
@@ -193,9 +188,9 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
       <div className="mx-auto max-w-7xl px-4 py-6">
         <Card className="rounded-none border-2 border-primary/30">
           <CardHeader className="flex flex-col gap-3 border-b-2 border-primary/20 pb-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>DCSS CHARGEN (SPECIES / BACKGROUND)</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">DCSS CHARGEN (SPECIES / BACKGROUND)</CardTitle>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <span className="font-mono text-xs text-primary">VIEW:</span>
+              <span className="font-mono text-sm text-primary">VIEW:</span>
               <div className="flex gap-2">
                 <FilterToggleButton
                   selected={mode === "species"}
@@ -214,20 +209,26 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
           </CardHeader>
           <CardContent className="pt-4">
             <div
-              className={`box-border rounded-none border border-neutral-800 p-4 font-mono text-sm leading-relaxed ${PANEL_DESKTOP_BOX_CLASS}`}
+              className="box-border rounded-none border border-neutral-800 p-4 font-mono text-base leading-relaxed md:text-lg"
               style={{ backgroundColor: DCSS_PANEL_BG }}
             >
-              {mode === "species" ? (
-                <div className="grid h-full gap-8 md:grid-cols-3 lg:gap-12">
+              <div className="grid">
+                <div
+                  className={cn(
+                    "col-start-1 row-start-1 self-start grid min-w-0 gap-8 md:grid-cols-3 lg:gap-12",
+                    mode !== "species" && "invisible pointer-events-none"
+                  )}
+                  aria-hidden={mode !== "species"}
+                >
                   {SPECIES_COLUMNS.map((col) => (
                     <div key={col.title} className="min-w-0 space-y-3">
                       <div
-                        className="text-base font-normal tracking-wide"
+                        className="text-lg font-normal tracking-wide md:text-xl"
                         style={{ color: DCSS_HEADER }}
                       >
                         {col.title}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         {col.species.map((sp) => {
                           const globalIndex = ALL_SPECIES_NAMES.indexOf(sp)
                           const key = speciesHotkey(globalIndex)
@@ -243,9 +244,9 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                               <img
                                 src={path ? tileUrl(path) : undefined}
                                 alt=""
-                                width={32}
-                                height={32}
-                                className="h-8 w-8 shrink-0 [image-rendering:pixelated]"
+                                width={36}
+                                height={36}
+                                className="h-9 w-9 shrink-0 [image-rendering:pixelated]"
                                 style={{ opacity }}
                                 loading="lazy"
                               />
@@ -265,11 +266,11 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                           return (
                             <Tooltip key={sp}>
                               <TooltipTrigger asChild>
-                                <div className="cursor-default">{row}</div>
+                                <div className="w-fit max-w-full cursor-default">{row}</div>
                               </TooltipTrigger>
                               <TooltipContent
                                 side="right"
-                                className="rounded-none border border-primary/40 bg-black/95 px-3 py-2 font-mono text-xs text-neutral-100"
+                                className="rounded-none border border-primary/40 bg-black/95 py-2 pr-3 pl-[calc(0.75rem+5px)] font-mono text-sm text-neutral-100"
                               >
                                 Wins: {w} · Attempts: {a}
                               </TooltipContent>
@@ -280,19 +281,24 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="grid h-full gap-8 md:grid-cols-3 lg:gap-12">
+                <div
+                  className={cn(
+                    "col-start-1 row-start-1 self-start grid min-w-0 gap-8 md:grid-cols-3 lg:gap-12",
+                    mode !== "background" && "invisible pointer-events-none"
+                  )}
+                  aria-hidden={mode !== "background"}
+                >
                   {BACKGROUND_COLUMN_SECTIONS.map((sections, colIdx) => (
                     <div key={colIdx} className="min-w-0 space-y-6">
                       {sections.map((sec) => (
                         <div key={sec.title} className="space-y-3">
                           <div
-                            className="text-base font-normal tracking-wide"
+                            className="text-lg font-normal tracking-wide md:text-xl"
                             style={{ color: DCSS_HEADER }}
                           >
                             {sec.title}
                           </div>
-                          <div className="space-y-1">
+                          <div className="space-y-1.5">
                             {sec.backgrounds.map((bg) => {
                               const idx = ALL_BACKGROUND_NAMES.indexOf(bg)
                               const hk = idx >= 0 ? backgroundHotkey(idx) : "?"
@@ -308,9 +314,9 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                                   <img
                                     src={path ? tileUrl(path) : undefined}
                                     alt=""
-                                    width={32}
-                                    height={32}
-                                    className="h-8 w-8 shrink-0 [image-rendering:pixelated]"
+                                    width={36}
+                                    height={36}
+                                    className="h-9 w-9 shrink-0 [image-rendering:pixelated]"
                                     style={{ opacity }}
                                     loading="lazy"
                                   />
@@ -333,11 +339,11 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                               return (
                                 <Tooltip key={bg}>
                                   <TooltipTrigger asChild>
-                                    <div className="cursor-default">{row}</div>
+                                    <div className="w-fit max-w-full cursor-default">{row}</div>
                                   </TooltipTrigger>
                                   <TooltipContent
                                     side="right"
-                                    className="rounded-none border border-primary/40 bg-black/95 px-3 py-2 font-mono text-xs text-neutral-100"
+                                    className="rounded-none border border-primary/40 bg-black/95 py-2 pr-3 pl-[calc(0.75rem+5px)] font-mono text-sm text-neutral-100"
                                   >
                                     Wins: {w} · Attempts: {a}
                                   </TooltipContent>
@@ -350,7 +356,35 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                     </div>
                   ))}
                 </div>
-              )}
+              </div>
+              <div
+                className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-neutral-700 pt-4 text-sm text-neutral-300 md:text-base"
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-3 w-7 shrink-0 border border-neutral-600"
+                    style={{ backgroundColor: DCSS_NONE }}
+                    aria-hidden
+                  />
+                  <span>Not tried yet</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-3 w-7 shrink-0 border border-neutral-600"
+                    style={{ backgroundColor: DCSS_ATTEMPT }}
+                    aria-hidden
+                  />
+                  <span>Attempted</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-3 w-7 shrink-0 border border-neutral-600"
+                    style={{ backgroundColor: DCSS_WIN }}
+                    aria-hidden
+                  />
+                  <span>Won</span>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

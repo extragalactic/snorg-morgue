@@ -42,6 +42,10 @@ export interface ParsedMorgueRow {
   game_completion_date?: string
   /** True if player reached Lair:5 (Branches shows Lair (5/5)). */
   reached_lair_5?: boolean
+  reached_dungeon_8?: boolean
+  reached_temple?: boolean
+  reached_depths_milestone?: boolean
+  reached_zot_milestone?: boolean
 }
 
 /** One entry in species_stats, background_stats, or god_stats on user_stats. */
@@ -72,7 +76,7 @@ export function parsedToRow(
   morgueFileId: string | null,
   userId: string,
   p: ParsedMorgue
-): Omit<ParsedMorgueRow, "id" | "created_at"> {
+): Omit<ParsedMorgueRow, "id" | "created_at" | "message_history_signature"> {
   return {
     morgue_file_id: morgueFileId,
     user_id: userId,
@@ -97,6 +101,10 @@ export function parsedToRow(
     killer: p.killer,
     game_completion_date: p.gameCompletionDate || "",
     reached_lair_5: p.reachedLair5,
+    reached_dungeon_8: p.reachedDungeon8,
+    reached_temple: p.reachedTemple,
+    reached_depths_milestone: p.reachedDepthsMilestone,
+    reached_zot_milestone: p.reachedZotMilestone,
   }
 }
 
