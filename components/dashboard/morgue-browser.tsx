@@ -532,8 +532,8 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
                             {actionHistoryView === "chart" && parsedAction && (
                               <p
                                 className={cn(
-                                  typography.caption,
-                                  "-mx-4 mt-1.5 max-w-none px-4 text-muted-foreground",
+                                  typography.bodyMonoMuted,
+                                  "-mx-4 mt-1.5 max-w-none px-4 leading-relaxed",
                                 )}
                               >
                                 Relative usage colours are calculated based on the total uses of an action, averaged across all of your morgues (all character types).
