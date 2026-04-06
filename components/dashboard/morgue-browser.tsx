@@ -116,7 +116,7 @@ function parseMorgueSections(rawText: string): { segments: MorgueSegment[]; sect
       continue
     }
     if (title === "Skill Usage History") {
-      sectionTitles.push({ id: slugForSection(title), title: "Skill History" })
+      sectionTitles.push({ id: slugForSection(title), title: "Skill & Action History" })
       continue
     }
     sectionTitles.push({ id: slugForSection(title), title: title.replace(/:$/, "") })
