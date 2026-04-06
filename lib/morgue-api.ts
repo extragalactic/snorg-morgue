@@ -8,6 +8,7 @@ import { nanoid } from "nanoid"
 import { parseMorgue, getMessageHistorySignature, parseSpeciesBackground, isAbandonedCharacterMorgue } from "./morgue-parser"
 import { validateAndSanitizeParsedMorgue } from "./morgue-validation"
 import { parseSkillHistory, computeSkillSnapshotsFromHistory } from "./skill-history"
+import { parseActionHistory, normalizeActionKey, type ActionHistory } from "./action-history"
 import {
   parsedToRow,
   formatPlayTime,
@@ -253,6 +254,135 @@ export async function uploadMorgues(
   return { success, failed }
 }
 
+/** Per-cell averages for Action History heatmap (your morgues with stored raw text). */
+export type UserActionAverageRow = {
+  action_key: string
+  level_group: string
+  avg_count: number
+}
+
+/**
+ * Rebuild user_action_averages from all morgue_files.raw_text for the user.
+ */
+export async function recomputeUserActionAverages(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const { data: files, error } = await supabase
+    .from("morgue_files")
+    .select("raw_text")
+    .eq("user_id", userId)
+
+  if (error) {
+    console.warn("[snorg-morgue] user_action_averages morgue_files:", error.message)
+    return
+  }
+
+  const { error: delErr } = await supabase.from("user_action_averages").delete().eq("user_id", userId)
+  if (delErr) {
+    console.warn("[snorg-morgue] user_action_averages delete:", delErr.message)
+    return
+  }
+
+  if (!files?.length) return
+
+  const summaries: ActionHistory[] = []
+  for (const f of files) {
+    const raw = (f as { raw_text: string }).raw_text
+    if (!raw) continue
+    const ah = parseActionHistory(raw)
+    if (ah) summaries.push(ah)
+  }
+
+  const n = summaries.length
+  if (n === 0) return
+
+  const allKeys = new Set<string>()
+  const allGroups = new Set<string>()
+  for (const ah of summaries) {
+    for (const g of ah.levelGroups) allGroups.add(g)
+    for (const row of ah.rows) allKeys.add(normalizeActionKey(row.name))
+  }
+
+  const sumBy = new Map<string, Map<string, number>>()
+
+  for (const ah of summaries) {
+    const grid = new Map<string, Map<string, number>>()
+    for (const row of ah.rows) {
+      const key = normalizeActionKey(row.name)
+      if (!grid.has(key)) grid.set(key, new Map())
+      const rowMap = grid.get(key)!
+      for (let i = 0; i < ah.levelGroups.length; i++) {
+        const g = ah.levelGroups[i]
+        const v = row.values[i] ?? 0
+        rowMap.set(g, (rowMap.get(g) ?? 0) + v)
+      }
+    }
+    for (const k of allKeys) {
+      const rowMap = grid.get(k) ?? new Map()
+      if (!sumBy.has(k)) sumBy.set(k, new Map())
+      const dst = sumBy.get(k)!
+      for (const g of allGroups) {
+        const v = rowMap.get(g) ?? 0
+        dst.set(g, (dst.get(g) ?? 0) + v)
+      }
+    }
+  }
+
+  const insertRows: {
+    user_id: string
+    action_key: string
+    level_group: string
+    avg_count: number
+    morgue_count: number
+  }[] = []
+
+  for (const k of allKeys) {
+    const m = sumBy.get(k)!
+    for (const g of allGroups) {
+      const sum = m.get(g) ?? 0
+      insertRows.push({
+        user_id: userId,
+        action_key: k,
+        level_group: g,
+        avg_count: sum / n,
+        morgue_count: n,
+      })
+    }
+  }
+
+  const chunk = 400
+  for (let i = 0; i < insertRows.length; i += chunk) {
+    const { error: insErr } = await supabase.from("user_action_averages").insert(insertRows.slice(i, i + chunk))
+    if (insErr) {
+      console.warn("[snorg-morgue] user_action_averages insert:", insErr.message)
+      return
+    }
+  }
+}
+
+/**
+ * Fetch per-user Action averages (for heatmap). Empty map if unauthenticated / no rows.
+ */
+export async function fetchUserActionAverages(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<Map<string, Record<string, number>>> {
+  const out = new Map<string, Record<string, number>>()
+  const { data, error } = await supabase
+    .from("user_action_averages")
+    .select("action_key, level_group, avg_count")
+    .eq("user_id", userId)
+
+  if (error || !data) return out
+
+  for (const row of data as UserActionAverageRow[]) {
+    if (!out.has(row.action_key)) out.set(row.action_key, {})
+    out.get(row.action_key)![row.level_group] = row.avg_count
+  }
+  return out
+}
+
 /**
  * Recalculate user_stats from all parsed_morgues for the user.
  */
@@ -418,6 +548,8 @@ export async function recalcUserStats(
     },
     { onConflict: "user_id" }
   )
+
+  await recomputeUserActionAverages(supabase, userId)
 }
 
 /** DB row shape from parsed_morgues select — shared by client fetch and browse API. */

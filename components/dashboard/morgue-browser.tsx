@@ -8,8 +8,17 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
-import { fetchRawMorgue } from "@/lib/morgue-api"
+import { fetchRawMorgue, fetchUserActionAverages } from "@/lib/morgue-api"
 import type { GameRecord } from "@/lib/morgue-api"
+import {
+  MORGUE_SKILL_ACTION_SEGMENT_ID,
+  MORGUE_SKILL_USAGE_ANCHOR_ID,
+  MORGUE_ACTION_HISTORY_ANCHOR_ID,
+  parseActionHistory,
+  splitSkillAndActionBlock,
+} from "@/lib/action-history"
+import { useAuth } from "@/contexts/auth-context"
+import { ActionHistoryChart } from "./action-history-chart"
 import { useTheme } from "@/contexts/theme-context"
 import { typography } from "@/lib/typography"
 import { colors } from "@/lib/colors"
@@ -116,7 +125,8 @@ function parseMorgueSections(rawText: string): { segments: MorgueSegment[]; sect
       continue
     }
     if (title === "Skill Usage History") {
-      sectionTitles.push({ id: slugForSection(title), title: "Skill & Action History" })
+      sectionTitles.push({ id: MORGUE_SKILL_USAGE_ANCHOR_ID, title: "Skills" })
+      sectionTitles.push({ id: MORGUE_ACTION_HISTORY_ANCHOR_ID, title: "Actions" })
       continue
     }
     sectionTitles.push({ id: slugForSection(title), title: title.replace(/:$/, "") })
@@ -173,6 +183,8 @@ interface MorgueBrowserProps {
   hideLevelTitle?: boolean
   /** When true, parse raw morgue text when loaded and use species/background/god for the title (for URL viewer). */
   useParsedHeaderFromRaw?: boolean
+  /** Morgue owner's user id — Action History heatmap uses their stored averages. Defaults to signed-in user. */
+  actionAveragesUserId?: string | null
 }
 
 function formatGodName(god: string | null | undefined): string {
@@ -184,18 +196,40 @@ function formatGodName(god: string | null | undefined): string {
   return name
 }
 
-export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton = true, backButtonLabel = "Back to Morgues", initialRawText, initialFilename, fillHeight, shareUrl, sharePath, hideResultBadge, hideLevelTitle, useParsedHeaderFromRaw }: MorgueBrowserProps) {
+export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton = true, backButtonLabel = "Back to Morgues", initialRawText, initialFilename, fillHeight, shareUrl, sharePath, hideResultBadge, hideLevelTitle, useParsedHeaderFromRaw, actionAveragesUserId: actionAveragesUserIdProp }: MorgueBrowserProps) {
   const [rawText, setRawText] = useState<string | null>(initialRawText ?? null)
   const [filename, setFilename] = useState<string>(initialFilename ?? "")
   const [loading, setLoading] = useState(!initialRawText)
   const [error, setError] = useState<string | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
   const [activeBookmarkId, setActiveBookmarkId] = useState("morgue-intro")
+  const [actionHistoryView, setActionHistoryView] = useState<"raw" | "chart">("raw")
+  const [actionAverages, setActionAverages] = useState<Map<string, Record<string, number>>>(() => new Map())
   const { themeStyle } = useTheme()
+  const { userId: authUserId } = useAuth()
+  const actionAveragesUserId = actionAveragesUserIdProp ?? authUserId ?? null
 
   useEffect(() => {
     setActiveBookmarkId("morgue-intro")
   }, [game.id, game.morgueFileId, game.morgueUrl])
+
+  useEffect(() => {
+    setActionHistoryView("raw")
+  }, [game.id, rawText])
+
+  useEffect(() => {
+    if (!actionAveragesUserId) {
+      setActionAverages(new Map())
+      return
+    }
+    let cancelled = false
+    fetchUserActionAverages(supabase, actionAveragesUserId).then((m) => {
+      if (!cancelled) setActionAverages(m)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [actionAveragesUserId])
 
   const parsedFromRaw = useMemo(() => {
     if (!useParsedHeaderFromRaw || !rawText) return null
@@ -436,18 +470,97 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
             )}
             {rawText && !loading && segments.length > 0 && (
               <div className={typography.bodyLg}>
-                {segments.map((seg) => (
-                  <div key={seg.id} id={seg.id} className="p-4">
-                    {seg.text.split(/\n/).map((line, i) => (
-                      <div
-                        key={`${seg.id}-${i}`}
-                        className="whitespace-pre-wrap break-words hover:bg-primary/10 transition-colors -mx-4 px-4"
-                      >
-                        {line || "\u00A0"}
+                {segments.map((seg) => {
+                  if (seg.id !== MORGUE_SKILL_ACTION_SEGMENT_ID) {
+                    return (
+                      <div key={seg.id} id={seg.id} className="p-4">
+                        {seg.text.split(/\n/).map((line, i) => (
+                          <div
+                            key={`${seg.id}-${i}`}
+                            className="whitespace-pre-wrap break-words hover:bg-primary/10 transition-colors -mx-4 px-4"
+                          >
+                            {line || "\u00A0"}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ))}
+                    )
+                  }
+
+                  const { skillText, actionText } = splitSkillAndActionBlock(seg.text)
+                  const parsedAction = actionText ? parseActionHistory(actionText) : null
+
+                  return (
+                    <div key={seg.id} className="p-4">
+                      <div id={MORGUE_SKILL_USAGE_ANCHOR_ID}>
+                        {skillText.split(/\n/).map((line, i) => (
+                          <div
+                            key={`${seg.id}-sk-${i}`}
+                            className="whitespace-pre-wrap break-words hover:bg-primary/10 transition-colors -mx-4 px-4"
+                          >
+                            {line || "\u00A0"}
+                          </div>
+                        ))}
+                      </div>
+                      <div
+                        id={MORGUE_ACTION_HISTORY_ANCHOR_ID}
+                        className={cn("scroll-mt-2", actionText && "mt-[20px]")}
+                      >
+                        {actionText ? (
+                          <>
+                            <div className="-mx-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-y border-primary/20 bg-card px-4 py-1.5">
+                              <span className={cn(typography.subtitle, "shrink-0 tracking-wide")}>
+                                Action History
+                              </span>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <FilterToggleButton
+                                  selected={actionHistoryView === "raw"}
+                                  onClick={() => setActionHistoryView("raw")}
+                                  className="h-auto min-h-8 py-1"
+                                >
+                                  Raw Data
+                                </FilterToggleButton>
+                                <FilterToggleButton
+                                  selected={actionHistoryView === "chart"}
+                                  onClick={() => parsedAction && setActionHistoryView("chart")}
+                                  className="h-auto min-h-8 py-1"
+                                  disabled={!parsedAction}
+                                >
+                                  Chart
+                                </FilterToggleButton>
+                              </div>
+                            </div>
+                            {actionHistoryView === "chart" && parsedAction && (
+                              <p
+                                className={cn(
+                                  typography.caption,
+                                  "-mx-4 mt-1.5 max-w-none px-4 text-muted-foreground",
+                                )}
+                              >
+                                Relative usage colours are calculated based on the total uses of an action, averaged across all of your morgues (all character types).
+                              </p>
+                            )}
+                            {actionHistoryView === "raw" ? (
+                              <div className="mt-2">
+                                {actionText.split(/\n/).map((line, i) => (
+                                  <div
+                                    key={`${seg.id}-act-${i}`}
+                                    className="whitespace-pre-wrap break-words hover:bg-primary/10 transition-colors -mx-4 px-4"
+                                  >
+                                    {line || "\u00A0"}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : parsedAction ? (
+                              <div className="-mx-4 mt-2 px-4">
+                                <ActionHistoryChart data={parsedAction} averages={actionAverages} />
+                              </div>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
             {rawText && !loading && segments.length === 0 && (

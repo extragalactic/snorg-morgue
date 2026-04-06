@@ -24,6 +24,7 @@ export default function PublicMorguePage() {
     rawText: string
     filename: string
     ownerSlug: string
+    ownerUserId: string
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -66,6 +67,7 @@ export default function PublicMorguePage() {
         rawText: body.rawText,
         filename: body.filename || "",
         ownerSlug: body.ownerSlug,
+        ownerUserId: (body.ownerUserId as string) || "",
       })
     }
 
@@ -119,6 +121,7 @@ export default function PublicMorguePage() {
           initialFilename={data.filename}
           fillHeight
           sharePath={isOwner && username && morgueId ? `/${username}/morgues/${morgueId}` : undefined}
+          actionAveragesUserId={data.ownerUserId || undefined}
         />
       </main>
     </div>

@@ -891,6 +891,9 @@ export default function DashboardPage({
                 usernameSlug={morguePublicSlug}
                 fillViewportHeight
                 readOnly={isBrowsingOther}
+                actionAveragesUserId={
+                  isBrowsingOther && browseTarget ? browseTarget.userId : userId ?? null
+                }
               />
               {!isBrowsingOther && (
                 <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 pt-1">
