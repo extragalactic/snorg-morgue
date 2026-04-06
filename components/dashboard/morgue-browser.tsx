@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { ArrowLeft, Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -189,7 +190,12 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
   const [loading, setLoading] = useState(!initialRawText)
   const [error, setError] = useState<string | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
+  const [activeBookmarkId, setActiveBookmarkId] = useState("morgue-intro")
   const { themeStyle } = useTheme()
+
+  useEffect(() => {
+    setActiveBookmarkId("morgue-intro")
+  }, [game.id, game.morgueFileId, game.morgueUrl])
 
   const parsedFromRaw = useMemo(() => {
     if (!useParsedHeaderFromRaw || !rawText) return null
@@ -400,15 +406,17 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
           {sectionTitles.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-primary/20 mt-1.5">
               {sectionTitles.map(({ id, title }) => (
-                <Button
+                <FilterToggleButton
                   key={id}
-                  variant="outline"
-                  size="sm"
-                  className="rounded-none border border-primary/40 bg-transparent font-mono text-xs text-muted-foreground py-1 h-auto hover:border-primary hover:bg-primary/10 hover:text-primary"
-                  onClick={() => scrollToSection(id)}
+                  selected={activeBookmarkId === id}
+                  onClick={() => {
+                    setActiveBookmarkId(id)
+                    scrollToSection(id)
+                  }}
+                  className="h-auto min-h-8 py-1"
                 >
                   {title}
-                </Button>
+                </FilterToggleButton>
               ))}
             </div>
           )}
