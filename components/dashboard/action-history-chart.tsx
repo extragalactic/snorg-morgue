@@ -1,6 +1,7 @@
 "use client"
 
-import { useLayoutEffect, useMemo, useState } from "react"
+import { useLayoutEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import type { ActionHistory } from "@/lib/action-history"
 import { normalizeActionKey } from "@/lib/action-history"
 import { cn } from "@/lib/utils"
@@ -36,6 +37,20 @@ function cellHeat(value: number, rowMax: number, globalFactor: number): number {
   return Math.max(0, Math.min(1, withinRun * f))
 }
 
+/**
+ * Heat for the Total column only: this run's total vs your typical total for that action
+ * (sum of per-band `avg_count` = expected sum of bands per morgue on average). No comparison
+ * to in-row peak — avoids a single low use spanning one band from reading as "max heat".
+ * Bright green only when total is high relative to that baseline (~3× → full saturation).
+ */
+function totalCellHeat(total: number, expectedTotalSumOfBandAvgs: number): number {
+  if (!Number.isFinite(total) || total <= 0) return 0
+  if (!Number.isFinite(expectedTotalSumOfBandAvgs) || expectedTotalSumOfBandAvgs < 1e-6) return 0
+  const ratio = total / expectedTotalSumOfBandAvgs
+  const FULL_AT_RATIO = 3
+  return Math.max(0, Math.min(1, ratio / FULL_AT_RATIO))
+}
+
 function sumExpectedRowTotal(
   levelGroups: string[],
   avgRow: Record<string, number> | undefined,
@@ -57,24 +72,46 @@ export function ActionHistoryChart({
   averages: Map<string, Record<string, number>>
 }) {
   const [hoverRowIndex, setHoverRowIndex] = useState<number | null>(null)
-  const [hotRowOverlayPx, setHotRowOverlayPx] = useState<{ w: number; h: number } | null>(null)
+  const [rowHighlightRect, setRowHighlightRect] = useState<{
+    top: number
+    left: number
+    width: number
+    height: number
+  } | null>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
     if (hoverRowIndex === null) {
-      setHotRowOverlayPx(null)
+      setRowHighlightRect(null)
       return
     }
-    const el = document.querySelector<HTMLTableRowElement>(`[data-action-chart-row="${hoverRowIndex}"]`)
-    if (!el) {
-      setHotRowOverlayPx(null)
-      return
+    const update = () => {
+      const el = document.querySelector<HTMLTableRowElement>(
+        `[data-action-chart-row="${hoverRowIndex}"]`,
+      )
+      if (!el) {
+        setRowHighlightRect(null)
+        return
+      }
+      const r = el.getBoundingClientRect()
+      setRowHighlightRect({
+        top: r.top,
+        left: r.left,
+        width: r.width,
+        height: r.height,
+      })
     }
-    const update = () =>
-      setHotRowOverlayPx({ w: el.offsetWidth, h: el.offsetHeight })
     update()
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    return () => ro.disconnect()
+    window.addEventListener("scroll", update, true)
+    window.addEventListener("resize", update)
+    const wrap = wrapRef.current
+    const ro = wrap ? new ResizeObserver(update) : null
+    if (wrap) ro?.observe(wrap)
+    return () => {
+      window.removeEventListener("scroll", update, true)
+      window.removeEventListener("resize", update)
+      ro?.disconnect()
+    }
   }, [hoverRowIndex])
 
   const colLabels = useMemo(
@@ -86,8 +123,30 @@ export function ActionHistoryChart({
     [data.levelGroups],
   )
 
+  const rowHighlightPortal =
+    typeof document !== "undefined" &&
+    hoverRowIndex !== null &&
+    rowHighlightRect != null &&
+    createPortal(
+      <div
+        aria-hidden
+        className="pointer-events-none fixed z-[200] shadow-[inset_0_0_0_2px_var(--primary)]"
+        style={{
+          top: rowHighlightRect.top,
+          left: rowHighlightRect.left,
+          width: rowHighlightRect.width,
+          height: rowHighlightRect.height,
+        }}
+      />,
+      document.body,
+    )
+
   return (
-    <div className="max-w-full min-w-0 overflow-x-auto border border-primary/25 bg-card/40">
+    <div
+      ref={wrapRef}
+      className="max-w-full min-w-0 overflow-x-auto border border-primary/25 bg-card/40"
+    >
+      {rowHighlightPortal}
       <table
         className={cn(
           "w-max max-w-full min-w-0 table-auto border-separate border-spacing-0 font-mono text-xs",
@@ -146,23 +205,22 @@ export function ActionHistoryChart({
             const totalDisplay = rowDisplayTotal == null ? "—" : String(rowDisplayTotal)
             const totalN = rowDisplayTotal ?? 0
             const hasTotalNum = rowDisplayTotal != null
-            const totalPeak = Math.max(rowMax, hasTotalNum ? totalN : 0)
-            const totalT =
-              hasTotalNum && totalPeak > 0 ? cellHeat(totalN, totalPeak, globalFactor) : 0
+            const totalT = hasTotalNum ? totalCellHeat(totalN, expectedTotal) : 0
             const totalColors = hasTotalNum ? heatColors(totalT) : neutralCell()
 
             let totalTitle: string | undefined
             if (!hasTotalNum) totalTitle = undefined
             else {
               const parts: string[] = [`Total ${totalN}`]
-              if (rowMax > 0 && totalPeak > 0)
+              if (expectedTotal > 1e-6) {
                 parts.push(
-                  `${((totalN / totalPeak) * 100).toFixed(0)}% of row peak (max single band ${rowMax})`,
+                  `~${expectedTotal.toFixed(1)} typical total for this action (sum of your per-band averages); this run ${(100 * (totalN / expectedTotal)).toFixed(0)}% of that`,
                 )
-              if (expectedTotal > 1e-6)
-                parts.push(
-                  `Band sum ${rowTotal} · ~${expectedTotal.toFixed(0)} typical band sum ${(100 * (rowTotal / expectedTotal)).toFixed(0)}%`,
-                )
+              } else {
+                parts.push("No typical total yet (needs averages from your other morgues with Action tables)")
+              }
+              if (rowTotal !== totalN && rowTotal > 0)
+                parts.push(`Band sum ${rowTotal}`)
               if (
                 row.total != null &&
                 Number.isFinite(row.total) &&
@@ -182,27 +240,16 @@ export function ActionHistoryChart({
               >
                 <td
                   className={cn(
-                    "sticky left-0 max-w-48 min-w-0 whitespace-nowrap bg-card px-2 py-1 text-left text-foreground align-top border-2 overflow-visible",
+                    "sticky left-0 max-w-48 min-w-0 bg-card px-2 py-1 text-left text-foreground align-top border-2 overflow-visible",
                     rowHot
                       ? "relative z-[45] border-t-transparent border-b-primary/10 border-r-primary/20 border-l-transparent"
                       : "relative z-10 border-t-transparent border-r-primary/20 border-b-primary/10 border-l-transparent",
                   )}
                   title={row.name}
                 >
-                  <span className="relative z-[1] block max-w-full overflow-hidden text-ellipsis">
+                  <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap">
                     {row.name}
                   </span>
-                  {rowHot && hotRowOverlayPx != null && (
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute -top-[2px] left-0 z-[2] bg-transparent"
-                      style={{
-                        width: hotRowOverlayPx.w,
-                        height: hotRowOverlayPx.h + 2,
-                        boxShadow: "inset 0 0 0 2px var(--color-primary)",
-                      }}
-                    />
-                  )}
                 </td>
                 {data.levelGroups.map((g, ci) => {
                   const v = row.values[ci]
@@ -235,7 +282,7 @@ export function ActionHistoryChart({
                     <td
                       key={`${g}-${ci}`}
                       className={cn(
-                        "max-w-[120px] min-w-0 overflow-hidden text-ellipsis px-1.5 py-1 text-center align-middle tabular-nums border-2 border-t-transparent border-b-primary/10 border-l-transparent border-r-primary/10",
+                        "max-w-[120px] min-w-0 overflow-visible px-1.5 py-1 text-center align-middle tabular-nums border-2 border-t-transparent border-b-primary/10 border-l-transparent border-r-primary/10",
                       )}
                       style={{ backgroundColor: colors.bg, color: colors.fg }}
                       title={title}
@@ -246,7 +293,7 @@ export function ActionHistoryChart({
                 })}
                 <td
                   className={cn(
-                    "max-w-[120px] min-w-0 overflow-hidden text-ellipsis px-1.5 py-1 text-center align-middle tabular-nums border-2 border-t-transparent border-r-transparent border-b-primary/10 border-l-transparent",
+                    "max-w-[120px] min-w-0 overflow-visible px-1.5 py-1 text-center align-middle tabular-nums border-2 border-t-transparent border-r-transparent border-b-primary/10 border-l-transparent",
                   )}
                   style={{ backgroundColor: totalColors.bg, color: totalColors.fg }}
                   title={totalTitle}
