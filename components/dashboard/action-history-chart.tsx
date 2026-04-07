@@ -87,24 +87,39 @@ export function ActionHistoryChart({
   )
 
   return (
-    <div className="max-w-full min-w-0 overflow-hidden border border-primary/25 bg-card/40">
-      <table className={cn("w-full min-w-0 border-separate border-spacing-0 font-mono text-xs", typography.bodyMono)}>
+    <div className="max-w-full min-w-0 overflow-x-auto border border-primary/25 bg-card/40">
+      <table
+        className={cn(
+          "w-max max-w-full min-w-0 table-auto border-separate border-spacing-0 font-mono text-xs",
+          typography.bodyMono,
+        )}
+      >
+        <colgroup>
+          <col style={{ maxWidth: "12rem" }} />
+          {data.levelGroups.map((g, i) => (
+            <col key={`${g}-${i}`} style={{ width: 120, maxWidth: 120 }} />
+          ))}
+          <col style={{ width: 120, maxWidth: 120 }} />
+        </colgroup>
         <thead>
           <tr className="bg-muted/30">
-            <th className="sticky left-0 z-50 relative w-0 whitespace-nowrap border-2 border-b-primary/30 border-r-primary/20 border-l-transparent border-t-transparent bg-card px-2 py-1.5 text-left text-primary">
+            <th className="sticky left-0 z-50 relative max-w-48 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap border-2 border-b-primary/30 border-r-primary/20 border-l-transparent border-t-transparent bg-card px-2 py-1.5 text-left text-primary">
               Action
             </th>
             {data.levelGroups.map((g, ci) => (
               <th
                 key={g + ci}
                 className={cn(
-                  "border-2 border-b-primary/30 border-l-transparent border-t-transparent px-1.5 py-1.5 text-center text-muted-foreground whitespace-nowrap",
-                  ci === data.levelGroups.length - 1 ? "border-r-transparent" : "border-r-primary/15",
+                  "max-w-[120px] min-w-0 overflow-hidden text-ellipsis border-2 border-b-primary/30 border-l-transparent border-t-transparent px-1.5 py-1.5 text-center text-muted-foreground whitespace-nowrap",
+                  "border-r-primary/15",
                 )}
               >
                 {colLabels[ci]}
               </th>
             ))}
+            <th className="max-w-[120px] min-w-0 overflow-hidden text-ellipsis border-2 border-b-primary/30 border-l-transparent border-r-transparent border-t-transparent px-1.5 py-1.5 text-center text-muted-foreground whitespace-nowrap">
+              Total
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -112,16 +127,51 @@ export function ActionHistoryChart({
             const key = normalizeActionKey(row.name)
             const avgRow = averages.get(key)
             const rowHot = hoverRowIndex === ri
-            const nCols = data.levelGroups.length
 
             const numericVals = data.levelGroups
               .map((_, i) => row.values[i])
               .filter((x): x is number => x != null && Number.isFinite(x))
             const rowMax = numericVals.length > 0 ? Math.max(...numericVals) : 0
             const rowTotal = numericVals.reduce((a, b) => a + b, 0)
+            const rowDisplayTotal =
+              row.total != null && Number.isFinite(row.total)
+                ? (row.total as number)
+                : rowTotal > 0
+                  ? rowTotal
+                  : null
             const expectedTotal = sumExpectedRowTotal(data.levelGroups, avgRow)
             const globalFactor =
               expectedTotal > 1e-9 ? Math.min(1, rowTotal / expectedTotal) : 1
+
+            const totalDisplay = rowDisplayTotal == null ? "—" : String(rowDisplayTotal)
+            const totalN = rowDisplayTotal ?? 0
+            const hasTotalNum = rowDisplayTotal != null
+            const totalPeak = Math.max(rowMax, hasTotalNum ? totalN : 0)
+            const totalT =
+              hasTotalNum && totalPeak > 0 ? cellHeat(totalN, totalPeak, globalFactor) : 0
+            const totalColors = hasTotalNum ? heatColors(totalT) : neutralCell()
+
+            let totalTitle: string | undefined
+            if (!hasTotalNum) totalTitle = undefined
+            else {
+              const parts: string[] = [`Total ${totalN}`]
+              if (rowMax > 0 && totalPeak > 0)
+                parts.push(
+                  `${((totalN / totalPeak) * 100).toFixed(0)}% of row peak (max single band ${rowMax})`,
+                )
+              if (expectedTotal > 1e-6)
+                parts.push(
+                  `Band sum ${rowTotal} · ~${expectedTotal.toFixed(0)} typical band sum ${(100 * (rowTotal / expectedTotal)).toFixed(0)}%`,
+                )
+              if (
+                row.total != null &&
+                Number.isFinite(row.total) &&
+                rowTotal > 0 &&
+                Math.abs((row.total as number) - rowTotal) > 0.5
+              )
+                parts.push(`Morgue total column ${row.total} (bands sum to ${rowTotal})`)
+              totalTitle = parts.join(" · ")
+            }
 
             return (
               <tr
@@ -132,13 +182,16 @@ export function ActionHistoryChart({
               >
                 <td
                   className={cn(
-                    "sticky left-0 w-0 whitespace-nowrap bg-card px-2 py-1 text-left text-foreground align-top border-2 overflow-visible",
+                    "sticky left-0 max-w-48 min-w-0 whitespace-nowrap bg-card px-2 py-1 text-left text-foreground align-top border-2 overflow-visible",
                     rowHot
                       ? "relative z-[45] border-t-transparent border-b-primary/10 border-r-primary/20 border-l-transparent"
                       : "relative z-10 border-t-transparent border-r-primary/20 border-b-primary/10 border-l-transparent",
                   )}
+                  title={row.name}
                 >
-                  <span className="relative z-[1]">{row.name}</span>
+                  <span className="relative z-[1] block max-w-full overflow-hidden text-ellipsis">
+                    {row.name}
+                  </span>
                   {rowHot && hotRowOverlayPx != null && (
                     <span
                       aria-hidden
@@ -161,7 +214,6 @@ export function ActionHistoryChart({
                   const bandRatio = bandAvg && hasNum ? n / (avg as number) : null
                   const t = hasNum ? cellHeat(n, rowMax, globalFactor) : 0
                   const colors = hasNum ? heatColors(t) : neutralCell()
-                  const isLast = ci === nCols - 1
 
                   let title: string | undefined
                   if (v == null) title = undefined
@@ -183,8 +235,7 @@ export function ActionHistoryChart({
                     <td
                       key={`${g}-${ci}`}
                       className={cn(
-                        "px-1.5 py-1 text-center align-middle tabular-nums border-2 border-t-transparent border-b-primary/10 border-l-transparent",
-                        isLast ? "border-r-transparent" : "border-r-primary/10",
+                        "max-w-[120px] min-w-0 overflow-hidden text-ellipsis px-1.5 py-1 text-center align-middle tabular-nums border-2 border-t-transparent border-b-primary/10 border-l-transparent border-r-primary/10",
                       )}
                       style={{ backgroundColor: colors.bg, color: colors.fg }}
                       title={title}
@@ -193,6 +244,15 @@ export function ActionHistoryChart({
                     </td>
                   )
                 })}
+                <td
+                  className={cn(
+                    "max-w-[120px] min-w-0 overflow-hidden text-ellipsis px-1.5 py-1 text-center align-middle tabular-nums border-2 border-t-transparent border-r-transparent border-b-primary/10 border-l-transparent",
+                  )}
+                  style={{ backgroundColor: totalColors.bg, color: totalColors.fg }}
+                  title={totalTitle}
+                >
+                  {totalDisplay}
+                </td>
               </tr>
             )
           })}

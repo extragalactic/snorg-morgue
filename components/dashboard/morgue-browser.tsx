@@ -5,6 +5,8 @@ import { ArrowLeft, Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
@@ -23,6 +25,7 @@ import { useTheme } from "@/contexts/theme-context"
 import { typography } from "@/lib/typography"
 import { colors } from "@/lib/colors"
 import { parseMorgue } from "@/lib/morgue-parser"
+import { morgueLineHighlightContent } from "@/lib/morgue-line-highlight"
 
 /** Section titles as they appear in morgue files (order = typical appearance). Match with line.trim().startsWith(title). */
 const MORGUE_SECTION_TITLES = [
@@ -125,8 +128,8 @@ function parseMorgueSections(rawText: string): { segments: MorgueSegment[]; sect
       continue
     }
     if (title === "Skill Usage History") {
-      sectionTitles.push({ id: MORGUE_SKILL_USAGE_ANCHOR_ID, title: "Skills" })
-      sectionTitles.push({ id: MORGUE_ACTION_HISTORY_ANCHOR_ID, title: "Actions" })
+      sectionTitles.push({ id: MORGUE_SKILL_USAGE_ANCHOR_ID, title: "Skills History" })
+      sectionTitles.push({ id: MORGUE_ACTION_HISTORY_ANCHOR_ID, title: "Actions History" })
       continue
     }
     sectionTitles.push({ id: slugForSection(title), title: title.replace(/:$/, "") })
@@ -203,6 +206,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
   const [error, setError] = useState<string | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
   const [activeBookmarkId, setActiveBookmarkId] = useState("morgue-intro")
+  const [highlightingOn, setHighlightingOn] = useState(true)
   const [actionHistoryView, setActionHistoryView] = useState<"raw" | "chart">("raw")
   const [actionAverages, setActionAverages] = useState<Map<string, Record<string, number>>>(() => new Map())
   const { themeStyle } = useTheme()
@@ -216,6 +220,10 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
   useEffect(() => {
     setActionHistoryView("raw")
   }, [game.id, rawText])
+
+  useEffect(() => {
+    if (!highlightingOn) setActionHistoryView("raw")
+  }, [highlightingOn])
 
   useEffect(() => {
     if (!actionAveragesUserId) {
@@ -377,55 +385,73 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
                 })()}
               </p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {!hideResultBadge && (
-                <Badge
-                  className={
-                    game.result === "win"
-                      ? cn("rounded-none", colors.successBadge)
-                      : cn("rounded-none", colors.destructiveBadge)
-                  }
-                >
-                  {game.result === "win" ? "Victory" : "Death"} — XL {game.xl}
-                </Badge>
-              )}
-              {canShare && (
-                <div className="relative">
+            <div className="flex flex-col items-end gap-y-1.5 shrink-0">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {!hideResultBadge && (
+                  <Badge
+                    className={
+                      game.result === "win"
+                        ? cn("rounded-none", colors.successBadge)
+                        : cn("rounded-none", colors.destructiveBadge)
+                    }
+                  >
+                    {game.result === "win" ? "Victory" : "Death"} — XL {game.xl}
+                  </Badge>
+                )}
+                {canShare && (
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn("gap-2 rounded-none font-mono text-xs", colors.inputBorder, colors.highlightHoverText)}
+                      onClick={handleShare}
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </Button>
+                    <span className={`absolute left-1/2 top-full -translate-x-1/2 mt-0.5 text-xs font-mono whitespace-nowrap ${shareCopied ? "text-muted-foreground" : "invisible"}`}>
+                      {shareCopied ? "URL copied" : "\u00A0"}
+                    </span>
+                  </div>
+                )}
+                {canDownload && (
                   <Button
                     variant="outline"
                     size="sm"
                     className={cn("gap-2 rounded-none font-mono text-xs", colors.inputBorder, colors.highlightHoverText)}
-                    onClick={handleShare}
+                    onClick={handleDownload}
+                    disabled={!rawText}
                   >
-                    <Share2 className="h-4 w-4" />
-                    Share
+                    <Download className="h-4 w-4" />
+                    <span className="hidden sm:inline">Download</span>
                   </Button>
-                  <span className={`absolute left-1/2 top-full -translate-x-1/2 mt-0.5 text-xs font-mono whitespace-nowrap ${shareCopied ? "text-muted-foreground" : "invisible"}`}>
-                    {shareCopied ? "URL copied" : "\u00A0"}
-                  </span>
-                </div>
-              )}
-              {canDownload && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn("gap-2 rounded-none font-mono text-xs", colors.inputBorder, colors.highlightHoverText)}
-                  onClick={handleDownload}
-                  disabled={!rawText}
-                >
-                  <Download className="h-4 w-4" />
-                  <span className="hidden sm:inline">Download</span>
-                </Button>
-              )}
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="mt-1.5 flex justify-end border-b border-primary/10 pb-1.5">
+            <div className="flex items-center gap-x-3">
+              <Switch
+                id="morgue-highlighting"
+                checked={highlightingOn}
+                onCheckedChange={setHighlightingOn}
+                className="shrink-0"
+              />
+              <Label
+                htmlFor="morgue-highlighting"
+                className={cn(typography.captionMono, "cursor-pointer font-normal text-muted-foreground")}
+              >
+                Highlighting
+              </Label>
             </div>
           </div>
           {!hideLevelTitle && (
             <div className="flex items-center justify-between gap-2 mt-1">
               <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
-                <p className={cn(typography.subtitle, "tracking-wide")}>
+                <p className={cn(typography.subtitle, "text-sm", "tracking-wide")}>
                   {`LEVEL ${game.xl}`}
                 </p>
-                <p className={typography.bodyMonoMuted}>
+                <p className={cn(typography.bodyMonoMuted, "text-base")}>
                   {headerCharacter}
                   {headerDate && (
                     <span className="ml-1.5 text-muted-foreground/90">— {headerDate}</span>
@@ -472,14 +498,19 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
               <div className={typography.bodyLg}>
                 {segments.map((seg) => {
                   if (seg.id !== MORGUE_SKILL_ACTION_SEGMENT_ID) {
+                    const segmentLines = seg.text.split(/\n/)
                     return (
                       <div key={seg.id} id={seg.id} className="p-4">
-                        {seg.text.split(/\n/).map((line, i) => (
+                        {segmentLines.map((line, i) => (
                           <div
                             key={`${seg.id}-${i}`}
                             className="whitespace-pre-wrap break-words hover:bg-primary/10 transition-colors -mx-4 px-4"
                           >
-                            {line || "\u00A0"}
+                            {line
+                              ? highlightingOn
+                                ? morgueLineHighlightContent(line, seg.id, i, segmentLines)
+                                : line
+                              : "\u00A0"}
                           </div>
                         ))}
                       </div>
@@ -488,6 +519,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
 
                   const { skillText, actionText } = splitSkillAndActionBlock(seg.text)
                   const parsedAction = actionText ? parseActionHistory(actionText) : null
+                  const actionViewEffective = highlightingOn ? actionHistoryView : "raw"
 
                   return (
                     <div key={seg.id} className="p-4">
@@ -507,29 +539,37 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
                       >
                         {actionText ? (
                           <>
-                            <div className="-mx-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-y border-primary/20 bg-card px-4 py-1.5">
-                              <span className={cn(typography.subtitle, "shrink-0 tracking-wide")}>
-                                Action History
-                              </span>
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <FilterToggleButton
-                                  selected={actionHistoryView === "raw"}
-                                  onClick={() => setActionHistoryView("raw")}
-                                  className="h-auto min-h-8 py-1"
+                            {highlightingOn ? (
+                              <div className="-mx-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-y border-primary/20 bg-card px-4 py-1.5">
+                                <span
+                                  className={cn(
+                                    typography.subtitle,
+                                    "text-sm",
+                                    "shrink-0 tracking-wide",
+                                  )}
                                 >
-                                  Raw Data
-                                </FilterToggleButton>
-                                <FilterToggleButton
-                                  selected={actionHistoryView === "chart"}
-                                  onClick={() => parsedAction && setActionHistoryView("chart")}
-                                  className="h-auto min-h-8 py-1"
-                                  disabled={!parsedAction}
-                                >
-                                  Chart
-                                </FilterToggleButton>
+                                  Action History
+                                </span>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <FilterToggleButton
+                                    selected={actionHistoryView === "raw"}
+                                    onClick={() => setActionHistoryView("raw")}
+                                    className="h-auto min-h-8 py-1"
+                                  >
+                                    Raw Data
+                                  </FilterToggleButton>
+                                  <FilterToggleButton
+                                    selected={actionHistoryView === "chart"}
+                                    onClick={() => parsedAction && setActionHistoryView("chart")}
+                                    className="h-auto min-h-8 py-1"
+                                    disabled={!parsedAction}
+                                  >
+                                    Chart
+                                  </FilterToggleButton>
+                                </div>
                               </div>
-                            </div>
-                            {actionHistoryView === "chart" && parsedAction && (
+                            ) : null}
+                            {actionViewEffective === "chart" && parsedAction && (
                               <p
                                 className={cn(
                                   typography.bodyMonoMuted,
@@ -539,8 +579,8 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
                                 Relative usage colours are calculated based on the total uses of an action, averaged across all of your morgues (all character types).
                               </p>
                             )}
-                            {actionHistoryView === "raw" ? (
-                              <div className="mt-2">
+                            {actionViewEffective === "raw" ? (
+                              <div className={highlightingOn ? "mt-2" : undefined}>
                                 {actionText.split(/\n/).map((line, i) => (
                                   <div
                                     key={`${seg.id}-act-${i}`}
