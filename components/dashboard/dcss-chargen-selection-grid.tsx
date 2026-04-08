@@ -8,6 +8,8 @@ import {
   ALL_BACKGROUND_NAMES,
   ALL_SPECIES_NAMES,
   DRACONIAN_COLOUR_NAMES,
+  GOD_NAMES_ALPHABETICAL,
+  godsIntoChargenColumns,
 } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 import { cn } from "@/lib/utils"
@@ -22,7 +24,7 @@ const DCSS_ATTEMPT = "#888888"
 const DCSS_NONE = "#444444"
 const DCSS_PANEL_BG = "#000000"
 
-type Mode = "species" | "background"
+type Mode = "species" | "background" | "gods"
 type Tint = "win" | "attempt" | "none"
 
 function normalizeChargenSpecies(raw: string): string {
@@ -39,6 +41,10 @@ function speciesHotkey(globalIndex: number): string {
 }
 
 function backgroundHotkey(index: number): string {
+  return String.fromCharCode(97 + index)
+}
+
+function godHotkey(index: number): string {
   return String.fromCharCode(97 + index)
 }
 
@@ -104,6 +110,36 @@ const BACKGROUND_TILE_PATH: Record<string, string> = {
   Alchemist: "gui/backgrounds/Al.png",
 }
 
+/** One rltiles path per god (invocations / spells) for chargen-style rows. */
+const GOD_TILE_PATH: Record<string, string> = {
+  Ashenzari: "gui/invocations/ashenzari_curse.png",
+  Beogh: "gui/invocations/beogh_recall.png",
+  Cheibriados: "gui/invocations/cheibriados_bend_time.png",
+  Dithmenos: "gui/invocations/dithmenos_shadowslip.png",
+  Elyvilon: "gui/invocations/elyvilon_divine_vigour.png",
+  Fedhas: "gui/invocations/fedhas_wall_of_briars.png",
+  Gozag: "gui/invocations/gozag_potion_petition.png",
+  Hepliaklqana: "gui/invocations/hep_idealise.png",
+  Ignis: "gui/invocations/ignis_fiery_armour.png",
+  Jiyva: "gui/invocations/jiyva_slimify.png",
+  Kikubaaqudgha: "gui/invocations/kiku_unearth_wretches.png",
+  Lugonu: "gui/invocations/lugonu_banish.png",
+  Makhleb: "gui/invocations/makhleb_lesser_servant.png",
+  Nemelex: "gui/invocations/nemelex_draw_destruction.png",
+  Okawaru: "gui/invocations/okawaru_finesse.png",
+  Qazlal: "gui/invocations/qazlal_upheaval.png",
+  Ru: "gui/invocations/ru_draw_out_power.png",
+  "Sif Muna": "gui/invocations/sif_muna_channel.png",
+  Trog: "gui/invocations/trog_berserk.png",
+  Uskayaw: "gui/invocations/uskayaw_stomp.png",
+  Vehumet: "gui/spells/fire/fire_storm.png",
+  "Wu Jian": "gui/invocations/wu_jian_wall_jump.png",
+  Xom: "gui/spells/monster/call_of_chaos.png",
+  Yredelemnul: "gui/invocations/yred_light_the_torch.png",
+  Zin: "gui/invocations/zin_imprison.png",
+  "The Shining One": "gui/invocations/tso_cleansing_flame.png",
+}
+
 function tileUrl(path: string): string {
   return `${RLTILES_BASE}/${path}`
 }
@@ -127,6 +163,8 @@ const BACKGROUND_COLUMN_SECTIONS: [BgSection[], BgSection[], BgSection[]] = [
   ],
   [{ title: "Mage", backgrounds: ALL_BACKGROUND_NAMES.slice(16) }],
 ]
+
+const GOD_CHARGEN_COLUMNS = godsIntoChargenColumns(GOD_NAMES_ALPHABETICAL, 3)
 
 function tintFor(wins: number, attempts: number): Tint {
   if (wins > 0) return "win"
@@ -183,12 +221,24 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
     return { wins, attempts }
   }, [morgues])
 
+  const godCounts = useMemo(() => {
+    const wins = new Map<string, number>()
+    const attempts = new Map<string, number>()
+    for (const m of morgues) {
+      const god = (m.god ?? "").trim()
+      if (!god) continue
+      attempts.set(god, (attempts.get(god) ?? 0) + 1)
+      if (m.result === "win") wins.set(god, (wins.get(god) ?? 0) + 1)
+    }
+    return { wins, attempts }
+  }, [morgues])
+
   return (
     <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 bg-background">
       <div className="mx-auto max-w-7xl px-4 py-6">
         <Card className="rounded-none border-2 border-primary/30">
           <CardHeader className="flex flex-col gap-3 border-b-2 border-primary/20 pb-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="text-lg sm:text-xl">DCSS CHARGEN (SPECIES / BACKGROUND)</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">DCSS CHARGEN (SPECIES / BACKGROUND / GODS)</CardTitle>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <span className="font-mono text-sm text-primary">VIEW:</span>
               <div className="flex gap-2">
@@ -203,6 +253,9 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                   onClick={() => setMode("background")}
                 >
                   Background
+                </FilterToggleButton>
+                <FilterToggleButton selected={mode === "gods"} onClick={() => setMode("gods")}>
+                  Gods
                 </FilterToggleButton>
               </div>
             </div>
@@ -353,6 +406,75 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                           </div>
                         </div>
                       ))}
+                    </div>
+                  ))}
+                </div>
+                <div
+                  className={cn(
+                    "col-start-1 row-start-1 grid min-w-0 items-start gap-8 md:grid-cols-3 lg:gap-12",
+                    mode !== "gods" && "invisible pointer-events-none"
+                  )}
+                  aria-hidden={mode !== "gods"}
+                >
+                  {GOD_CHARGEN_COLUMNS.map((godsInCol, colIdx) => (
+                    <div key={colIdx} className="min-w-0 space-y-3">
+                      <div
+                        className="text-lg font-normal tracking-wide md:text-xl"
+                        style={{ color: DCSS_HEADER, visibility: "hidden" }}
+                        aria-hidden
+                      >
+                        {"\u00a0"}
+                      </div>
+                      <div className="space-y-1.5">
+                        {godsInCol.map((god) => {
+                          const globalIndex = GOD_NAMES_ALPHABETICAL.indexOf(god)
+                          const hk = globalIndex >= 0 ? godHotkey(globalIndex) : "?"
+                          const w = godCounts.wins.get(god) ?? 0
+                          const a = godCounts.attempts.get(god) ?? 0
+                          const tint = tintFor(w, a)
+                          const path = GOD_TILE_PATH[god]
+                          const opacity = iconDim(tint)
+
+                          const row = (
+                            <div className="flex items-center gap-2">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={path ? tileUrl(path) : undefined}
+                                alt=""
+                                width={36}
+                                height={36}
+                                className="h-9 w-9 shrink-0 [image-rendering:pixelated]"
+                                style={{ opacity }}
+                                loading="lazy"
+                              />
+                              <span
+                                className="w-[1.1ch] shrink-0 text-right"
+                                style={{ color: tintColor(tint) }}
+                              >
+                                {hk}
+                              </span>
+                              <span style={{ color: tintColor(tint) }}> - </span>
+                              <span className="min-w-0 break-words" style={{ color: tintColor(tint) }}>
+                                {god}
+                              </span>
+                            </div>
+                          )
+
+                          return (
+                            <Tooltip key={god}>
+                              <TooltipTrigger asChild>
+                                <div className="w-fit max-w-full cursor-default">{row}</div>
+                              </TooltipTrigger>
+                              <TooltipContent
+                                side="right"
+                                className="rounded-none border border-primary/40 bg-black/95 py-2 pr-3 pl-[calc(0.75rem+5px)] font-mono text-sm text-neutral-100"
+                              >
+                                Wins: {w} · Attempts: {a}
+                              </TooltipContent>
+                            </Tooltip>
+                          )
+                        })}
+                      </div>
                     </div>
                   ))}
                 </div>

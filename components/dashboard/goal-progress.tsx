@@ -16,6 +16,8 @@ import {
   ALL_SPECIES_NAMES,
   ALL_BACKGROUND_NAMES,
   GOD_NAMES_FOR_CHART,
+  GOD_NAMES_ALPHABETICAL,
+  godsChargenRowMajorOrder,
 } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 
@@ -785,6 +787,11 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                   const isComplete = goal.current >= goal.max
                   const speciesName = goal.name.replace(/^Devoted /, "")
                   const hasWins = speciesMaps.speciesGodWins.get(speciesName) ?? new Set<string>()
+                  const excludedForSpecies = SPECIES_EXCLUDED_GODS[speciesName] ?? []
+                  const devotedTooltipGods = godsChargenRowMajorOrder(
+                    GOD_NAMES_ALPHABETICAL.filter((g) => !excludedForSpecies.includes(g)),
+                    3,
+                  )
                   return (
                     <Tooltip key={goal.name}>
                       <TooltipTrigger asChild>
@@ -823,7 +830,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
-                        <AchievementDetailGrid items={GOD_NAMES_FOR_CHART} hasWins={hasWins} />
+                        <AchievementDetailGrid items={devotedTooltipGods} hasWins={hasWins} />
                       </TooltipContent>
                     </Tooltip>
                   )

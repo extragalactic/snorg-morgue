@@ -33,6 +33,42 @@ export const ALL_GOD_NAMES = [
 /** Gods that count for Polytheist (excludes "no god"). */
 export const GOD_NAMES_FOR_CHART = ALL_GOD_NAMES.filter((n) => n !== "(no god)")
 
+/** Polytheist gods sorted A–Z (chargen grid, Devoted Species tooltip layout). */
+export const GOD_NAMES_ALPHABETICAL = [...GOD_NAMES_FOR_CHART].sort((a, b) =>
+  a.localeCompare(b),
+) as readonly string[]
+
+/** Split a sorted god list into `columnCount` sequential chunks (col 0 = first chunk, read top-to-bottom). */
+export function godsIntoChargenColumns(
+  sortedGods: readonly string[],
+  columnCount: number,
+): string[][] {
+  const n = sortedGods.length
+  const base = Math.floor(n / columnCount)
+  const rem = n % columnCount
+  const cols: string[][] = []
+  let start = 0
+  for (let c = 0; c < columnCount; c++) {
+    const size = base + (c < rem ? 1 : 0)
+    cols.push([...sortedGods.slice(start, start + size)])
+    start += size
+  }
+  return cols
+}
+
+/** Row-major cell order for CSS `grid-cols-3` matching {@link godsIntoChargenColumns}. */
+export function godsChargenRowMajorOrder(sortedGods: readonly string[], columnCount = 3): string[] {
+  const cols = godsIntoChargenColumns(sortedGods, columnCount)
+  const maxRows = cols.reduce((m, c) => Math.max(m, c.length), 0)
+  const out: string[] = []
+  for (let r = 0; r < maxRows; r++) {
+    for (let c = 0; c < cols.length; c++) {
+      if (r < cols[c].length) out.push(cols[c][r])
+    }
+  }
+  return out
+}
+
 /** God short forms for display (e.g. Fastest Win subtitle). */
 export const GOD_SHORT_FORMS: Record<string, string> = {
   "Ashenzari": "Ash",

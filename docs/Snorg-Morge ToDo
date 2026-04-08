@@ -5,21 +5,28 @@ Features:
 - make a random stats section, such as:
     number of games you died with exactly 0 HP
     number of games you died with exactly -1 HP
-    number of games you got abyssed against your will
+    number of games you got abyssed without consent
 - enable Google auth
+- do a username duplicate check during signup
 - new section to show: best score, average score
 - would be cool to have a Congrats modal after uploading/detecting a new Win 
 - when you rollover a Snorg Award show a tooltip with something fun
 - have a Help tooltip somewhere perhaps for help on first upload/sync
 - new chart: Arch Nemesis Chart = top 10 unique killers
-- the Species Performance should have a toggle to show old species instead of current ones
+- the Species Performance should have a toggle to show old species instead of or in addition to current ones
 - beside the stats on the tooltips, put explanations of each stat, such as: "Out of 24 games where you found at least 3 runes, you had a 40% win rate".
-- make a coloured grid chart that show the Skills used per level, with bright coloured segments showing high usage
 - can make a morgue file summary option that shows all the important stuff in a D&D character sheet (not everything, just the important stuff, make is a printable single page)
 - add an extra Browse variant where instead of switching to the other account it will instead become overlaid data (on some charts) like the current global average data
 - add a full calendar that shows hom much you played every day
+- wonder if I could try an animation package, and when you rollover a row in the Action History grid all of the other rows go dim to help highlight the row
+- add a optional color gradient to the rows of the Skill History chart
+- add a ToDo list where you can list interesting character combos you want to try (e.g. I want to try a Gnoll Warper of Gozag, Draconian Shapeshifter of Ru)
+- the existing DCSS Chargen chart needs a button for Gods (not sure of best order yet)
+- highlight the score, game duration, and number of turns in the morgue viewer
 
 Fixes:
+- make species/background tooltips have the same ordering as the chargen screens (not sure of best way to order the gods tooltip...)
+- reduce size of snorg main title (for Monitor theme)
 - sharing a morgue needs better feedback after clicking button, then the morgue file needs to show the player name at the top and remove the Back to Morgues button
 - all of the tooltips should be made with larger text with simplified presentation (to convey useful data quickly)
 - overall the font should globally increase a point or two
