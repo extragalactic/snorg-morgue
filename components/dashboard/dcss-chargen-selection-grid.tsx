@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useLayoutEffect, useMemo, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -8,6 +8,8 @@ import {
   ALL_BACKGROUND_NAMES,
   ALL_SPECIES_NAMES,
   DRACONIAN_COLOUR_NAMES,
+  GOD_NAMES_ALPHABETICAL,
+  godsIntoChargenColumns,
 } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 import { cn } from "@/lib/utils"
@@ -22,7 +24,11 @@ const DCSS_ATTEMPT = "#888888"
 const DCSS_NONE = "#444444"
 const DCSS_PANEL_BG = "#000000"
 
-type Mode = "species" | "background"
+/** Chargen tooltips override base padding; add 5px on all sides vs previous py-2 / px-3.5. */
+const CHARGEN_TOOLTIP_CONTENT_CLASS =
+  "rounded-none border border-primary/40 bg-black/95 px-[calc(0.875rem+5px)] py-[calc(0.5rem+5px)] font-mono text-sm text-neutral-100"
+
+type Mode = "species" | "background" | "gods"
 type Tint = "win" | "attempt" | "none"
 
 function normalizeChargenSpecies(raw: string): string {
@@ -31,15 +37,6 @@ function normalizeChargenSpecies(raw: string): string {
   if (DRACONIAN_COLOUR_NAMES.includes(s)) return "Draconian"
   if (s.endsWith(" Draconian")) return "Draconian"
   return s
-}
-
-function speciesHotkey(globalIndex: number): string {
-  if (globalIndex === ALL_SPECIES_NAMES.length - 1) return "A"
-  return String.fromCharCode(97 + globalIndex)
-}
-
-function backgroundHotkey(index: number): string {
-  return String.fromCharCode(97 + index)
 }
 
 /** Canonical species → base tile (matches DCSS chargen feel; uses trunk rltiles). */
@@ -104,6 +101,36 @@ const BACKGROUND_TILE_PATH: Record<string, string> = {
   Alchemist: "gui/backgrounds/Al.png",
 }
 
+/** One rltiles path per god (invocations / spells) for chargen-style rows. */
+const GOD_TILE_PATH: Record<string, string> = {
+  Ashenzari: "gui/invocations/ashenzari_curse.png",
+  Beogh: "gui/invocations/beogh_recall.png",
+  Cheibriados: "gui/invocations/cheibriados_bend_time.png",
+  Dithmenos: "gui/invocations/dithmenos_shadowslip.png",
+  Elyvilon: "gui/invocations/elyvilon_divine_vigour.png",
+  Fedhas: "gui/invocations/fedhas_wall_of_briars.png",
+  Gozag: "gui/invocations/gozag_potion_petition.png",
+  Hepliaklqana: "gui/invocations/hep_idealise.png",
+  Ignis: "gui/invocations/ignis_fiery_armour.png",
+  Jiyva: "gui/invocations/jiyva_slimify.png",
+  Kikubaaqudgha: "gui/invocations/kiku_unearth_wretches.png",
+  Lugonu: "gui/invocations/lugonu_banish.png",
+  Makhleb: "gui/invocations/makhleb_lesser_servant.png",
+  Nemelex: "gui/invocations/nemelex_draw_destruction.png",
+  Okawaru: "gui/invocations/okawaru_finesse.png",
+  Qazlal: "gui/invocations/qazlal_upheaval.png",
+  Ru: "gui/invocations/ru_draw_out_power.png",
+  "Sif Muna": "gui/invocations/sif_muna_channel.png",
+  Trog: "gui/invocations/trog_berserk.png",
+  Uskayaw: "gui/invocations/uskayaw_stomp.png",
+  Vehumet: "gui/spells/fire/fire_storm.png",
+  "Wu Jian": "gui/invocations/wu_jian_wall_jump.png",
+  Xom: "gui/spells/monster/call_of_chaos.png",
+  Yredelemnul: "gui/invocations/yred_light_the_torch.png",
+  Zin: "gui/invocations/zin_imprison.png",
+  "The Shining One": "gui/invocations/tso_cleansing_flame.png",
+}
+
 function tileUrl(path: string): string {
   return `${RLTILES_BASE}/${path}`
 }
@@ -127,6 +154,8 @@ const BACKGROUND_COLUMN_SECTIONS: [BgSection[], BgSection[], BgSection[]] = [
   ],
   [{ title: "Mage", backgrounds: ALL_BACKGROUND_NAMES.slice(16) }],
 ]
+
+const GOD_CHARGEN_COLUMNS = godsIntoChargenColumns(GOD_NAMES_ALPHABETICAL, 3)
 
 function tintFor(wins: number, attempts: number): Tint {
   if (wins > 0) return "win"
@@ -156,8 +185,176 @@ function iconDim(t: Tint): number {
   }
 }
 
+type WinDeathBuckets = { wins: GameRecord[]; deaths: GameRecord[] }
+
+const EMPTY_WIN_DEATH: WinDeathBuckets = { wins: [], deaths: [] }
+
+/** Line text for tooltip body; species/background/god is shown in the title instead when redundant. */
+function formatChargenTooltipGameLine(m: GameRecord, mode: Mode): string {
+  const xl = Number.isFinite(m.xl) ? Math.round(m.xl) : "?"
+  const god = (m.god ?? "").trim()
+  const hasGod = god && god !== "(no god)"
+
+  if (mode === "species") {
+    return hasGod ? `${m.background} of ${god} (${xl})` : `${m.background} (${xl})`
+  }
+  if (mode === "background") {
+    return hasGod ? `${m.species} of ${god} (${xl})` : `${m.species} (${xl})`
+  }
+  return `${m.species} ${m.background} (${xl})`
+}
+
+/** Highest XL first; tie-break alphabetically by formatted line. */
+function sortChargenByLevelDesc(records: GameRecord[], mode: Mode): GameRecord[] {
+  return [...records].sort((a, b) => {
+    const xa = Number.isFinite(a.xl) ? a.xl : -1
+    const xb = Number.isFinite(b.xl) ? b.xl : -1
+    if (xb !== xa) return xb - xa
+    return formatChargenTooltipGameLine(a, mode).localeCompare(
+      formatChargenTooltipGameLine(b, mode),
+      undefined,
+      { sensitivity: "base" },
+    )
+  })
+}
+
+type ChargenTooltipDetailsProps = WinDeathBuckets & {
+  mode: Mode
+  primaryLabel: string
+}
+
+function ChargenTooltipDetails({ mode, primaryLabel, wins, deaths }: ChargenTooltipDetailsProps) {
+  const winSorted = sortChargenByLevelDesc(wins, mode)
+  const deathSorted = sortChargenByLevelDesc(deaths, mode)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [needsYScroll, setNeedsYScroll] = useState(false)
+  const dataRowCount = winSorted.length + deathSorted.length
+  const useScrollCap = dataRowCount > 20
+
+  useLayoutEffect(() => {
+    const el = containerRef.current
+    if (!el || !useScrollCap || (winSorted.length === 0 && deathSorted.length === 0)) {
+      setNeedsYScroll(false)
+      return
+    }
+    const measure = () => {
+      setNeedsYScroll(el.scrollHeight > el.clientHeight + 2)
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [useScrollCap, dataRowCount, winSorted.length, deathSorted.length, wins, deaths])
+
+  const titleEl = (
+    <div className="mb-2 shrink-0 border-b border-primary/25 pb-2 font-mono text-xl font-semibold tracking-tight text-neutral-50">
+      {primaryLabel}
+    </div>
+  )
+
+  if (winSorted.length === 0 && deathSorted.length === 0) {
+    return (
+      <div className="flex min-w-0 max-w-md flex-col text-left">
+        {titleEl}
+        <span className="text-sm text-neutral-400">No recorded games</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex min-w-0 max-w-md flex-col text-left">
+      {titleEl}
+      <div
+        ref={containerRef}
+        className={cn(
+          "box-border min-h-0 min-w-0 overflow-x-clip text-sm leading-snug",
+          useScrollCap && !needsYScroll && "overflow-y-clip",
+          needsYScroll && "overflow-y-auto",
+        )}
+        style={
+          useScrollCap
+            ? {
+                maxHeight: "min(70vh, calc(5.5rem + 20 * 1.6em))",
+              }
+            : undefined
+        }
+      >
+        <div className="flex flex-col gap-3">
+          {winSorted.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <div className="text-xs font-normal text-neutral-500">Winners:</div>
+              <ul className="list-none space-y-0.5 pl-0">
+                {winSorted.map((m) => (
+                  <li key={m.id} className="break-words font-medium text-primary">
+                    {formatChargenTooltipGameLine(m, mode)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {deathSorted.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <div className="text-xs font-normal text-neutral-500">Attempts:</div>
+              <ul className="list-none space-y-0.5 pl-0">
+                {deathSorted.map((m) => (
+                  <li key={m.id} className="break-words text-neutral-100">
+                    {formatChargenTooltipGameLine(m, mode)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function buildSpeciesRollups(morgues: GameRecord[]): Map<string, WinDeathBuckets> {
+  const map = new Map<string, WinDeathBuckets>()
+  for (const m of morgues) {
+    const sp = normalizeChargenSpecies(m.species ?? "")
+    if (!sp) continue
+    if (!map.has(sp)) map.set(sp, { wins: [], deaths: [] })
+    const b = map.get(sp)!
+    if (m.result === "win") b.wins.push(m)
+    else b.deaths.push(m)
+  }
+  return map
+}
+
+function buildBackgroundRollups(morgues: GameRecord[]): Map<string, WinDeathBuckets> {
+  const map = new Map<string, WinDeathBuckets>()
+  for (const m of morgues) {
+    const bg = (m.background ?? "").trim()
+    if (!bg) continue
+    if (!map.has(bg)) map.set(bg, { wins: [], deaths: [] })
+    const b = map.get(bg)!
+    if (m.result === "win") b.wins.push(m)
+    else b.deaths.push(m)
+  }
+  return map
+}
+
+function buildGodRollups(morgues: GameRecord[]): Map<string, WinDeathBuckets> {
+  const map = new Map<string, WinDeathBuckets>()
+  for (const m of morgues) {
+    const god = (m.god ?? "").trim()
+    if (!god) continue
+    if (!map.has(god)) map.set(god, { wins: [], deaths: [] })
+    const b = map.get(god)!
+    if (m.result === "win") b.wins.push(m)
+    else b.deaths.push(m)
+  }
+  return map
+}
+
 export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecord[] }) {
   const [mode, setMode] = useState<Mode>("species")
+
+  const speciesRollups = useMemo(() => buildSpeciesRollups(morgues), [morgues])
+  const backgroundRollups = useMemo(() => buildBackgroundRollups(morgues), [morgues])
+  const godRollups = useMemo(() => buildGodRollups(morgues), [morgues])
 
   const speciesCounts = useMemo(() => {
     const wins = new Map<string, number>()
@@ -183,12 +380,24 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
     return { wins, attempts }
   }, [morgues])
 
+  const godCounts = useMemo(() => {
+    const wins = new Map<string, number>()
+    const attempts = new Map<string, number>()
+    for (const m of morgues) {
+      const god = (m.god ?? "").trim()
+      if (!god) continue
+      attempts.set(god, (attempts.get(god) ?? 0) + 1)
+      if (m.result === "win") wins.set(god, (wins.get(god) ?? 0) + 1)
+    }
+    return { wins, attempts }
+  }, [morgues])
+
   return (
     <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 bg-background">
       <div className="mx-auto max-w-7xl px-4 py-6">
         <Card className="rounded-none border-2 border-primary/30">
           <CardHeader className="flex flex-col gap-3 border-b-2 border-primary/20 pb-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="text-lg sm:text-xl">DCSS CHARGEN (SPECIES / BACKGROUND)</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">DCSS CHARGEN (SPECIES / BACKGROUND / GODS)</CardTitle>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <span className="font-mono text-sm text-primary">VIEW:</span>
               <div className="flex gap-2">
@@ -203,6 +412,9 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                   onClick={() => setMode("background")}
                 >
                   Background
+                </FilterToggleButton>
+                <FilterToggleButton selected={mode === "gods"} onClick={() => setMode("gods")}>
+                  Gods
                 </FilterToggleButton>
               </div>
             </div>
@@ -230,8 +442,6 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                       </div>
                       <div className="space-y-1.5">
                         {col.species.map((sp) => {
-                          const globalIndex = ALL_SPECIES_NAMES.indexOf(sp)
-                          const key = speciesHotkey(globalIndex)
                           const w = speciesCounts.wins.get(sp) ?? 0
                           const a = speciesCounts.attempts.get(sp) ?? 0
                           const tint = tintFor(w, a)
@@ -250,29 +460,26 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                                 style={{ opacity }}
                                 loading="lazy"
                               />
-                              <span
-                                className="w-[1.1ch] shrink-0 text-right"
-                                style={{ color: tintColor(tint) }}
-                              >
-                                {key}
-                              </span>
-                              <span style={{ color: tintColor(tint) }}> - </span>
                               <span className="min-w-0 break-words" style={{ color: tintColor(tint) }}>
                                 {sp}
                               </span>
                             </div>
                           )
 
+                          const buckets = speciesRollups.get(sp) ?? EMPTY_WIN_DEATH
+
                           return (
-                            <Tooltip key={sp}>
+                            <Tooltip key={sp} delayDuration={200}>
                               <TooltipTrigger asChild>
                                 <div className="w-fit max-w-full cursor-default">{row}</div>
                               </TooltipTrigger>
-                              <TooltipContent
-                                side="right"
-                                className="rounded-none border border-primary/40 bg-black/95 py-2 pr-3 pl-[calc(0.75rem+5px)] font-mono text-sm text-neutral-100"
-                              >
-                                Wins: {w} · Attempts: {a}
+                              <TooltipContent side="right" className={CHARGEN_TOOLTIP_CONTENT_CLASS}>
+                                <ChargenTooltipDetails
+                                  mode={mode}
+                                  primaryLabel={sp}
+                                  wins={buckets.wins}
+                                  deaths={buckets.deaths}
+                                />
                               </TooltipContent>
                             </Tooltip>
                           )
@@ -300,8 +507,6 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                           </div>
                           <div className="space-y-1.5">
                             {sec.backgrounds.map((bg) => {
-                              const idx = ALL_BACKGROUND_NAMES.indexOf(bg)
-                              const hk = idx >= 0 ? backgroundHotkey(idx) : "?"
                               const w = backgroundCounts.wins.get(bg) ?? 0
                               const a = backgroundCounts.attempts.get(bg) ?? 0
                               const tint = tintFor(w, a)
@@ -321,13 +526,6 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                                     loading="lazy"
                                   />
                                   <span
-                                    className="w-[1.1ch] shrink-0 text-right"
-                                    style={{ color: tintColor(tint) }}
-                                  >
-                                    {hk}
-                                  </span>
-                                  <span style={{ color: tintColor(tint) }}> - </span>
-                                  <span
                                     className="min-w-0 break-words"
                                     style={{ color: tintColor(tint) }}
                                   >
@@ -336,16 +534,20 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                                 </div>
                               )
 
+                              const buckets = backgroundRollups.get(bg) ?? EMPTY_WIN_DEATH
+
                               return (
-                                <Tooltip key={bg}>
+                                <Tooltip key={bg} delayDuration={200}>
                                   <TooltipTrigger asChild>
                                     <div className="w-fit max-w-full cursor-default">{row}</div>
                                   </TooltipTrigger>
-                                  <TooltipContent
-                                    side="right"
-                                    className="rounded-none border border-primary/40 bg-black/95 py-2 pr-3 pl-[calc(0.75rem+5px)] font-mono text-sm text-neutral-100"
-                                  >
-                                    Wins: {w} · Attempts: {a}
+                                  <TooltipContent side="right" className={CHARGEN_TOOLTIP_CONTENT_CLASS}>
+                                    <ChargenTooltipDetails
+                                      mode={mode}
+                                      primaryLabel={bg}
+                                      wins={buckets.wins}
+                                      deaths={buckets.deaths}
+                                    />
                                   </TooltipContent>
                                 </Tooltip>
                               )
@@ -353,6 +555,70 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                           </div>
                         </div>
                       ))}
+                    </div>
+                  ))}
+                </div>
+                <div
+                  className={cn(
+                    "col-start-1 row-start-1 grid min-w-0 items-start gap-8 md:grid-cols-3 lg:gap-12",
+                    mode !== "gods" && "invisible pointer-events-none"
+                  )}
+                  aria-hidden={mode !== "gods"}
+                >
+                  {GOD_CHARGEN_COLUMNS.map((godsInCol, colIdx) => (
+                    <div key={colIdx} className="min-w-0 space-y-3">
+                      <div
+                        className="text-lg font-normal tracking-wide md:text-xl"
+                        style={{ color: DCSS_HEADER, visibility: "hidden" }}
+                        aria-hidden
+                      >
+                        {"\u00a0"}
+                      </div>
+                      <div className="space-y-1.5">
+                        {godsInCol.map((god) => {
+                          const w = godCounts.wins.get(god) ?? 0
+                          const a = godCounts.attempts.get(god) ?? 0
+                          const tint = tintFor(w, a)
+                          const path = GOD_TILE_PATH[god]
+                          const opacity = iconDim(tint)
+
+                          const row = (
+                            <div className="flex items-center gap-2">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={path ? tileUrl(path) : undefined}
+                                alt=""
+                                width={36}
+                                height={36}
+                                className="h-9 w-9 shrink-0 [image-rendering:pixelated]"
+                                style={{ opacity }}
+                                loading="lazy"
+                              />
+                              <span className="min-w-0 break-words" style={{ color: tintColor(tint) }}>
+                                {god}
+                              </span>
+                            </div>
+                          )
+
+                          const buckets = godRollups.get(god) ?? EMPTY_WIN_DEATH
+
+                          return (
+                            <Tooltip key={god} delayDuration={200}>
+                              <TooltipTrigger asChild>
+                                <div className="w-fit max-w-full cursor-default">{row}</div>
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className={CHARGEN_TOOLTIP_CONTENT_CLASS}>
+                                <ChargenTooltipDetails
+                                  mode={mode}
+                                  primaryLabel={god}
+                                  wins={buckets.wins}
+                                  deaths={buckets.deaths}
+                                />
+                              </TooltipContent>
+                            </Tooltip>
+                          )
+                        })}
+                      </div>
                     </div>
                   ))}
                 </div>

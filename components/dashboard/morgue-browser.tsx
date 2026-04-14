@@ -1,18 +1,31 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { ArrowLeft, Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
-import { fetchRawMorgue } from "@/lib/morgue-api"
+import { fetchRawMorgue, fetchUserActionAverages } from "@/lib/morgue-api"
 import type { GameRecord } from "@/lib/morgue-api"
+import {
+  MORGUE_SKILL_ACTION_SEGMENT_ID,
+  MORGUE_SKILL_USAGE_ANCHOR_ID,
+  MORGUE_ACTION_HISTORY_ANCHOR_ID,
+  parseActionHistory,
+  splitSkillAndActionBlock,
+} from "@/lib/action-history"
+import { useAuth } from "@/contexts/auth-context"
+import { ActionHistoryChart } from "./action-history-chart"
 import { useTheme } from "@/contexts/theme-context"
 import { typography } from "@/lib/typography"
 import { colors } from "@/lib/colors"
 import { parseMorgue } from "@/lib/morgue-parser"
+import { morgueLineHighlightContent } from "@/lib/morgue-line-highlight"
 
 /** Section titles as they appear in morgue files (order = typical appearance). Match with line.trim().startsWith(title). */
 const MORGUE_SECTION_TITLES = [
@@ -115,7 +128,8 @@ function parseMorgueSections(rawText: string): { segments: MorgueSegment[]; sect
       continue
     }
     if (title === "Skill Usage History") {
-      sectionTitles.push({ id: slugForSection(title), title: "Skill History" })
+      sectionTitles.push({ id: MORGUE_SKILL_USAGE_ANCHOR_ID, title: "Skills History" })
+      sectionTitles.push({ id: MORGUE_ACTION_HISTORY_ANCHOR_ID, title: "Actions History" })
       continue
     }
     sectionTitles.push({ id: slugForSection(title), title: title.replace(/:$/, "") })
@@ -172,6 +186,8 @@ interface MorgueBrowserProps {
   hideLevelTitle?: boolean
   /** When true, parse raw morgue text when loaded and use species/background/god for the title (for URL viewer). */
   useParsedHeaderFromRaw?: boolean
+  /** Morgue owner's user id — Action History heatmap uses their stored averages. Defaults to signed-in user. */
+  actionAveragesUserId?: string | null
 }
 
 function formatGodName(god: string | null | undefined): string {
@@ -183,13 +199,47 @@ function formatGodName(god: string | null | undefined): string {
   return name
 }
 
-export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton = true, backButtonLabel = "Back to Morgues", initialRawText, initialFilename, fillHeight, shareUrl, sharePath, hideResultBadge, hideLevelTitle, useParsedHeaderFromRaw }: MorgueBrowserProps) {
+export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton = true, backButtonLabel = "Back to Morgues", initialRawText, initialFilename, fillHeight, shareUrl, sharePath, hideResultBadge, hideLevelTitle, useParsedHeaderFromRaw, actionAveragesUserId: actionAveragesUserIdProp }: MorgueBrowserProps) {
   const [rawText, setRawText] = useState<string | null>(initialRawText ?? null)
   const [filename, setFilename] = useState<string>(initialFilename ?? "")
   const [loading, setLoading] = useState(!initialRawText)
   const [error, setError] = useState<string | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
+  const [activeBookmarkId, setActiveBookmarkId] = useState("morgue-intro")
+  const [highlightingOn, setHighlightingOn] = useState(true)
+  const [actionHistoryView, setActionHistoryView] = useState<"raw" | "chart">("raw")
+  const [actionAverages, setActionAverages] = useState<Map<string, Record<string, number>>>(() => new Map())
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const scrollSpyRafRef = useRef<number | null>(null)
   const { themeStyle } = useTheme()
+  const { userId: authUserId } = useAuth()
+  const actionAveragesUserId = actionAveragesUserIdProp ?? authUserId ?? null
+
+  useEffect(() => {
+    setActiveBookmarkId("morgue-intro")
+  }, [game.id, game.morgueFileId, game.morgueUrl])
+
+  useEffect(() => {
+    setActionHistoryView("raw")
+  }, [game.id, rawText])
+
+  useEffect(() => {
+    if (!highlightingOn) setActionHistoryView("raw")
+  }, [highlightingOn])
+
+  useEffect(() => {
+    if (!actionAveragesUserId) {
+      setActionAverages(new Map())
+      return
+    }
+    let cancelled = false
+    fetchUserActionAverages(supabase, actionAveragesUserId).then((m) => {
+      if (!cancelled) setActionAverages(m)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [actionAveragesUserId])
 
   const parsedFromRaw = useMemo(() => {
     if (!useParsedHeaderFromRaw || !rawText) return null
@@ -299,6 +349,64 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
+  /** Highlight the nav button for whichever section's heading has passed the top of the scroll area. */
+  const updateActiveSectionFromScroll = useCallback(() => {
+    const scrollEl = scrollContainerRef.current
+    if (!scrollEl || sectionTitles.length === 0) return
+
+    const ids = sectionTitles.map((s) => s.id)
+    const rootTop = scrollEl.getBoundingClientRect().top
+    const activateBelow = rootTop + 28
+
+    const canScroll = scrollEl.scrollHeight > scrollEl.clientHeight + 2
+    const nearBottom =
+      canScroll && scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < 12
+
+    let activeId = ids[0]
+    if (nearBottom) {
+      activeId = ids[ids.length - 1]
+    } else {
+      for (const id of ids) {
+        const node = document.getElementById(id)
+        if (!node) continue
+        if (node.getBoundingClientRect().top <= activateBelow) {
+          activeId = id
+        }
+      }
+    }
+
+    setActiveBookmarkId((prev) => (prev === activeId ? prev : activeId))
+  }, [sectionTitles])
+
+  useEffect(() => {
+    if (loading || !rawText || sectionTitles.length === 0) return
+    const scrollEl = scrollContainerRef.current
+    if (!scrollEl) return
+
+    const onScroll = () => {
+      if (scrollSpyRafRef.current != null) return
+      scrollSpyRafRef.current = requestAnimationFrame(() => {
+        scrollSpyRafRef.current = null
+        updateActiveSectionFromScroll()
+      })
+    }
+
+    scrollEl.addEventListener("scroll", onScroll, { passive: true })
+    const ro = new ResizeObserver(() => onScroll())
+    ro.observe(scrollEl)
+
+    requestAnimationFrame(() => updateActiveSectionFromScroll())
+
+    return () => {
+      scrollEl.removeEventListener("scroll", onScroll)
+      ro.disconnect()
+      if (scrollSpyRafRef.current != null) {
+        cancelAnimationFrame(scrollSpyRafRef.current)
+        scrollSpyRafRef.current = null
+      }
+    }
+  }, [loading, rawText, sectionTitles, segments.length, updateActiveSectionFromScroll])
+
   const handleShare = async () => {
     const url = getShareUrl()
     if (!url) return
@@ -337,55 +445,73 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
                 })()}
               </p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {!hideResultBadge && (
-                <Badge
-                  className={
-                    game.result === "win"
-                      ? cn("rounded-none", colors.successBadge)
-                      : cn("rounded-none", colors.destructiveBadge)
-                  }
-                >
-                  {game.result === "win" ? "Victory" : "Death"} — XL {game.xl}
-                </Badge>
-              )}
-              {canShare && (
-                <div className="relative">
+            <div className="flex flex-col items-end gap-y-1.5 shrink-0">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {!hideResultBadge && (
+                  <Badge
+                    className={
+                      game.result === "win"
+                        ? cn("rounded-none", colors.successBadge)
+                        : cn("rounded-none", colors.destructiveBadge)
+                    }
+                  >
+                    {game.result === "win" ? "Victory" : "Death"} — XL {game.xl}
+                  </Badge>
+                )}
+                {canShare && (
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn("gap-2 rounded-none font-mono text-xs", colors.inputBorder, colors.highlightHoverText)}
+                      onClick={handleShare}
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </Button>
+                    <span className={`absolute left-1/2 top-full -translate-x-1/2 mt-0.5 text-xs font-mono whitespace-nowrap ${shareCopied ? "text-muted-foreground" : "invisible"}`}>
+                      {shareCopied ? "URL copied" : "\u00A0"}
+                    </span>
+                  </div>
+                )}
+                {canDownload && (
                   <Button
                     variant="outline"
                     size="sm"
                     className={cn("gap-2 rounded-none font-mono text-xs", colors.inputBorder, colors.highlightHoverText)}
-                    onClick={handleShare}
+                    onClick={handleDownload}
+                    disabled={!rawText}
                   >
-                    <Share2 className="h-4 w-4" />
-                    Share
+                    <Download className="h-4 w-4" />
+                    <span className="hidden sm:inline">Download</span>
                   </Button>
-                  <span className={`absolute left-1/2 top-full -translate-x-1/2 mt-0.5 text-xs font-mono whitespace-nowrap ${shareCopied ? "text-muted-foreground" : "invisible"}`}>
-                    {shareCopied ? "URL copied" : "\u00A0"}
-                  </span>
-                </div>
-              )}
-              {canDownload && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn("gap-2 rounded-none font-mono text-xs", colors.inputBorder, colors.highlightHoverText)}
-                  onClick={handleDownload}
-                  disabled={!rawText}
-                >
-                  <Download className="h-4 w-4" />
-                  <span className="hidden sm:inline">Download</span>
-                </Button>
-              )}
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="mt-1.5 flex justify-end border-b border-primary/10 pb-1.5">
+            <div className="flex items-center gap-x-3">
+              <Switch
+                id="morgue-highlighting"
+                checked={highlightingOn}
+                onCheckedChange={setHighlightingOn}
+                className="shrink-0"
+              />
+              <Label
+                htmlFor="morgue-highlighting"
+                className={cn(typography.captionMono, "cursor-pointer font-normal text-muted-foreground")}
+              >
+                Highlighting
+              </Label>
             </div>
           </div>
           {!hideLevelTitle && (
             <div className="flex items-center justify-between gap-2 mt-1">
               <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
-                <p className={cn(typography.subtitle, "tracking-wide")}>
+                <p className={cn(typography.subtitle, "text-sm", "tracking-wide")}>
                   {`LEVEL ${game.xl}`}
                 </p>
-                <p className={typography.bodyMonoMuted}>
+                <p className={cn(typography.bodyMonoMuted, "text-base")}>
                   {headerCharacter}
                   {headerDate && (
                     <span className="ml-1.5 text-muted-foreground/90">— {headerDate}</span>
@@ -400,21 +526,24 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
           {sectionTitles.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-primary/20 mt-1.5">
               {sectionTitles.map(({ id, title }) => (
-                <Button
+                <FilterToggleButton
                   key={id}
-                  variant="outline"
-                  size="sm"
-                  className="rounded-none border border-primary/40 bg-transparent font-mono text-xs text-muted-foreground py-1 h-auto hover:border-primary hover:bg-primary/10 hover:text-primary"
-                  onClick={() => scrollToSection(id)}
+                  selected={activeBookmarkId === id}
+                  onClick={() => {
+                    setActiveBookmarkId(id)
+                    scrollToSection(id)
+                  }}
+                  className="h-auto min-h-8 py-1"
                 >
                   {title}
-                </Button>
+                </FilterToggleButton>
               ))}
             </div>
           )}
         </CardHeader>
         <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
           <div
+            ref={scrollContainerRef}
             className={fillHeight ? "min-h-0 flex-1 overflow-y-auto bg-background morgue-modal-scroll" : "h-[550px] overflow-y-auto bg-background"}
           >
             {loading && (
@@ -428,18 +557,111 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
             )}
             {rawText && !loading && segments.length > 0 && (
               <div className={typography.bodyLg}>
-                {segments.map((seg) => (
-                  <div key={seg.id} id={seg.id} className="p-4">
-                    {seg.text.split(/\n/).map((line, i) => (
-                      <div
-                        key={`${seg.id}-${i}`}
-                        className="whitespace-pre-wrap break-words hover:bg-primary/10 transition-colors -mx-4 px-4"
-                      >
-                        {line || "\u00A0"}
+                {segments.map((seg) => {
+                  if (seg.id !== MORGUE_SKILL_ACTION_SEGMENT_ID) {
+                    const segmentLines = seg.text.split(/\n/)
+                    return (
+                      <div key={seg.id} id={seg.id} className="p-4">
+                        {segmentLines.map((line, i) => (
+                          <div
+                            key={`${seg.id}-${i}`}
+                            className="whitespace-pre-wrap break-words hover:bg-primary/10 transition-colors -mx-4 px-4"
+                          >
+                            {line
+                              ? highlightingOn
+                                ? morgueLineHighlightContent(line, seg.id, i, segmentLines)
+                                : line
+                              : "\u00A0"}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ))}
+                    )
+                  }
+
+                  const { skillText, actionText } = splitSkillAndActionBlock(seg.text)
+                  const parsedAction = actionText ? parseActionHistory(actionText) : null
+                  const actionViewEffective = highlightingOn ? actionHistoryView : "raw"
+
+                  return (
+                    <div key={seg.id} className="p-4">
+                      <div id={MORGUE_SKILL_USAGE_ANCHOR_ID}>
+                        {skillText.split(/\n/).map((line, i) => (
+                          <div
+                            key={`${seg.id}-sk-${i}`}
+                            className="whitespace-pre-wrap break-words hover:bg-primary/10 transition-colors -mx-4 px-4"
+                          >
+                            {line || "\u00A0"}
+                          </div>
+                        ))}
+                      </div>
+                      <div
+                        id={MORGUE_ACTION_HISTORY_ANCHOR_ID}
+                        className={cn("scroll-mt-2", actionText && "mt-[20px]")}
+                      >
+                        {actionText ? (
+                          <>
+                            {highlightingOn ? (
+                              <div className="-mx-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-y border-primary/20 bg-card px-4 py-1.5">
+                                <span
+                                  className={cn(
+                                    typography.subtitle,
+                                    "text-sm",
+                                    "shrink-0 tracking-wide",
+                                  )}
+                                >
+                                  Action History
+                                </span>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <FilterToggleButton
+                                    selected={actionHistoryView === "raw"}
+                                    onClick={() => setActionHistoryView("raw")}
+                                    className="h-auto min-h-8 py-1"
+                                  >
+                                    Raw Data
+                                  </FilterToggleButton>
+                                  <FilterToggleButton
+                                    selected={actionHistoryView === "chart"}
+                                    onClick={() => parsedAction && setActionHistoryView("chart")}
+                                    className="h-auto min-h-8 py-1"
+                                    disabled={!parsedAction}
+                                  >
+                                    Chart
+                                  </FilterToggleButton>
+                                </div>
+                              </div>
+                            ) : null}
+                            {actionViewEffective === "chart" && parsedAction && (
+                              <p
+                                className={cn(
+                                  typography.bodyMonoMuted,
+                                  "-mx-4 mt-1.5 max-w-none px-4 leading-relaxed",
+                                )}
+                              >
+                                Relative usage colours are calculated based on the total uses of an action, averaged across all of your morgues (all character types).
+                              </p>
+                            )}
+                            {actionViewEffective === "raw" ? (
+                              <div className={highlightingOn ? "mt-2" : undefined}>
+                                {actionText.split(/\n/).map((line, i) => (
+                                  <div
+                                    key={`${seg.id}-act-${i}`}
+                                    className="whitespace-pre-wrap break-words hover:bg-primary/10 transition-colors -mx-4 px-4"
+                                  >
+                                    {line || "\u00A0"}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : parsedAction ? (
+                              <div className="-mx-4 mt-2 px-4">
+                                <ActionHistoryChart data={parsedAction} averages={actionAverages} />
+                              </div>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
             {rawText && !loading && segments.length === 0 && (

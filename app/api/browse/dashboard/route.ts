@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { createServerSupabase } from "@/lib/supabase-server"
 import { requireAuthenticatedUser, isUuid } from "@/lib/browse-auth"
-import { parsedMorgueRowsToGameRecords } from "@/lib/morgue-api"
+import { parsedMorgueRowsToGameRecords, type UserFavouriteSpellRow } from "@/lib/morgue-api"
 import type { UserStatsRow } from "@/lib/morgue-db"
 
 /**
@@ -63,8 +63,16 @@ export async function GET(request: Request) {
     .eq("user_id", targetUserId)
     .maybeSingle()
 
+  const { data: favouriteSpellRows } = await supabase
+    .from("user_favourite_spells")
+    .select("level_group, rank, spell_key, spell_name, total_uses, morgue_count")
+    .eq("user_id", targetUserId)
+    .order("level_group", { ascending: true })
+    .order("rank", { ascending: true })
+
   return NextResponse.json({
     morgues: parsedMorgueRowsToGameRecords(morgueRows),
     stats: (statsRow as UserStatsRow | null) ?? null,
+    favouriteSpells: (favouriteSpellRows ?? []) as UserFavouriteSpellRow[],
   })
 }

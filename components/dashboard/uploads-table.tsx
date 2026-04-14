@@ -71,6 +71,8 @@ interface UploadsTableProps {
   fillViewportHeight?: boolean
   /** When true, hide delete and other mutations (e.g. viewing another user's morgues). */
   readOnly?: boolean
+  /** Morgue owner UUID for Action History chart averages (browse mode vs own uploads). */
+  actionAveragesUserId?: string | null
 }
 
 export function UploadsTable({
@@ -80,6 +82,7 @@ export function UploadsTable({
   usernameSlug,
   fillViewportHeight,
   readOnly,
+  actionAveragesUserId,
 }: UploadsTableProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -768,6 +771,7 @@ export function UploadsTable({
               showDownloadButton
               fillHeight
               sharePath={usernameSlug && viewingMorgue ? `/${usernameSlug}/morgues/${viewingMorgue.shortId || viewingMorgue.id}` : undefined}
+              actionAveragesUserId={actionAveragesUserId ?? userId}
             />
           </div>
         </DialogContent>

@@ -99,7 +99,7 @@ export default function LoginPage() {
                   className="h-20 w-20 object-contain drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]"
                 />
                 <h1 
-                  className="text-4xl sm:text-5xl md:text-7xl text-green-400 tracking-wider drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]"
+                  className="text-[1.463rem] sm:text-[1.95rem] md:text-[2.925rem] text-green-400 tracking-wider drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]"
                   style={{ fontFamily: 'var(--font-troll)' }}
                 >
                   snorg-morgue.org

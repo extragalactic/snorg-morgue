@@ -24,6 +24,7 @@ import { LevelAtDeathChart } from "@/components/dashboard/level-at-death-chart"
 import { TotalTimeSpentAtEachLevelChart } from "@/components/dashboard/level-time-distribution-chart"
 import { RuneCollectionChart } from "@/components/dashboard/rune-collection-chart"
 import { TestPerformanceChart } from "@/components/dashboard/test-performance-chart"
+import { FavouriteSpellsChart } from "@/components/dashboard/favourite-spells-chart"
 import { Top10Killers, Top10NotoriousKillers } from "@/components/dashboard/top-10-killers"
 import { SpeciesBackgroundComboGrid } from "@/components/dashboard/species-background-combo-grid"
 import { DcssChargenSelectionGrid } from "@/components/dashboard/dcss-chargen-selection-grid"
@@ -39,8 +40,10 @@ import { toast } from "@/hooks/use-toast"
 import {
   fetchMorgues,
   fetchUserStats,
+  fetchUserFavouriteSpells,
   fetchGlobalAnalysisStats,
   type GlobalAnalysisStats,
+  type UserFavouriteSpellRow,
   formatPlayTime,
   formatFastestWin,
   deleteAllMorgues,
@@ -122,10 +125,8 @@ function PerformanceAndRunesLayout({
           fillHeight
         />
       </div>
-      <div className="flex min-h-0 flex-col space-y-6">
+      <div className="flex min-h-0 flex-col">
         <RuneCollectionChart morgues={morgues} />
-        <Top10Killers morgues={morgues} loading={statsLoading} />
-        <Top10NotoriousKillers morgues={morgues} loading={statsLoading} />
       </div>
     </div>
   )
@@ -170,6 +171,7 @@ export default function DashboardPage({
     if (slug) router.replace(`/${slug}/${TAB_TO_PAGE.analysis}`)
   }, [user?.name, activeTabProp, onTabChangeProp, router])
   const [stats, setStats] = useState<Awaited<ReturnType<typeof fetchUserStats>>>(null)
+  const [favouriteSpells, setFavouriteSpells] = useState<UserFavouriteSpellRow[]>([])
   const [statsLoading, setStatsLoading] = useState(true)
   const [morguesLoading, setMorguesLoading] = useState(true)
   const [nukeConfirmOpen, setNukeConfirmOpen] = useState(false)
@@ -200,6 +202,7 @@ export default function DashboardPage({
         if (!token) {
           setMorgues([])
           setStats(null)
+          setFavouriteSpells([])
         } else {
           const res = await fetch(
             `/api/browse/dashboard?userId=${encodeURIComponent(targetBrowseId)}`,
@@ -214,19 +217,23 @@ export default function DashboardPage({
             })
             setMorgues([])
             setStats(null)
+            setFavouriteSpells([])
           } else {
             const payload = await res.json()
             setMorgues(payload.morgues ?? [])
             setStats(payload.stats ?? null)
+            setFavouriteSpells((payload.favouriteSpells ?? []) as UserFavouriteSpellRow[])
           }
         }
       } else {
-        const [morgueList, statsRow] = await Promise.all([
+        const [morgueList, statsRow, spellRows] = await Promise.all([
           userId ? fetchMorgues(supabase, userId) : Promise.resolve([]),
           userId ? fetchUserStats(supabase, userId) : Promise.resolve(null),
+          userId ? fetchUserFavouriteSpells(supabase, userId) : Promise.resolve([]),
         ])
         setMorgues(morgueList)
         setStats(statsRow)
+        setFavouriteSpells(spellRows)
       }
 
       setGlobalStats(globalAnalysis)
@@ -792,6 +799,11 @@ export default function DashboardPage({
                   showGlobalAverages={showGlobalComparison}
                   globalStats={globalStats}
                 />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Top10Killers morgues={morgues} loading={statsLoading} />
+                  <Top10NotoriousKillers morgues={morgues} loading={statsLoading} />
+                </div>
+                <FavouriteSpellsChart rows={favouriteSpells} loading={statsLoading} />
                 <AverageLevelByGodChart morgues={morgues} />
                 </>
               )}
@@ -891,6 +903,9 @@ export default function DashboardPage({
                 usernameSlug={morguePublicSlug}
                 fillViewportHeight
                 readOnly={isBrowsingOther}
+                actionAveragesUserId={
+                  isBrowsingOther && browseTarget ? browseTarget.userId : userId ?? null
+                }
               />
               {!isBrowsingOther && (
                 <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 pt-1">

@@ -139,5 +139,7 @@ export async function GET(
     rawText: rawText ?? undefined,
     filename: filename ?? undefined,
     ownerSlug,
+    /** For Action History chart: fetch this user's aggregates when viewer is authenticated. */
+    ownerUserId: parsed.user_id as string,
   })
 }

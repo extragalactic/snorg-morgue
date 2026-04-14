@@ -148,7 +148,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
                 className="h-16 w-16 object-contain drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]"
               />
               <h1 
-                className="text-[3.1rem] sm:text-[3.5rem] md:text-[4rem] text-green-400 tracking-wider drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]"
+                className="text-[2.015rem] sm:text-[2.275rem] md:text-[2.6rem] text-green-400 tracking-wider drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]"
                 style={{ fontFamily: 'var(--font-troll)' }}
               >
                 snorg-morgue.org

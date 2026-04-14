@@ -5,21 +5,36 @@ Features:
 - make a random stats section, such as:
     number of games you died with exactly 0 HP
     number of games you died with exactly -1 HP
-    number of games you got abyssed against your will
+    number of games you got abyssed without consent
 - enable Google auth
+- do a username duplicate check during signup
 - new section to show: best score, average score
 - would be cool to have a Congrats modal after uploading/detecting a new Win 
 - when you rollover a Snorg Award show a tooltip with something fun
 - have a Help tooltip somewhere perhaps for help on first upload/sync
 - new chart: Arch Nemesis Chart = top 10 unique killers
-- the Species Performance should have a toggle to show old species instead of current ones
+- the Species Performance should have a toggle to show old species instead of or in addition to current ones
 - beside the stats on the tooltips, put explanations of each stat, such as: "Out of 24 games where you found at least 3 runes, you had a 40% win rate".
-- make a coloured grid chart that show the Skills used per level, with bright coloured segments showing high usage
 - can make a morgue file summary option that shows all the important stuff in a D&D character sheet (not everything, just the important stuff, make is a printable single page)
 - add an extra Browse variant where instead of switching to the other account it will instead become overlaid data (on some charts) like the current global average data
 - add a full calendar that shows hom much you played every day
+- wonder if I could try an animation package, and when you rollover a row in the Action History grid all of the other rows go dim to help highlight the row
+- add a optional color gradient to the rows of the Skill History chart
+- add a ToDo list where you can list interesting character combos you want to try 
+- Browse needs a search filter and sort alphabetically or by wins
+- consider reorganizing the data so that a single page is dedicated to tracking species/background/god completion stats, which would include: Win Performance, DCSS Chargen, Species-Background Grid, All Awards. Something like Completion or Completion Tracking
+- tooltips can also include a larger version of the appropriate icon
+- list of Favourite Spells
+- add a title and/or graphic to many tooltips, incl for awards
+- perhaps transform the regular tooltips with more information? e.g. for awards show the highest level you got for each species/background/god with a bar chart underneath the text items. Don't be shy about repeating info, that's part of the point of this, to have many ways to read the data.
+- consider changing how to handle the Browse spectator data. Could make the blue data always be the single browsed account, and the toggle switch would show the name of the connected comparison account. So then a person could connect to the data for a good player and visually compare the differences. Not all sections will get multi-data, so perhaps add a subtitle to each active section. The chart data would need to be normalized. Whatever method it used, it needs to be fun and easy to use. For sections where overlaid extra data won't work maybe add a switch (i.e. You <==> particleface)
+- the icons used in the stat boxes are kinda random/lame
+- make a Planner page that lets you take notes, make lists of combos you should try, add commentary about different combos, etc. Using the Browse feature you could see other peoples' notes to learn from.
+
+
 
 Fixes:
+- draconian filter logic is broken on morgue page
 - sharing a morgue needs better feedback after clicking button, then the morgue file needs to show the player name at the top and remove the Back to Morgues button
 - all of the tooltips should be made with larger text with simplified presentation (to convey useful data quickly)
 - overall the font should globally increase a point or two
@@ -31,6 +46,74 @@ Fixes:
 - server import cards have wobbly text when you click
 - need to review all the minor branch names like: gauntlet, volcano, etc. and ensure they are shown correctly in various spots
 - investigate why "divine providence" appears as a top killer
+- consider combinining DCSS Chargen with Win Performance by adding bar underlays beneath the names on DCSS Chargen
+
+
+Combos to try:
+    Draconian Shapeshifter of Ru, 
+    DsBr^Mak
+    DjCo
+    DjFE^Ely (since that gives healing which Dj wants)
+    Reaver of Wu Jian (Rending Blade) ... VS, Ds, Dr, Fo
+
+Key Character Sheet Stats (example)
+
+Name: Archol the Slayer
+
+Species: Merfolk
+Background: Gladiator
+God: Champion of Cheibriados
+
+Level 27
+Health: 229
+Magic 38
+
+Str: 37
+Int: 34
+Dex: 36
+
+Resistances:
+    rFire   + + .  (33%)    
+    rCold   + . .  (50%)    
+    rNeg    . . .  (100%)   
+    rPois   +      (33%)    
+    rElec   +      (33%)    
+    rCorr   +      (50%)    
+    SInv    .               
+    Will    +++++           
+    Stealth   +
+
+HPRegen: 1.38/turn       
+MPRegen: 0.26/turn
+
+Equipped:
+    +11 trident "Riwouma" {reap, rF+}
+    +3 tower shield {AC+3}
+    +3 chain mail
+    +2 helmet {Int+3}
+    scarf {rC+ rF+}
+    +2 pair of boots of the Stone Wall {Slay+2}
+    amulet "Ifracitt" {Faith rF+ Will+ Regen+ rCorr}
+    ring of Erikemo {rPois Will+ AC+4 Stlth+}
+    ring "Earthly Heaven" {rElec rF- rCorr Str+5 Slay+6}
+
+
+Skills:
+    Fighting (21.4)
+    Polearms (14.0)
+    Throwing (10.0)
+    Armour (11.5)
+    Dodging (18.3)
+
+Spell Levels: 48
+Spells:
+    Sphinx Sisters (7)
+    Olgreb's Toxic Radia (4)
+    Yara's Violent Unrav (5)
+    Mephitic Cloud (3)
+
+
+
 
 Tests:
 - need to test logic for email/username duplicates on signup

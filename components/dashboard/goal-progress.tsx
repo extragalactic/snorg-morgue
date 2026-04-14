@@ -14,8 +14,13 @@ import {
   DRACONIAN_COLOUR_NAMES,
   TOTAL_DRACONIAN_COLOURS,
   ALL_SPECIES_NAMES,
+  SPECIES_NAMES_CHARGEN_ORDER,
+  speciesChargenRowMajorOrder,
   ALL_BACKGROUND_NAMES,
+  backgroundChargenRowMajorOrder,
   GOD_NAMES_FOR_CHART,
+  GOD_NAMES_ALPHABETICAL,
+  godsChargenRowMajorOrder,
 } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 
@@ -415,9 +420,15 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
             const isComplete = goal.current >= goal.max
             const detailContent =
               goal.name === "Great Player" ? (
-                <AchievementDetailGrid items={ALL_SPECIES_NAMES} hasWins={coreWins.speciesWithWins} />
+                <AchievementDetailGrid
+                  items={speciesChargenRowMajorOrder(SPECIES_NAMES_CHARGEN_ORDER)}
+                  hasWins={coreWins.speciesWithWins}
+                />
               ) : goal.name === "Grand Player" ? (
-                <AchievementDetailGrid items={ALL_BACKGROUND_NAMES} hasWins={coreWins.backgroundsWithWins} />
+                <AchievementDetailGrid
+                  items={backgroundChargenRowMajorOrder(ALL_BACKGROUND_NAMES)}
+                  hasWins={coreWins.backgroundsWithWins}
+                />
               ) : goal.name === "Polytheist" ? (
                 <AchievementDetailGrid items={GOD_NAMES_FOR_CHART} hasWins={coreWins.godsWithWins} />
               ) : goal.name === "Tiamat" ? (
@@ -532,7 +543,10 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
-                        <AchievementDetailGrid items={eligibleBackgrounds} hasWins={hasWins} />
+                        <AchievementDetailGrid
+                          items={backgroundChargenRowMajorOrder(eligibleBackgrounds)}
+                          hasWins={hasWins}
+                        />
                       </TooltipContent>
                     </Tooltip>
                   )
@@ -692,18 +706,18 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                 const speciesSet = discipleMaps.godSpeciesWins.get(godName) ?? new Set<string>()
                 const current = speciesSet.size
                 // Compute eligible species for this god, subtracting species that can never worship this god.
-                const ineligibleSpecies = ALL_SPECIES_NAMES.filter((sp) => {
+                const ineligibleSpecies = SPECIES_NAMES_CHARGEN_ORDER.filter((sp) => {
                   const excludedForSpecies = SPECIES_EXCLUDED_GODS[sp] ?? []
                   return excludedForSpecies.includes(godName)
                 })
-                const eligibleSpecies = ALL_SPECIES_NAMES.filter(
+                const eligibleSpecies = SPECIES_NAMES_CHARGEN_ORDER.filter(
                   (sp) => !ineligibleSpecies.includes(sp),
                 )
                 const maxForGod = eligibleSpecies.length
                 const percentage = (current / maxForGod) * 100
                 const isComplete = current >= maxForGod
                 const wonSpecies = new Set(speciesSet)
-                const tooltipSpecies = eligibleSpecies
+                const tooltipSpecies = speciesChargenRowMajorOrder(eligibleSpecies)
                 return (
                   <Tooltip key={godName}>
                     <TooltipTrigger asChild>
@@ -785,6 +799,11 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                   const isComplete = goal.current >= goal.max
                   const speciesName = goal.name.replace(/^Devoted /, "")
                   const hasWins = speciesMaps.speciesGodWins.get(speciesName) ?? new Set<string>()
+                  const excludedForSpecies = SPECIES_EXCLUDED_GODS[speciesName] ?? []
+                  const devotedTooltipGods = godsChargenRowMajorOrder(
+                    GOD_NAMES_ALPHABETICAL.filter((g) => !excludedForSpecies.includes(g)),
+                    3,
+                  )
                   return (
                     <Tooltip key={goal.name}>
                       <TooltipTrigger asChild>
@@ -823,7 +842,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
-                        <AchievementDetailGrid items={GOD_NAMES_FOR_CHART} hasWins={hasWins} />
+                        <AchievementDetailGrid items={devotedTooltipGods} hasWins={hasWins} />
                       </TooltipContent>
                     </Tooltip>
                   )
@@ -899,7 +918,10 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
-                        <AchievementDetailGrid items={eligibleBackgrounds} hasWins={hasWins} />
+                        <AchievementDetailGrid
+                          items={backgroundChargenRowMajorOrder(eligibleBackgrounds)}
+                          hasWins={hasWins}
+                        />
                       </TooltipContent>
                     </Tooltip>
                   )

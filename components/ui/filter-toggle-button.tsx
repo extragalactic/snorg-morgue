@@ -4,7 +4,7 @@ import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-/** Shared filter/toggle button used on Morgue list (All/Wins/Deaths) and Analytics (Wins/Attempts/Default etc). Same styling and hover (yellow in Tiles, green in ASCII). */
+/** Shared filter/toggle (Morgues All/Wins/Deaths, Win Performance Species/Background/God, etc.). Tiles = gold primary, ASCII = green. */
 export function FilterToggleButton({
   selected,
   onClick,
@@ -18,10 +18,22 @@ export function FilterToggleButton({
 }) {
   return (
     <Button
-      variant={selected ? "default" : "outline"}
+      variant={selected ? "default" : "ghost"}
       size="sm"
       className={cn(
-        "rounded-none border-2 font-mono text-xs hover:text-primary",
+        "rounded-none border-2 font-mono text-xs transition-[background-color,border-color,color,box-shadow] duration-150 ease-out",
+        // Unselected: ghost avoids outline’s dark:border-input (invisible on dark bg); explicit light edge via foreground
+        selected
+          ? [
+              "border-primary bg-primary text-primary-foreground",
+              "hover:text-primary-foreground",
+              "hover:shadow-[0_0_22px_-4px_var(--color-primary)]",
+            ]
+          : [
+              "border-foreground/55 bg-primary/10 text-primary shadow-none",
+              "hover:border-primary hover:bg-primary/30 hover:text-primary",
+              "hover:ring-2 hover:ring-primary/50 hover:ring-offset-0",
+            ],
         className
       )}
       onClick={onClick}
