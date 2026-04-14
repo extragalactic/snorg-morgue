@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { ArrowLeft, Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
@@ -209,6 +209,8 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
   const [highlightingOn, setHighlightingOn] = useState(true)
   const [actionHistoryView, setActionHistoryView] = useState<"raw" | "chart">("raw")
   const [actionAverages, setActionAverages] = useState<Map<string, Record<string, number>>>(() => new Map())
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const scrollSpyRafRef = useRef<number | null>(null)
   const { themeStyle } = useTheme()
   const { userId: authUserId } = useAuth()
   const actionAveragesUserId = actionAveragesUserIdProp ?? authUserId ?? null
@@ -347,6 +349,64 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
+  /** Highlight the nav button for whichever section's heading has passed the top of the scroll area. */
+  const updateActiveSectionFromScroll = useCallback(() => {
+    const scrollEl = scrollContainerRef.current
+    if (!scrollEl || sectionTitles.length === 0) return
+
+    const ids = sectionTitles.map((s) => s.id)
+    const rootTop = scrollEl.getBoundingClientRect().top
+    const activateBelow = rootTop + 28
+
+    const canScroll = scrollEl.scrollHeight > scrollEl.clientHeight + 2
+    const nearBottom =
+      canScroll && scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < 12
+
+    let activeId = ids[0]
+    if (nearBottom) {
+      activeId = ids[ids.length - 1]
+    } else {
+      for (const id of ids) {
+        const node = document.getElementById(id)
+        if (!node) continue
+        if (node.getBoundingClientRect().top <= activateBelow) {
+          activeId = id
+        }
+      }
+    }
+
+    setActiveBookmarkId((prev) => (prev === activeId ? prev : activeId))
+  }, [sectionTitles])
+
+  useEffect(() => {
+    if (loading || !rawText || sectionTitles.length === 0) return
+    const scrollEl = scrollContainerRef.current
+    if (!scrollEl) return
+
+    const onScroll = () => {
+      if (scrollSpyRafRef.current != null) return
+      scrollSpyRafRef.current = requestAnimationFrame(() => {
+        scrollSpyRafRef.current = null
+        updateActiveSectionFromScroll()
+      })
+    }
+
+    scrollEl.addEventListener("scroll", onScroll, { passive: true })
+    const ro = new ResizeObserver(() => onScroll())
+    ro.observe(scrollEl)
+
+    requestAnimationFrame(() => updateActiveSectionFromScroll())
+
+    return () => {
+      scrollEl.removeEventListener("scroll", onScroll)
+      ro.disconnect()
+      if (scrollSpyRafRef.current != null) {
+        cancelAnimationFrame(scrollSpyRafRef.current)
+        scrollSpyRafRef.current = null
+      }
+    }
+  }, [loading, rawText, sectionTitles, segments.length, updateActiveSectionFromScroll])
+
   const handleShare = async () => {
     const url = getShareUrl()
     if (!url) return
@@ -483,6 +543,7 @@ export function MorgueBrowser({ game, onBack, hideBackButton, showDownloadButton
         </CardHeader>
         <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
           <div
+            ref={scrollContainerRef}
             className={fillHeight ? "min-h-0 flex-1 overflow-y-auto bg-background morgue-modal-scroll" : "h-[550px] overflow-y-auto bg-background"}
           >
             {loading && (

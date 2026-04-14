@@ -81,13 +81,27 @@ function turnsTimeHighlightedSuffix(s: string): ReactNode {
   )
 }
 
+/** Leading morgue score (`1234567 Name …`) before name / combo / Turns tail. */
+function prefixWithOptionalScoreHighlighted(prefix: string): ReactNode {
+  const sm = prefix.match(/^(\s*)(\d{4,})(\s+)([\s\S]*)$/)
+  if (!sm) return prefix
+  return (
+    <>
+      {sm[1]}
+      <span className={hl}>{sm[2]}</span>
+      {sm[3]}
+      {sm[4]}
+    </>
+  )
+}
+
 /** Any line ending with `Turns: N, Time: …` (e.g. title with `(level N, HPs)`). */
 function highlightTurnsTimeValuesInLine(line: string): ReactNode | null {
   const m = line.match(/^(.*?)(Turns:\s*\d+\s*,\s*Time:\s*.+)$/i)
   if (!m) return null
   return (
     <>
-      {m[1]}
+      {prefixWithOptionalScoreHighlighted(m[1])}
       {turnsTimeHighlightedSuffix(m[2])}
     </>
   )
@@ -101,7 +115,7 @@ function highlightTitleLineSpeciesBackground(line: string): ReactNode | null {
   if (/^level\s+\d+/i.test(inner)) return null
   return (
     <>
-      {m[1]}
+      {prefixWithOptionalScoreHighlighted(m[1])}
       {m[2]}(
       <span className={hl}>{inner}</span>){m[4]}
       {turnsTimeHighlightedSuffix(m[5])}
@@ -161,7 +175,7 @@ function highlightFirstLineVersion(line: string): ReactNode | null {
   )
 }
 
-/** `1396891 Name the Title (level 26, 224/224 HPs)` — highlight name through parens, not the leading score. */
+/** `1396891 Name the Title (level 26, 224/224 HPs)` — highlight score and name/level line. */
 function highlightScorePrefixNameLevelHp(line: string): ReactNode | null {
   const m = line.match(
     /^(\s*)(\d+)\s+(.+?\(level\s+\d+,\s*\d+\s*\/\s*\d+\s+HPs?\)\s*)$/i,
@@ -170,8 +184,25 @@ function highlightScorePrefixNameLevelHp(line: string): ReactNode | null {
   return (
     <>
       {m[1]}
-      {m[2]}{" "}
+      <span className={hl}>{m[2]}</span>{" "}
       <span className={hl}>{m[3]}</span>
+    </>
+  )
+}
+
+/** `The game lasted 04:43:18 (83034 turns).` — highlight duration and turn count. */
+function highlightGameLastedLine(line: string): ReactNode | null {
+  const m = line.match(
+    /^(\s*The game lasted\s+)(.+?)(\s*\()(\d+)(\s+turns\)\.\s*)$/i,
+  )
+  if (!m) return null
+  return (
+    <>
+      {m[1]}
+      <span className={hl}>{m[2].trim()}</span>
+      {m[3]}
+      <span className={hl}>{m[4]}</span>
+      {m[5]}
     </>
   )
 }
@@ -181,6 +212,8 @@ function highlightIntroHeaderPartialLine(line: string): ReactNode | null {
   if (title !== null) return title
   const turnsTime = highlightTurnsTimeValuesInLine(line)
   if (turnsTime !== null) return turnsTime
+  const gameLasted = highlightGameLastedLine(line)
+  if (gameLasted !== null) return gameLasted
   const scoreNameHp = highlightScorePrefixNameLevelHp(line)
   if (scoreNameHp !== null) return scoreNameHp
   const began = highlightBeganAsSpecies(line)
@@ -288,7 +321,12 @@ function highlightSkillsSegmentLine(line: string): ReactNode {
   const t = line.trim()
   if (!t) return line
   if (/^skills:?\s*$/i.test(t)) return line
-  if (/^you (?:had|have) \d+ spell levels left\.?\s*$/i.test(t)) return line
+  if (
+    /^you (?:had|have) (?:\d+ spell levels|1 spell level|one spell level) left\.?\s*$/i.test(
+      t,
+    )
+  )
+    return line
   if (/^you (?:knew|know) the following spells:?\.?\s*$/i.test(t)) return line
 
   const m = line.match(/^(\s*[+-]\s+Level\s+)([\d.]+)((?:\([^)]+\))?\s+)(.+)$/)

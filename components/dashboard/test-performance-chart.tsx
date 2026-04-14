@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState, useEffect, useLayoutEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { StatEntry } from "@/lib/morgue-db"
 import type { StatCategoryAverage } from "@/lib/morgue-api"
@@ -26,7 +26,50 @@ import { useSettings } from "@/contexts/settings-context"
 
 type ChartType = "species" | "background" | "gods"
 type ShowMode = "wins" | "attempts"
-type SortMethod = "default" | "wins" | "attempts"
+
+const BAR_VALUE_TRANSITION_MS = 480
+
+function toBarPx(v: unknown, fallback = 0): number {
+  if (typeof v === "number" && Number.isFinite(v)) return v
+  if (typeof v === "string") {
+    const n = parseFloat(v)
+    return Number.isFinite(n) ? n : fallback
+  }
+  return fallback
+}
+
+/**
+ * Recharts' built-in bar animation matches segments by index, which breaks across Species /
+ * Background / God. We disable that and tween `x` / `width` with CSS so lengths animate reliably.
+ */
+function WinPerfAnimatedBarRect(props: Record<string, unknown>) {
+  const xTarget = toBarPx(props.x)
+  const y = toBarPx(props.y)
+  const h = toBarPx(props.height)
+  const wTarget = Math.max(0, toBarPx(props.width))
+  const fill = typeof props.fill === "string" ? props.fill : "#888"
+
+  const [live, setLive] = useState(() => ({ x: xTarget, w: 0 }))
+
+  useLayoutEffect(() => {
+    setLive({ x: xTarget, w: wTarget })
+  }, [xTarget, wTarget])
+
+  return (
+    <rect
+      x={live.x}
+      y={y}
+      height={h}
+      width={live.w}
+      fill={fill}
+      style={{
+        transitionProperty: "width, x",
+        transitionDuration: `${BAR_VALUE_TRANSITION_MS}ms`,
+        transitionTimingFunction: "cubic-bezier(0.33, 1, 0.68, 1)",
+      }}
+    />
+  )
+}
 
 type CategoryDatum = {
   name: string
@@ -122,14 +165,12 @@ export function TestPerformanceChart({
 
   const [chartType, setChartType] = useState<ChartType>(settings.performanceChart.chartType)
   const [showMode, setShowMode] = useState<ShowMode>(settingsShowMode)
-  const [sortMethod, setSortMethod] = useState<SortMethod>(settings.performanceChart.sortMethod)
 
   // Sync from settings when they change (e.g. loaded from localStorage)
   useEffect(() => {
     setChartType(settings.performanceChart.chartType)
-    setSortMethod(settings.performanceChart.sortMethod)
     setShowMode(settings.performanceChart.showMode === "both" ? "attempts" : settings.performanceChart.showMode)
-  }, [settings.performanceChart.chartType, settings.performanceChart.sortMethod, settings.performanceChart.showMode])
+  }, [settings.performanceChart.chartType, settings.performanceChart.showMode])
 
   const updatePerformanceSettings = (partial: Partial<typeof settings.performanceChart>) => {
     setSettings((prev) => ({
@@ -159,23 +200,21 @@ export function TestPerformanceChart({
   )
 
   const sortedData = useMemo(() => {
-    if (sortMethod === "default") return data
+    const sortKey = showMode === "wins" ? "userWins" : "userAttempts"
     if (chartType === "species") {
       const others = data.filter(
         (d) => d.name !== "Draconian" && !DRACONIAN_COLOUR_NAMES.includes(d.name)
       )
       const draconianMain = data.find((d) => d.name === "Draconian")
       const draconianColourRows = DRACONIAN_COLOUR_NAMES.map((name) => data.find((d) => d.name === name)).filter((d): d is CategoryDatum => d != null)
-      const sortKey = sortMethod === "wins" ? "userWins" : "userAttempts"
       const toSort: CategoryDatum[] = draconianMain != null ? [...others, draconianMain] : others
       const sorted = [...toSort].sort((a, b) => b[sortKey] - a[sortKey])
       return sorted.flatMap((d) =>
         d.name === "Draconian" ? [d, ...draconianColourRows] : [d]
       )
     }
-    const key = sortMethod === "wins" ? "userWins" : "userAttempts"
-    return [...data].sort((a, b) => b[key] - a[key])
-  }, [data, sortMethod, chartType])
+    return [...data].sort((a, b) => b[sortKey] - a[sortKey])
+  }, [data, showMode, chartType])
 
   const winsColor =
     themeStyle === "ascii" ? "oklch(0.62 0.2 145)" : "rgba(250, 204, 21, 0.9)"
@@ -217,6 +256,8 @@ export function TestPerformanceChart({
 
   /** Per-row vertical budget (bar + gap). Must not hard-cap below `n * rowPitchPx` or pitch tweaks have no effect. */
   const rowPitchPx = 37
+  /** Fixed pixel thickness so Species / Background / Gods match (default %-gap sizing can differ slightly per band). */
+  const barThicknessPx = Math.max(14, Math.floor(rowPitchPx * 0.52))
   const chartHeight = displayData.length > 0
     ? Math.min(6000, Math.max(200, displayData.length * rowPitchPx))
     : 400
@@ -313,38 +354,6 @@ export function TestPerformanceChart({
               </FilterToggleButton>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-xs text-primary">SORT BY:</span>
-            <div className="flex gap-2">
-              <FilterToggleButton
-                selected={sortMethod === "wins"}
-                onClick={() => {
-                  setSortMethod("wins")
-                  updatePerformanceSettings({ sortMethod: "wins" })
-                }}
-              >
-                Wins
-              </FilterToggleButton>
-              <FilterToggleButton
-                selected={sortMethod === "attempts"}
-                onClick={() => {
-                  setSortMethod("attempts")
-                  updatePerformanceSettings({ sortMethod: "attempts" })
-                }}
-              >
-                Attempts
-              </FilterToggleButton>
-              <FilterToggleButton
-                selected={sortMethod === "default"}
-                onClick={() => {
-                  setSortMethod("default")
-                  updatePerformanceSettings({ sortMethod: "default" })
-                }}
-              >
-                Default
-              </FilterToggleButton>
-            </div>
-          </div>
         </div>
       </CardHeader>
       <CardContent
@@ -353,140 +362,151 @@ export function TestPerformanceChart({
         }
       >
         <div className="w-full shrink-0" style={{ height: chartHeight }}>
-            <ResponsiveContainer
-              width="100%"
-              height={chartHeight}
-              key={`${displayData.length}-${rowPitchPx}-${chartHeight}`}
+          <ResponsiveContainer width="100%" height={chartHeight}>
+            <BarChart
+              data={displayData}
+              layout="vertical"
+              barGap={0}
+              barCategoryGap="23%"
+              barSize={barThicknessPx}
+              margin={{ top: 5, right: 5, bottom: 26, left: 5 }}
             >
-          <BarChart
-            data={displayData}
-            layout="vertical"
-            barGap={0}
-            barCategoryGap="23%"
-            margin={{ top: 5, right: 5, bottom: 26, left: 5 }}
-          >
-            <XAxis
-              type="number"
-              stroke="var(--muted-foreground)"
-              fontSize={14}
-              tickLine={false}
-              domain={[0, xDomainMax]}
-              allowDecimals={false}
-              label={{
-                value: showMode === "wins" ? "Number of Wins" : "Number of Attempts",
-                position: "bottom",
-                style: { fill: "var(--muted-foreground)", fontSize: 12 },
-                offset: 0,
-              }}
-            />
-            <YAxis
-              type="category"
-              dataKey="name"
-              stroke="var(--muted-foreground)"
-              fontSize={14}
-              width={160}
-              tickLine={false}
-              interval={0}
-              tick={
-                chartType === "species"
-                  ? (props: { x: number; y: number; payload?: { value?: string } }) => {
-                      const value = props.payload?.value ?? ""
-                      const isGrey = DRACONIAN_COLOUR_NAMES.includes(value)
-                      return (
-                        <text
-                          x={props.x}
-                          y={props.y}
-                          dy={4}
-                          textAnchor="end"
-                          fill={isGrey ? DRACONIAN_LABEL_GREY : "var(--muted-foreground)"}
-                          fontSize={14}
-                          className="font-mono"
-                        >
-                          {speciesDisplayLabel(value)}
-                        </text>
-                      )
-                    }
-                  : chartType === "background"
-                    ? (props: { x: number; y: number; payload?: { value?: string } }) => {
-                        const value = (props.payload?.value ?? "").replace(/\bElementalist\b/g, "Elem.")
-                        return (
-                          <text
-                            x={props.x}
-                            y={props.y}
-                            dy={4}
-                            textAnchor="end"
-                            fill="var(--muted-foreground)"
-                            fontSize={14}
-                            className="font-mono"
-                          >
-                            {value}
-                          </text>
-                        )
-                      }
-                    : undefined
-              }
-            />
-            <Tooltip
-              cursor={{ fill: "rgba(148, 163, 184, 0.06)", stroke: "transparent" }}
-              formatter={(value: number, key: string, payload) => {
-                const p = payload.payload as CategoryDatum & {
-                  firstSegDisplay: number
-                  secondSegDisplay: number
-                  isAvgFirstDisplay: boolean
-                }
-                const total = p.firstSegDisplay + p.secondSegDisplay
-                const label = !showAverages
-                  ? showMode === "wins"
-                    ? "Max wins"
-                    : "Max attempts"
-                  : showMode === "wins"
-                    ? "Max wins shown (You vs Avg)"
-                    : "Max attempts shown (You vs Avg)"
-                return [total, label]
-              }}
-              labelFormatter={(label) => `${categoryLabel}: ${label}`}
-              content={({ active, payload, label }) => {
-                if (!active || !payload?.length) return null
-                const p = payload[0].payload as CategoryDatum
-                const displayName = chartType === "species"
-                  ? speciesDisplayLabel(String(label))
-                  : chartType === "background"
-                    ? String(label).replace(/\bElementalist\b/g, "Elem.")
-                    : String(label)
-                return (
-                  <div className="border-2 border-primary bg-card p-3">
-                    <p className="font-mono text-sm text-primary">{displayName}</p>
-                    <p className="text-base text-muted-foreground">
-                      {showAverages ? "You: " : ""}
-                      {p.userAttempts} attempts, {p.userWins} wins
-                    </p>
-                    {showAverages && (
+              <XAxis
+                type="number"
+                stroke="var(--muted-foreground)"
+                fontSize={14}
+                tickLine={false}
+                domain={[0, xDomainMax]}
+                allowDecimals={false}
+                label={{
+                  value: showMode === "wins" ? "Number of Wins" : "Number of Attempts",
+                  position: "bottom",
+                  style: { fill: "var(--muted-foreground)", fontSize: 12 },
+                  offset: 0,
+                }}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                stroke="var(--muted-foreground)"
+                fontSize={14}
+                width={160}
+                tickLine={false}
+                interval={0}
+                tick={(props: { x: number; y: number; payload?: { value?: string } }) => {
+                  const value = props.payload?.value ?? ""
+                  if (chartType === "species") {
+                    const isGrey = DRACONIAN_COLOUR_NAMES.includes(value)
+                    return (
+                      <text
+                        x={props.x}
+                        y={props.y}
+                        dy={4}
+                        textAnchor="end"
+                        fill={isGrey ? DRACONIAN_LABEL_GREY : "var(--muted-foreground)"}
+                        fontSize={14}
+                        className="font-mono"
+                      >
+                        {speciesDisplayLabel(value)}
+                      </text>
+                    )
+                  }
+                  const label =
+                    chartType === "background"
+                      ? value.replace(/\bElementalist\b/g, "Elem.")
+                      : value
+                  return (
+                    <text
+                      x={props.x}
+                      y={props.y}
+                      dy={4}
+                      textAnchor="end"
+                      fill="var(--muted-foreground)"
+                      fontSize={14}
+                      className="font-mono"
+                    >
+                      {label}
+                    </text>
+                  )
+                }}
+              />
+              <Tooltip
+                cursor={{ fill: "rgba(148, 163, 184, 0.06)", stroke: "transparent" }}
+                formatter={(value: number, key: string, payload) => {
+                  const p = payload.payload as CategoryDatum & {
+                    firstSegDisplay: number
+                    secondSegDisplay: number
+                    isAvgFirstDisplay: boolean
+                  }
+                  const total = p.firstSegDisplay + p.secondSegDisplay
+                  const label = !showAverages
+                    ? showMode === "wins"
+                      ? "Max wins"
+                      : "Max attempts"
+                    : showMode === "wins"
+                      ? "Max wins shown (You vs Avg)"
+                      : "Max attempts shown (You vs Avg)"
+                  return [total, label]
+                }}
+                labelFormatter={(label) => `${categoryLabel}: ${label}`}
+                content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null
+                  const p = payload[0].payload as CategoryDatum
+                  const displayName = chartType === "species"
+                    ? speciesDisplayLabel(String(label))
+                    : chartType === "background"
+                      ? String(label).replace(/\bElementalist\b/g, "Elem.")
+                      : String(label)
+                  return (
+                    <div className="border-2 border-primary bg-card p-3">
+                      <p className="font-mono text-sm text-primary">{displayName}</p>
                       <p className="text-base text-muted-foreground">
-                        Avg: {p.avgAttempts} attempts{p.avgIsEstimated ? " (est.)" : ""}, {p.avgWins} wins
+                        {showAverages ? "You: " : ""}
+                        {p.userAttempts} attempts, {p.userWins} wins
                       </p>
-                    )}
-                  </div>
-                )
-              }}
-            />
-            <Bar dataKey="firstSegDisplay" stackId="stack" radius={[0, 0, 0, 0]}>
-              {displayData.map((entry, index) => (
-                <Cell
-                  key={`first-${index}`}
-                  fill={(entry as CategoryDatum & { isAvgFirstDisplay: boolean }).isAvgFirstDisplay ? attemptsColor : winsColor}
-                />
-              ))}
-            </Bar>
-            <Bar dataKey="secondSegDisplay" stackId="stack" radius={[0, 2, 2, 0]}>
-              {displayData.map((entry, index) => (
-                <Cell
-                  key={`second-${index}`}
-                  fill={(entry as CategoryDatum & { isAvgFirstDisplay: boolean }).isAvgFirstDisplay ? winsColor : attemptsColor}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-            </ResponsiveContainer>
+                      {showAverages && (
+                        <p className="text-base text-muted-foreground">
+                          Avg: {p.avgAttempts} attempts{p.avgIsEstimated ? " (est.)" : ""}, {p.avgWins} wins
+                        </p>
+                      )}
+                    </div>
+                  )
+                }}
+              />
+              <Bar
+                dataKey="firstSegDisplay"
+                stackId="stack"
+                radius={[0, 0, 0, 0]}
+                isAnimationActive={false}
+                shape={(p: unknown) => (
+                  <WinPerfAnimatedBarRect {...(p as Record<string, unknown>)} />
+                )}
+              >
+                {displayData.map((entry) => (
+                  <Cell
+                    key={`first-${entry.name}`}
+                    fill={(entry as CategoryDatum & { isAvgFirstDisplay: boolean }).isAvgFirstDisplay ? attemptsColor : winsColor}
+                  />
+                ))}
+              </Bar>
+              <Bar
+                dataKey="secondSegDisplay"
+                stackId="stack"
+                radius={[0, 2, 2, 0]}
+                isAnimationActive={false}
+                shape={(p: unknown) => (
+                  <WinPerfAnimatedBarRect {...(p as Record<string, unknown>)} />
+                )}
+              >
+                {displayData.map((entry) => (
+                  <Cell
+                    key={`second-${entry.name}`}
+                    fill={(entry as CategoryDatum & { isAvgFirstDisplay: boolean }).isAvgFirstDisplay ? winsColor : attemptsColor}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
         <div className="mt-[31px] flex flex-shrink-0 flex-wrap items-center justify-center gap-4">
           {showAverages && (

@@ -35,19 +35,6 @@ function normalizeChargenSpecies(raw: string): string {
   return s
 }
 
-function speciesHotkey(globalIndex: number): string {
-  if (globalIndex === ALL_SPECIES_NAMES.length - 1) return "A"
-  return String.fromCharCode(97 + globalIndex)
-}
-
-function backgroundHotkey(index: number): string {
-  return String.fromCharCode(97 + index)
-}
-
-function godHotkey(index: number): string {
-  return String.fromCharCode(97 + index)
-}
-
 /** Canonical species → base tile (matches DCSS chargen feel; uses trunk rltiles). */
 const SPECIES_TILE_PATH: Record<string, string> = {
   Gnoll: "player/base/gnoll_m.png",
@@ -283,8 +270,6 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                       </div>
                       <div className="space-y-1.5">
                         {col.species.map((sp) => {
-                          const globalIndex = ALL_SPECIES_NAMES.indexOf(sp)
-                          const key = speciesHotkey(globalIndex)
                           const w = speciesCounts.wins.get(sp) ?? 0
                           const a = speciesCounts.attempts.get(sp) ?? 0
                           const tint = tintFor(w, a)
@@ -303,13 +288,6 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                                 style={{ opacity }}
                                 loading="lazy"
                               />
-                              <span
-                                className="w-[1.1ch] shrink-0 text-right"
-                                style={{ color: tintColor(tint) }}
-                              >
-                                {key}
-                              </span>
-                              <span style={{ color: tintColor(tint) }}> - </span>
                               <span className="min-w-0 break-words" style={{ color: tintColor(tint) }}>
                                 {sp}
                               </span>
@@ -353,8 +331,6 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                           </div>
                           <div className="space-y-1.5">
                             {sec.backgrounds.map((bg) => {
-                              const idx = ALL_BACKGROUND_NAMES.indexOf(bg)
-                              const hk = idx >= 0 ? backgroundHotkey(idx) : "?"
                               const w = backgroundCounts.wins.get(bg) ?? 0
                               const a = backgroundCounts.attempts.get(bg) ?? 0
                               const tint = tintFor(w, a)
@@ -373,13 +349,6 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                                     style={{ opacity }}
                                     loading="lazy"
                                   />
-                                  <span
-                                    className="w-[1.1ch] shrink-0 text-right"
-                                    style={{ color: tintColor(tint) }}
-                                  >
-                                    {hk}
-                                  </span>
-                                  <span style={{ color: tintColor(tint) }}> - </span>
                                   <span
                                     className="min-w-0 break-words"
                                     style={{ color: tintColor(tint) }}
@@ -427,8 +396,6 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                       </div>
                       <div className="space-y-1.5">
                         {godsInCol.map((god) => {
-                          const globalIndex = GOD_NAMES_ALPHABETICAL.indexOf(god)
-                          const hk = globalIndex >= 0 ? godHotkey(globalIndex) : "?"
                           const w = godCounts.wins.get(god) ?? 0
                           const a = godCounts.attempts.get(god) ?? 0
                           const tint = tintFor(w, a)
@@ -447,13 +414,6 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                                 style={{ opacity }}
                                 loading="lazy"
                               />
-                              <span
-                                className="w-[1.1ch] shrink-0 text-right"
-                                style={{ color: tintColor(tint) }}
-                              >
-                                {hk}
-                              </span>
-                              <span style={{ color: tintColor(tint) }}> - </span>
                               <span className="min-w-0 break-words" style={{ color: tintColor(tint) }}>
                                 {god}
                               </span>

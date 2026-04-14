@@ -9,6 +9,29 @@ export const ALL_SPECIES_NAMES = [
   "Coglin", "Vine Stalker", "Poltergeist", "Demigod", "Formicid", "Naga", "Octopode", "Felid", "Mummy",
 ]
 
+/** Species ordering used by the DCSS chargen Species list (no section headers). */
+export const SPECIES_NAMES_CHARGEN_ORDER = ALL_SPECIES_NAMES as readonly string[]
+
+const SPECIES_CHARGEN_COLUMNS: readonly (readonly string[])[] = [
+  ALL_SPECIES_NAMES.slice(0, 9),
+  ALL_SPECIES_NAMES.slice(9, 18),
+  ALL_SPECIES_NAMES.slice(18),
+]
+
+/** Row-major order for a `grid-cols-3` that visually matches the chargen Species columns. */
+export function speciesChargenRowMajorOrder(subset: readonly string[]): string[] {
+  const subsetSet = new Set(subset)
+  const cols = SPECIES_CHARGEN_COLUMNS.map((col) => col.filter((sp) => subsetSet.has(sp)))
+  const maxRows = cols.reduce((m, c) => Math.max(m, c.length), 0)
+  const out: string[] = []
+  for (let r = 0; r < maxRows; r++) {
+    for (let c = 0; c < cols.length; c++) {
+      if (r < cols[c].length) out.push(cols[c][r])
+    }
+  }
+  return out
+}
+
 export const DRACONIAN_COLOUR_NAMES = [
   "Red Draconian", "Green Draconian", "White Draconian", "Black Draconian", "Yellow Draconian",
   "Purple Draconian", "Grey Draconian", "Mottled Draconian", "Pale Draconian",
@@ -22,6 +45,29 @@ export const ALL_BACKGROUND_NAMES = [
   "Hedge Wizard", "Conjurer", "Summoner", "Necromancer", "Forgewright",
   "Fire Elementalist", "Ice Elementalist", "Air Elementalist", "Earth Elementalist", "Alchemist",
 ]
+
+const BACKGROUND_CHARGEN_COLUMNS: readonly (readonly string[])[] = [
+  // Warrior (5) + Zealot (3)
+  ALL_BACKGROUND_NAMES.slice(0, 8),
+  // Adventurer (4) + Warrior-mage (4)
+  ALL_BACKGROUND_NAMES.slice(8, 16),
+  // Mage (rest)
+  ALL_BACKGROUND_NAMES.slice(16),
+]
+
+/** Row-major order for a `grid-cols-3` that visually matches the chargen Background columns. */
+export function backgroundChargenRowMajorOrder(subset: readonly string[]): string[] {
+  const subsetSet = new Set(subset)
+  const cols = BACKGROUND_CHARGEN_COLUMNS.map((col) => col.filter((bg) => subsetSet.has(bg)))
+  const maxRows = cols.reduce((m, c) => Math.max(m, c.length), 0)
+  const out: string[] = []
+  for (let r = 0; r < maxRows; r++) {
+    for (let c = 0; c < cols.length; c++) {
+      if (r < cols[c].length) out.push(cols[c][r])
+    }
+  }
+  return out
+}
 
 export const ALL_GOD_NAMES = [
   "Ashenzari", "Beogh", "Cheibriados", "Dithmenos", "Elyvilon", "Fedhas", "Gozag", "Hepliaklqana",
