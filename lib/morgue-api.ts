@@ -8,7 +8,13 @@ import { nanoid } from "nanoid"
 import { parseMorgue, getMessageHistorySignature, parseSpeciesBackground, isAbandonedCharacterMorgue } from "./morgue-parser"
 import { validateAndSanitizeParsedMorgue } from "./morgue-validation"
 import { parseSkillHistory, computeSkillSnapshotsFromHistory } from "./skill-history"
-import { parseActionHistory, normalizeActionKey, type ActionHistory } from "./action-history"
+import {
+  parseActionHistory,
+  normalizeActionKey,
+  mergeSpellUsesFromActionHistoryInto,
+  type ActionHistory,
+} from "./action-history"
+import { DCSS_SPELL_LEVELS, lookupDcssSpellLevel } from "./dcss-spell-levels"
 import {
   parsedToRow,
   formatPlayTime,
@@ -261,6 +267,17 @@ export type UserActionAverageRow = {
   avg_count: number
 }
 
+/** One row from user_favourite_spells (dashboard / browse API). */
+export type UserFavouriteSpellRow = {
+  /** Spell level 1–9 (DCSS), stored as text in DB. */
+  level_group: string
+  rank: number
+  spell_key: string
+  spell_name: string
+  total_uses: number
+  morgue_count: number
+}
+
 /**
  * Rebuild user_action_averages from all morgue_files.raw_text for the user.
  */
@@ -359,6 +376,123 @@ export async function recomputeUserActionAverages(
       return
     }
   }
+}
+
+/**
+ * Rebuild user_favourite_spells from all morgue_files.raw_text for the user.
+ */
+export async function recomputeUserFavouriteSpells(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const { data: files, error } = await supabase
+    .from("morgue_files")
+    .select("raw_text")
+    .eq("user_id", userId)
+
+  if (error) {
+    console.warn("[snorg-morgue] user_favourite_spells morgue_files:", error.message)
+    return
+  }
+
+  if (!files?.length) {
+    const { error: delEmpty } = await supabase.from("user_favourite_spells").delete().eq("user_id", userId)
+    if (delEmpty) console.warn("[snorg-morgue] user_favourite_spells delete:", delEmpty.message)
+    return
+  }
+
+  const sums = new Map<string, number>()
+  const labels = new Map<string, string>()
+  let actionTableCount = 0
+
+  for (const f of files) {
+    const raw = (f as { raw_text: string }).raw_text
+    if (!raw) continue
+    const ah = parseActionHistory(raw)
+    if (!ah) continue
+    actionTableCount++
+    mergeSpellUsesFromActionHistoryInto(ah, { sums, labels })
+  }
+
+  if (actionTableCount === 0 || sums.size === 0) {
+    const { error: delNoData } = await supabase.from("user_favourite_spells").delete().eq("user_id", userId)
+    if (delNoData) console.warn("[snorg-morgue] user_favourite_spells delete:", delNoData.message)
+    return
+  }
+
+  const sumsBySpellLevel = new Map<number, Map<string, number>>()
+  for (const L of DCSS_SPELL_LEVELS) sumsBySpellLevel.set(L, new Map())
+
+  for (const [key, total] of sums) {
+    const spellLevel = lookupDcssSpellLevel(key)
+    if (spellLevel == null) continue
+    sumsBySpellLevel.get(spellLevel)!.set(key, total)
+  }
+
+  const updatedAt = new Date().toISOString()
+  const insertRows: {
+    user_id: string
+    level_group: string
+    rank: number
+    spell_key: string
+    spell_name: string
+    total_uses: number
+    morgue_count: number
+    updated_at: string
+  }[] = []
+
+  for (const level of DCSS_SPELL_LEVELS) {
+    const inner = sumsBySpellLevel.get(level)!
+    if (inner.size === 0) continue
+    const top = [...inner.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .slice(0, 3)
+    let rank = 1
+    for (const [key, total] of top) {
+      insertRows.push({
+        user_id: userId,
+        level_group: String(level),
+        rank,
+        spell_key: key,
+        spell_name: labels.get(key) ?? key,
+        total_uses: Math.round(total),
+        morgue_count: actionTableCount,
+        updated_at: updatedAt,
+      })
+      rank++
+    }
+  }
+
+  const { error: delErr } = await supabase.from("user_favourite_spells").delete().eq("user_id", userId)
+  if (delErr) {
+    console.warn("[snorg-morgue] user_favourite_spells delete:", delErr.message)
+    return
+  }
+
+  if (insertRows.length === 0) return
+
+  const { error: insErr } = await supabase.from("user_favourite_spells").insert(insertRows)
+  if (insErr) {
+    console.warn("[snorg-morgue] user_favourite_spells insert:", insErr.message)
+  }
+}
+
+/**
+ * Fetch per-user favourite spells (top 3 per spell level 1–9). Empty if none.
+ */
+export async function fetchUserFavouriteSpells(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<UserFavouriteSpellRow[]> {
+  const { data, error } = await supabase
+    .from("user_favourite_spells")
+    .select("level_group, rank, spell_key, spell_name, total_uses, morgue_count")
+    .eq("user_id", userId)
+    .order("level_group", { ascending: true })
+    .order("rank", { ascending: true })
+
+  if (error || !data) return []
+  return data as UserFavouriteSpellRow[]
 }
 
 /**
@@ -550,6 +684,7 @@ export async function recalcUserStats(
   )
 
   await recomputeUserActionAverages(supabase, userId)
+  await recomputeUserFavouriteSpells(supabase, userId)
 }
 
 /** DB row shape from parsed_morgues select — shared by client fetch and browse API. */
