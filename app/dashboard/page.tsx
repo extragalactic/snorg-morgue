@@ -125,10 +125,8 @@ function PerformanceAndRunesLayout({
           fillHeight
         />
       </div>
-      <div className="flex min-h-0 flex-col space-y-6">
+      <div className="flex min-h-0 flex-col">
         <RuneCollectionChart morgues={morgues} />
-        <Top10Killers morgues={morgues} loading={statsLoading} />
-        <Top10NotoriousKillers morgues={morgues} loading={statsLoading} />
       </div>
     </div>
   )
@@ -801,6 +799,10 @@ export default function DashboardPage({
                   showGlobalAverages={showGlobalComparison}
                   globalStats={globalStats}
                 />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Top10Killers morgues={morgues} loading={statsLoading} />
+                  <Top10NotoriousKillers morgues={morgues} loading={statsLoading} />
+                </div>
                 <FavouriteSpellsChart rows={favouriteSpells} loading={statsLoading} />
                 <AverageLevelByGodChart morgues={morgues} />
                 </>
