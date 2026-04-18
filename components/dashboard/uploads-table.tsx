@@ -300,7 +300,7 @@ export function UploadsTable({
 
   const SortableHeader = ({ field, children, className = "" }: { field: SortField; children: React.ReactNode; className?: string }) => (
     <TableHead 
-      className={`font-mono text-xs text-primary cursor-pointer hover:bg-primary/10 select-none ${className}`}
+      className={`font-mono text-sm text-primary cursor-pointer hover:bg-primary/10 select-none ${className}`}
       onClick={() => handleSort(field)}
     >
       <div className="flex items-center gap-1">
@@ -463,11 +463,11 @@ export function UploadsTable({
                 })
               }}
             >
-              <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-xs h-8 bg-background">
+              <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 bg-background">
                 <SelectValue placeholder="Species" />
               </SelectTrigger>
               <SelectContent className="rounded-none border-2 border-primary/50 bg-background">
-                <SelectItem value="all" className="font-mono text-xs cursor-pointer">
+                <SelectItem value="all" className="font-mono text-sm cursor-pointer">
                   All species
                 </SelectItem>
                 {fullSpeciesList.map((s) => {
@@ -477,7 +477,7 @@ export function UploadsTable({
                       key={s}
                       value={s}
                       disabled={!inData}
-                      className={`font-mono text-xs ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
+                      className={`font-mono text-sm ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
                     >
                       {s}
                     </SelectItem>
@@ -498,11 +498,11 @@ export function UploadsTable({
                 })
               }}
             >
-              <SelectTrigger className="w-[160px] rounded-none border-2 border-primary/50 font-mono text-xs h-8 bg-background">
+              <SelectTrigger className="w-[160px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 bg-background">
                 <SelectValue placeholder="Background" />
               </SelectTrigger>
               <SelectContent className="rounded-none border-2 border-primary/50 bg-background">
-                <SelectItem value="all" className="font-mono text-xs cursor-pointer">
+                <SelectItem value="all" className="font-mono text-sm cursor-pointer">
                   All backgrounds
                 </SelectItem>
                 {ALL_BACKGROUND_NAMES.map((b) => {
@@ -512,7 +512,7 @@ export function UploadsTable({
                       key={b}
                       value={b}
                       disabled={!inData}
-                      className={`font-mono text-xs ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
+                      className={`font-mono text-sm ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
                     >
                       {b}
                     </SelectItem>
@@ -533,11 +533,11 @@ export function UploadsTable({
                 })
               }}
             >
-              <SelectTrigger className="w-[130px] rounded-none border-2 border-primary/50 font-mono text-xs h-8 bg-background">
+              <SelectTrigger className="w-[130px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 bg-background">
                 <SelectValue placeholder="God" />
               </SelectTrigger>
               <SelectContent className="rounded-none border-2 border-primary/50 bg-background">
-                <SelectItem value="all" className="font-mono text-xs cursor-pointer">
+                <SelectItem value="all" className="font-mono text-sm cursor-pointer">
                   All gods
                 </SelectItem>
                 {ALL_GOD_NAMES.map((g) => {
@@ -547,7 +547,7 @@ export function UploadsTable({
                       key={g}
                       value={g}
                       disabled={!inData}
-                      className={`font-mono text-xs ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
+                      className={`font-mono text-sm ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
                     >
                       {g}
                     </SelectItem>
@@ -579,7 +579,7 @@ export function UploadsTable({
                 <SortableHeader field="duration" className="hidden md:table-cell">Duration</SortableHeader>
                 <SortableHeader field="date">Date</SortableHeader>
                 <SortableHeader field="result">Result</SortableHeader>
-                <TableHead className={cn("font-mono text-xs text-primary text-right", readOnly ? "w-14" : "w-24")}>
+                <TableHead className={cn("font-mono text-sm text-primary text-right", readOnly ? "w-14" : "w-24")}>
                   {readOnly ? "View" : "Actions"}
                 </TableHead>
               </TableRow>
@@ -665,13 +665,13 @@ export function UploadsTable({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel
-                className="rounded-none border-2 font-mono text-xs"
+                className="rounded-none border-2 font-mono text-sm"
                 disabled={isDeleting}
               >
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
+                className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-sm"
                 onClick={(e) => {
                   e.preventDefault()
                   handleDeleteConfirm()
@@ -691,7 +691,7 @@ export function UploadsTable({
             fillViewportHeight && "shrink-0",
           )}
         >
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredAndSortedData.length)} of{" "}
             {filteredAndSortedData.length}
           </p>
@@ -749,7 +749,7 @@ export function UploadsTable({
             <Button
               variant="ghost"
               size="sm"
-              className={cn("gap-2 rounded-none font-mono text-xs", colors.inputBorder, colors.highlightHover)}
+              className={cn("gap-2 rounded-none font-mono text-sm", colors.inputBorder, colors.highlightHover)}
               onClick={() => {
                 setViewingMorgue(null)
                 if (usernameSlug) router.replace(`/${usernameSlug}/morgues`)

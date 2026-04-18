@@ -23,6 +23,7 @@ import {
   godsChargenRowMajorOrder,
 } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
+import { chargenGodTileUrl, chargenSpeciesTileUrl } from "@/components/dashboard/dcss-chargen-selection-grid"
 
 /** Snorg Award display titles – single source of truth for conditional checks and list data */
 const SNORG_TITLES = {
@@ -310,6 +311,44 @@ function computeGoals(morgues: GameRecord[]): {
   { name: "Tiamat", description: `Win with all ${TOTAL_DRACONIAN_COLOURS} colours of Draconian`, current: 0, max: TOTAL_DRACONIAN_COLOURS },
   ]
 
+function AwardProgressRow({
+  tileSrc,
+  percentage,
+  isComplete,
+  completeIndicatorClass,
+}: {
+  tileSrc: string | undefined
+  percentage: number
+  isComplete: boolean
+  completeIndicatorClass: string
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      {tileSrc ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- remote DCSS rltiles */}
+          <img
+            src={tileSrc}
+            alt=""
+            width={28}
+            height={28}
+            className="h-7 w-7 shrink-0 object-contain [image-rendering:pixelated]"
+            loading="lazy"
+            aria-hidden
+          />
+        </>
+      ) : null}
+      <div className="min-w-0 flex-1">
+        <Progress
+          value={percentage}
+          className="h-3 w-full rounded-none bg-secondary border border-primary/30"
+          indicatorClassName={isComplete ? completeIndicatorClass : undefined}
+        />
+      </div>
+    </div>
+  )
+}
+
 /** Grid of items for achievement rollover: 3 columns; hasWin = bright, else muted. */
 function AchievementDetailGrid({
   items,
@@ -505,6 +544,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                   const eligibleBackgrounds = ALL_BACKGROUND_NAMES.filter(
                     (bg) => !excludedBackgrounds.includes(bg),
                   )
+                  const speciesTileSrc = chargenSpeciesTileUrl(speciesName)
                   return (
                     <Tooltip key={goal.name}>
                       <TooltipTrigger asChild>
@@ -532,10 +572,11 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                               {goal.current}/{goal.max}
                             </span>
                           </div>
-                          <Progress
-                            value={percentage}
-                            className="h-3 rounded-none bg-secondary border border-primary/30"
-                            indicatorClassName={isComplete ? completeIndicatorClass : undefined}
+                          <AwardProgressRow
+                            tileSrc={speciesTileSrc}
+                            percentage={percentage}
+                            isComplete={isComplete}
+                            completeIndicatorClass={completeIndicatorClass}
                           />
                           <p className="text-xs text-muted-foreground whitespace-pre-line">
                             {goal.description}
@@ -718,6 +759,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                 const isComplete = current >= maxForGod
                 const wonSpecies = new Set(speciesSet)
                 const tooltipSpecies = speciesChargenRowMajorOrder(eligibleSpecies)
+                const godTileSrc = chargenGodTileUrl(godName)
                 return (
                   <Tooltip key={godName}>
                     <TooltipTrigger asChild>
@@ -745,10 +787,11 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                             {current}/{maxForGod}
                           </span>
                         </div>
-                        <Progress
-                          value={percentage}
-                          className="h-3 rounded-none bg-secondary border border-primary/30"
-                          indicatorClassName={isComplete ? completeIndicatorClass : undefined}
+                        <AwardProgressRow
+                          tileSrc={godTileSrc}
+                          percentage={percentage}
+                          isComplete={isComplete}
+                          completeIndicatorClass={completeIndicatorClass}
                         />
                         <p className="text-xs text-muted-foreground whitespace-pre-line">
                           Win with all {maxForGod} eligible species while worshipping {godName}.
@@ -804,6 +847,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                     GOD_NAMES_ALPHABETICAL.filter((g) => !excludedForSpecies.includes(g)),
                     3,
                   )
+                  const devotedSpeciesTileSrc = chargenSpeciesTileUrl(speciesName)
                   return (
                     <Tooltip key={goal.name}>
                       <TooltipTrigger asChild>
@@ -831,10 +875,11 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                               {goal.current}/{goal.max}
                             </span>
                           </div>
-                          <Progress
-                            value={percentage}
-                            className="h-3 rounded-none bg-secondary border border-primary/30"
-                            indicatorClassName={isComplete ? completeIndicatorClass : undefined}
+                          <AwardProgressRow
+                            tileSrc={devotedSpeciesTileSrc}
+                            percentage={percentage}
+                            isComplete={isComplete}
+                            completeIndicatorClass={completeIndicatorClass}
                           />
                           <p className="text-xs text-muted-foreground whitespace-pre-line">
                             {goal.description}
@@ -880,6 +925,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                   const eligibleBackgrounds = ALL_BACKGROUND_NAMES.filter(
                     (bg) => !excludedBackgrounds.includes(bg),
                   )
+                  const enthusiasticSpeciesTileSrc = chargenSpeciesTileUrl(speciesName)
                   return (
                     <Tooltip key={goal.name}>
                       <TooltipTrigger asChild>
@@ -895,22 +941,23 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                                 />
                               )}
                             </span>
-                        <span
-                          className={`font-mono text-sm ${
-                            isComplete
-                              ? themeStyle === "ascii"
-                                ? "text-emerald-300"
-                                : "text-emerald-400"
-                              : "text-primary"
-                          }`}
-                        >
+                            <span
+                              className={`font-mono text-sm ${
+                                isComplete
+                                  ? themeStyle === "ascii"
+                                    ? "text-emerald-300"
+                                    : "text-emerald-400"
+                                  : "text-primary"
+                              }`}
+                            >
                               {goal.current}/{goal.max}
-                        </span>
+                            </span>
                           </div>
-                          <Progress
-                            value={percentage}
-                            className="h-3 rounded-none bg-secondary border border-primary/30"
-                            indicatorClassName={isComplete ? completeIndicatorClass : undefined}
+                          <AwardProgressRow
+                            tileSrc={enthusiasticSpeciesTileSrc}
+                            percentage={percentage}
+                            isComplete={isComplete}
+                            completeIndicatorClass={completeIndicatorClass}
                           />
                           <p className="text-xs text-muted-foreground whitespace-pre-line">
                             {goal.description}

@@ -119,7 +119,7 @@ export default function BrowsePage() {
           />
           <div className="min-w-0">
             <h1 className={typography.primaryTitle}>BROWSE PLAYERS</h1>
-            <p className={typography.bodyMuted}>View another player&apos;s Snorg dashboard</p>
+            <p className={typography.primaryPageSubtitle}>View another player&apos;s Snorg dashboard</p>
           </div>
         </div>
 

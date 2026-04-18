@@ -34,7 +34,7 @@ export function StatCard({
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <p className={cn(typography.caption, "uppercase tracking-wider")}>{title}</p>
+            <p className={cn(typography.bodyMuted, "font-mono uppercase tracking-wider")}>{title}</p>
             <p className={typography.statValue}>
               {value}
               {secondaryValue !== undefined && (

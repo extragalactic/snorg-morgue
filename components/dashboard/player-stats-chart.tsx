@@ -401,7 +401,7 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
         </CardTitle>
         <div className="flex flex-wrap items-center gap-6 pt-3">
           <div className="flex items-center gap-3">
-            <span className="font-mono text-xs text-primary">SORT BY:</span>
+            <span className="font-mono text-sm text-primary">SORT BY:</span>
             <div className="flex gap-2">
               <FilterToggleButton
                 selected={sortMethod === "wins"}
@@ -433,7 +433,7 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="font-mono text-xs text-primary">SHOW:</span>
+            <span className="font-mono text-sm text-primary">SHOW:</span>
             <div className="flex gap-2">
               <FilterToggleButton
                 selected={showMode === "wins"}

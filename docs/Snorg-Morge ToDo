@@ -30,8 +30,8 @@ Features:
 - consider changing how to handle the Browse spectator data. Could make the blue data always be the single browsed account, and the toggle switch would show the name of the connected comparison account. So then a person could connect to the data for a good player and visually compare the differences. Not all sections will get multi-data, so perhaps add a subtitle to each active section. The chart data would need to be normalized. Whatever method it used, it needs to be fun and easy to use. For sections where overlaid extra data won't work maybe add a switch (i.e. You <==> particleface)
 - the icons used in the stat boxes are kinda random/lame
 - make a Planner page that lets you take notes, make lists of combos you should try, add commentary about different combos, etc. Using the Browse feature you could see other peoples' notes to learn from.
-
-
+- would be funny to show a "condolences card" if a user uploads a character that died in Zot 5
+- add the appropriate icon to all awards for species/background/god (put to the left of the bar)
 
 Fixes:
 - draconian filter logic is broken on morgue page
@@ -47,14 +47,15 @@ Fixes:
 - need to review all the minor branch names like: gauntlet, volcano, etc. and ensure they are shown correctly in various spots
 - investigate why "divine providence" appears as a top killer
 - consider combinining DCSS Chargen with Win Performance by adding bar underlays beneath the names on DCSS Chargen
-
+- put a New Achievement award tag in anything that hits a new record, like Fastest Win
 
 Combos to try:
     Draconian Shapeshifter of Ru, 
     DsBr^Mak
-    DjCo
-    DjFE^Ely (since that gives healing which Dj wants)
-    Reaver of Wu Jian (Rending Blade) ... VS, Ds, Dr, Fo
+    DsRe^Mak
+    DjFE^Ely
+    Reaver of Wu Jian ... Dj, Ds, Dr, Gr, Gn
+    An Oni mage (since defense sucks so no melee)
 
 Key Character Sheet Stats (example)
 

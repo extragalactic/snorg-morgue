@@ -243,7 +243,7 @@ export default function AdminPage() {
           />
           <div className="min-w-0">
             <h1 className={typography.primaryTitle}>ADMIN</h1>
-            <p className={typography.bodyMuted}>Site and user stats</p>
+            <p className={typography.primaryPageSubtitle}>Site and user stats</p>
           </div>
         </div>
 

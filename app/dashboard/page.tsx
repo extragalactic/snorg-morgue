@@ -484,7 +484,7 @@ export default function DashboardPage({
                   {activeTab === "morgues" && "MORGUE FILES"}
                   {activeTab === "extras" && "RESOURCES"}
                 </h1>
-                <p className={typography.bodyMuted}>
+                <p className={typography.primaryPageSubtitle}>
                   {activeTab === "analysis" && "Track your DCSS progress"}
                   {activeTab === "skills" && "Deeper analysis to find the patterns"}
                   {activeTab === "achievements" && "Impressive metrics of DCSS prowess"}
@@ -544,7 +544,7 @@ export default function DashboardPage({
               )}
               {activeTab === "morgues" && !isBrowsingOther && (
                 <Button
-                  className="gap-2 rounded-none border-2 border-primary bg-background text-primary hover:bg-primary/10 font-mono text-xs"
+                  className="gap-2 rounded-none border-2 border-primary bg-background text-primary hover:bg-primary/10 font-mono text-sm"
                   onClick={() => setOnlineImportOpen(true)}
                   disabled={!userId}
                 >
@@ -553,7 +553,7 @@ export default function DashboardPage({
               )}
               {activeTab === "morgues" && !isBrowsingOther && morgues.length > 0 && (
                 <Button
-                  className="gap-2 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs"
+                  className="gap-2 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-sm"
                   onClick={() => setDownloadConfirmOpen(true)}
                   disabled={isDownloading}
                 >
@@ -575,13 +575,13 @@ export default function DashboardPage({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel
-                className="rounded-none border-2 font-mono text-xs"
+                className="rounded-none border-2 font-mono text-sm"
                 disabled={isRefreshing}
               >
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
+                className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-sm"
                 onClick={async (e) => {
                   e.preventDefault()
                   if (!userId) return
@@ -621,13 +621,13 @@ export default function DashboardPage({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel
-                className="rounded-none border-2 border-primary/50 font-mono text-xs hover:text-primary"
+                className="rounded-none border-2 border-primary/50 font-mono text-sm hover:text-primary"
                 disabled={isDownloading}
               >
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                className="rounded-none border-2 border-primary bg-primary text-primary-foreground font-mono text-xs min-w-[5.5rem]"
+                className="rounded-none border-2 border-primary bg-primary text-primary-foreground font-mono text-sm min-w-[5.5rem]"
                 disabled={isDownloading}
                 onClick={(e) => {
                   e.preventDefault()
@@ -650,13 +650,13 @@ export default function DashboardPage({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel
-                className="rounded-none border-2 font-mono text-xs"
+                className="rounded-none border-2 font-mono text-sm"
                 disabled={isNuking}
               >
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
+                className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-sm"
                 onClick={async (e) => {
                   e.preventDefault()
                   if (!userId) return
@@ -858,10 +858,10 @@ export default function DashboardPage({
         {activeTab === "morgues" && (
           <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-2 pb-2">
             <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-3">
-              <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground">
                 <span>Version range:</span>
                 <Select value={versionStart} onValueChange={setVersionStart}>
-                  <SelectTrigger className="h-8 w-24 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-xs">
+                  <SelectTrigger className="h-8 w-24 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
                     <SelectValue aria-label="Start version" />
                   </SelectTrigger>
                   <SelectContent className="rounded-none border-2 border-primary/40">
@@ -878,7 +878,7 @@ export default function DashboardPage({
                 </Select>
                 <span>to</span>
                 <Select value={versionEnd} onValueChange={setVersionEnd}>
-                  <SelectTrigger className="h-8 w-24 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-xs">
+                  <SelectTrigger className="h-8 w-24 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
                     <SelectValue aria-label="End version" />
                   </SelectTrigger>
                   <SelectContent className="rounded-none border-2 border-primary/40">
@@ -911,7 +911,7 @@ export default function DashboardPage({
                 <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 pt-1">
                   <Button
                     variant="destructive"
-                    className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-xs"
+                    className="rounded-none border-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-mono text-sm"
                     onClick={() => setRefreshConfirmOpen(true)}
                     disabled={isRefreshing || isNuking}
                   >
@@ -919,7 +919,7 @@ export default function DashboardPage({
                   </Button>
                   <Button
                     variant="destructive"
-                    className="rounded-none border-2 font-mono text-xs"
+                    className="rounded-none border-2 font-mono text-sm"
                     onClick={() => setNukeConfirmOpen(true)}
                     disabled={isNuking || isRefreshing}
                   >

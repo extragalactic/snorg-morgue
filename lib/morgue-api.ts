@@ -14,7 +14,7 @@ import {
   mergeSpellUsesFromActionHistoryInto,
   type ActionHistory,
 } from "./action-history"
-import { DCSS_SPELL_LEVELS, lookupDcssSpellLevel } from "./dcss-spell-levels"
+import { DCSS_SPELL_LEVELS, lookupDcssSpellLevel, resolveCanonicalDcssSpellName } from "./dcss-spell-levels"
 import {
   parsedToRow,
   formatPlayTime,
@@ -267,10 +267,14 @@ export type UserActionAverageRow = {
   avg_count: number
 }
 
+/** How many spells are kept per DCSS spell level (1–9) in `user_favourite_spells`. */
+export const FAVOURITE_SPELLS_PER_LEVEL = 5
+
 /** One row from user_favourite_spells (dashboard / browse API). */
 export type UserFavouriteSpellRow = {
   /** Spell level 1–9 (DCSS), stored as text in DB. */
   level_group: string
+  /** 1 … {@link FAVOURITE_SPELLS_PER_LEVEL} within this level_group. */
   rank: number
   spell_key: string
   spell_name: string
@@ -380,6 +384,7 @@ export async function recomputeUserActionAverages(
 
 /**
  * Rebuild user_favourite_spells from all morgue_files.raw_text for the user.
+ * Persists the top {@link FAVOURITE_SPELLS_PER_LEVEL} spells by total casts for each spell level 1–9.
  */
 export async function recomputeUserFavouriteSpells(
   supabase: SupabaseClient,
@@ -446,7 +451,7 @@ export async function recomputeUserFavouriteSpells(
     if (inner.size === 0) continue
     const top = [...inner.entries()]
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-      .slice(0, 3)
+      .slice(0, FAVOURITE_SPELLS_PER_LEVEL)
     let rank = 1
     for (const [key, total] of top) {
       insertRows.push({
@@ -454,7 +459,7 @@ export async function recomputeUserFavouriteSpells(
         level_group: String(level),
         rank,
         spell_key: key,
-        spell_name: labels.get(key) ?? key,
+        spell_name: resolveCanonicalDcssSpellName(key) ?? labels.get(key) ?? key,
         total_uses: Math.round(total),
         morgue_count: actionTableCount,
         updated_at: updatedAt,
@@ -473,12 +478,16 @@ export async function recomputeUserFavouriteSpells(
 
   const { error: insErr } = await supabase.from("user_favourite_spells").insert(insertRows)
   if (insErr) {
-    console.warn("[snorg-morgue] user_favourite_spells insert:", insErr.message)
+    console.warn(
+      "[snorg-morgue] user_favourite_spells insert:",
+      insErr.message,
+      "(if rank check is still 1–3, run supabase/alter_user_favourite_spells_rank_top5.sql)",
+    )
   }
 }
 
 /**
- * Fetch per-user favourite spells (top 3 per spell level 1–9). Empty if none.
+ * Fetch per-user favourite spells (top {@link FAVOURITE_SPELLS_PER_LEVEL} per spell level 1–9). Empty if none.
  */
 export async function fetchUserFavouriteSpells(
   supabase: SupabaseClient,

@@ -258,7 +258,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
     <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs">
+        <Button className="gap-2 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-sm">
           <Upload className="h-4 w-4" />
           Upload Morgue
         </Button>
@@ -320,7 +320,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
             <Button
               variant="outline"
               size="sm"
-              className="rounded-none border-2 border-primary/50 font-mono text-xs pointer-events-none"
+              className="rounded-none border-2 border-primary/50 font-mono text-sm pointer-events-none"
             >
               Browse Files
             </Button>
@@ -402,14 +402,14 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
                 setFiles([])
               }}
               disabled={isProcessing}
-              className={cn("rounded-none font-mono text-xs", colors.inputBorder, colors.highlightHoverText)}
+              className={cn("rounded-none font-mono text-sm", colors.inputBorder, colors.highlightHoverText)}
             >
               Cancel
             </Button>
             <Button
               onClick={processFiles}
               disabled={!canProcess}
-              className="rounded-none border-2 border-primary bg-primary text-primary-foreground font-mono text-xs min-w-[5.5rem]"
+              className="rounded-none border-2 border-primary bg-primary text-primary-foreground font-mono text-sm min-w-[5.5rem]"
             >
               {isProcessing ? (
                 <div className="h-4 w-4 animate-spin border-2 border-primary-foreground border-t-transparent rounded-full" />
@@ -456,7 +456,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
         <DialogFooter className="border-t-2 border-primary/30 pt-4">
           <Button
             onClick={handleFailureModalClose}
-            className="rounded-none border-2 border-primary font-mono text-xs"
+            className="rounded-none border-2 border-primary font-mono text-sm"
           >
             Ok
           </Button>
@@ -474,7 +474,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
         </p>
         <div className="flex justify-end pt-2">
           <Button
-            className="rounded-none border-2 border-primary/60 font-mono text-xs"
+            className="rounded-none border-2 border-primary/60 font-mono text-sm"
             onClick={() => setSuccessModalOpen(false)}
           >
             OK

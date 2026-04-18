@@ -135,6 +135,19 @@ function tileUrl(path: string): string {
   return `${RLTILES_BASE}/${path}`
 }
 
+/** Full URL for chargen species tile art (trunk rltiles). */
+export function chargenSpeciesTileUrl(species: string): string | undefined {
+  const sp = normalizeChargenSpecies(species.trim())
+  const path = SPECIES_TILE_PATH[sp]
+  return path ? tileUrl(path) : undefined
+}
+
+/** Full URL for god tile used in chargen (invocations / spells). */
+export function chargenGodTileUrl(god: string): string | undefined {
+  const path = GOD_TILE_PATH[god]
+  return path ? tileUrl(path) : undefined
+}
+
 const SPECIES_COLUMNS: { title: string; species: readonly string[] }[] = [
   { title: "Simple", species: ALL_SPECIES_NAMES.slice(0, 9) },
   { title: "Intermediate", species: ALL_SPECIES_NAMES.slice(9, 18) },
