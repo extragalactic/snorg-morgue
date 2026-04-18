@@ -108,7 +108,9 @@ export function MilestoneProgressionChart({
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
           <CardTitle className={typography.secondaryTitle}>MILESTONE PROGRESSION</CardTitle>
-          <CardDescription className="pt-2">Share of games reaching each milestone</CardDescription>
+          <CardDescription className="pt-2 font-mono text-[calc(0.875rem+2pt)]">
+            Share of games reaching each milestone
+          </CardDescription>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
@@ -123,7 +125,9 @@ export function MilestoneProgressionChart({
     <Card className="border-2 border-primary/30 rounded-none">
       <CardHeader className="border-b-2 border-primary/20 pb-3">
         <CardTitle className={typography.secondaryTitle}>MILESTONE PROGRESSION</CardTitle>
-        <CardDescription className="pt-2">Share of games reaching each milestone</CardDescription>
+        <CardDescription className="pt-2 font-mono text-[calc(0.875rem+2pt)]">
+          Share of games reaching each milestone
+        </CardDescription>
       </CardHeader>
       <CardContent className="pt-4">
         {totalGames === 0 ? (
@@ -146,13 +150,13 @@ export function MilestoneProgressionChart({
                   domain={[0, 100]}
                   tickFormatter={(v) => `${v}%`}
                   stroke="var(--muted-foreground)"
-                  fontSize={11}
+                  fontSize={14}
                 />
                 <YAxis
                   type="category"
                   dataKey="label"
                   width={76}
-                  tick={{ fill: "var(--foreground)", fontSize: 12 }}
+                  tick={{ fill: "var(--foreground)", fontSize: 14 }}
                   axisLine={{ stroke: "var(--primary)" }}
                 />
                 <Tooltip

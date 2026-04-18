@@ -128,24 +128,24 @@ export function LevelAtDeathChart({
             <XAxis
               dataKey="level"
               stroke="var(--muted-foreground)"
-              fontSize={12}
+              fontSize={14}
               tickLine={false}
               label={{
                 value: "Experience Level",
                 position: "bottom",
                 offset: 0,
-                style: { fill: 'var(--muted-foreground)', fontSize: 12 }
+                style: { fill: "var(--muted-foreground)", fontSize: 14 },
               }}
             />
             <YAxis
               stroke="var(--muted-foreground)"
-              fontSize={12}
+              fontSize={14}
               tickLine={false}
               label={{
                 value: "Number of Deaths",
                 angle: -90,
                 position: "insideLeft",
-                style: { fill: 'var(--muted-foreground)', fontSize: 12, textAnchor: 'middle' }
+                style: { fill: "var(--muted-foreground)", fontSize: 14, textAnchor: "middle" },
               }}
             />
             <Tooltip content={<LevelDeathTooltip />} />

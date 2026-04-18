@@ -1,6 +1,6 @@
 "use client"
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -12,6 +12,7 @@ import {
   godsIntoChargenColumns,
 } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
+import { readChargenViewMode, writeChargenViewMode } from "@/lib/dashboard-chart-preferences"
 import { cn } from "@/lib/utils"
 
 const RLTILES_BASE =
@@ -365,6 +366,16 @@ function buildGodRollups(morgues: GameRecord[]): Map<string, WinDeathBuckets> {
 export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecord[] }) {
   const [mode, setMode] = useState<Mode>("species")
 
+  useLayoutEffect(() => {
+    const stored = readChargenViewMode()
+    if (stored) setMode(stored)
+  }, [])
+
+  const setModePersisted = useCallback((m: Mode) => {
+    setMode(m)
+    writeChargenViewMode(m)
+  }, [])
+
   const speciesRollups = useMemo(() => buildSpeciesRollups(morgues), [morgues])
   const backgroundRollups = useMemo(() => buildBackgroundRollups(morgues), [morgues])
   const godRollups = useMemo(() => buildGodRollups(morgues), [morgues])
@@ -416,17 +427,17 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
               <div className="flex gap-2">
                 <FilterToggleButton
                   selected={mode === "species"}
-                  onClick={() => setMode("species")}
+                  onClick={() => setModePersisted("species")}
                 >
                   Species
                 </FilterToggleButton>
                 <FilterToggleButton
                   selected={mode === "background"}
-                  onClick={() => setMode("background")}
+                  onClick={() => setModePersisted("background")}
                 >
                   Background
                 </FilterToggleButton>
-                <FilterToggleButton selected={mode === "gods"} onClick={() => setMode("gods")}>
+                <FilterToggleButton selected={mode === "gods"} onClick={() => setModePersisted("gods")}>
                   Gods
                 </FilterToggleButton>
               </div>

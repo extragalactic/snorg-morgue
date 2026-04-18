@@ -76,7 +76,7 @@ export function SpeciesPerformanceTestChart({
             <XAxis
               type="number"
               stroke="var(--muted-foreground)"
-              fontSize={12}
+              fontSize={14}
               tickLine={false}
               allowDecimals={false}
             />
@@ -84,7 +84,7 @@ export function SpeciesPerformanceTestChart({
               type="category"
               dataKey="name"
               stroke="var(--muted-foreground)"
-              fontSize={12}
+              fontSize={14}
               tickLine={false}
               width={100}
             />

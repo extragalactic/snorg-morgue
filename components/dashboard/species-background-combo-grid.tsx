@@ -1,12 +1,13 @@
 "use client"
 
-import { useMemo, useState, Fragment } from "react"
+import { useCallback, useLayoutEffect, useMemo, useState, Fragment } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { ALL_SPECIES_NAMES, ALL_BACKGROUND_NAMES, GOD_SHORT_FORMS } from "@/lib/dcss-constants"
 import { SPECIES_EXCLUDED_BACKGROUNDS } from "@/components/dashboard/goal-progress"
 import type { GameRecord } from "@/lib/morgue-api"
+import { readSpeciesBgComboMode, writeSpeciesBgComboMode } from "@/lib/dashboard-chart-preferences"
 
 type Mode = "wins" | "attempts"
 
@@ -116,6 +117,17 @@ export function SpeciesBackgroundComboGrid({
   morgues?: GameRecord[]
 }) {
   const [mode, setMode] = useState<Mode>("wins")
+
+  useLayoutEffect(() => {
+    const stored = readSpeciesBgComboMode()
+    if (stored) setMode(stored)
+  }, [])
+
+  const setModePersisted = useCallback((m: Mode) => {
+    setMode(m)
+    writeSpeciesBgComboMode(m)
+  }, [])
+
   const [hoveredSpecies, setHoveredSpecies] = useState<string | null>(null)
   const [hoveredBackground, setHoveredBackground] = useState<string | null>(null)
 
@@ -162,12 +174,12 @@ export function SpeciesBackgroundComboGrid({
             <div className="flex items-center gap-3">
               <span className="font-mono text-sm text-primary">SHOW:</span>
               <div className="flex gap-2">
-                <FilterToggleButton selected={mode === "wins"} onClick={() => setMode("wins")}>
+                <FilterToggleButton selected={mode === "wins"} onClick={() => setModePersisted("wins")}>
                   Wins
                 </FilterToggleButton>
                 <FilterToggleButton
                   selected={mode === "attempts"}
-                  onClick={() => setMode("attempts")}
+                  onClick={() => setModePersisted("attempts")}
                 >
                   Attempts
                 </FilterToggleButton>
@@ -184,7 +196,7 @@ export function SpeciesBackgroundComboGrid({
                 className="overflow-auto"
                 onMouseLeave={clearHover}
               >
-                <p className="mb-4 ml-20 font-mono text-sm text-muted-foreground">
+                <p className="mb-4 ml-20 font-mono text-[calc(0.875rem+2pt)] text-muted-foreground">
                   You have{" "}
                   {mode === "wins" ? "won with" : "attempted"}{" "}
                   {((mode === "wins" ? winComboCount : attemptComboCount) / TOTAL_COMBOS * 100).toFixed(1)}

@@ -381,7 +381,7 @@ export function TestPerformanceChart({
                 label={{
                   value: showMode === "wins" ? "Number of Wins" : "Number of Attempts",
                   position: "bottom",
-                  style: { fill: "var(--muted-foreground)", fontSize: 12 },
+                  style: { fill: "var(--muted-foreground)", fontSize: 14 },
                   offset: 0,
                 }}
               />

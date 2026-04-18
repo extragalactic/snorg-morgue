@@ -42,7 +42,7 @@ const PLAY_TIME_ACHIEVEMENTS = [
   { title: SNORG_TITLES.S_BRANCH_ASSASSIN, hours: 500 },
   { title: SNORG_TITLES.VAULT_MERCENARY, hours: 1000 },
   { title: SNORG_TITLES.ZOT_SPECIAL_OPS, hours: 2000 },
-  { title: SNORG_TITLES.NERD_GOD_KING, hours: 3000 },
+  { title: SNORG_TITLES.NERD_GOD_KING, hours: 4000 },
 ].map((a) => ({ ...a, thresholdSeconds: a.hours * 3600 }))
 
 /** Font size for hours-played tooltip by achievement index (D1 Padawan → Nerd God-King) */
@@ -399,6 +399,8 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
   }
   const achievementPopupClass =
     "max-w-[448px] rounded-none border-2 border-primary/30 bg-card text-foreground"
+  /** Tooltip diamond 2px up vs default `translate-y-[calc(-50%_-_2px)]` on shared TooltipContent. */
+  const achievementTooltipArrowClass = "translate-y-[calc(-50%_+_0px)]"
   const completeIndicatorClass =
     themeStyle === "ascii" ? "bg-emerald-300" : "bg-emerald-400"
   const coreGoals = goals.filter(
@@ -517,6 +519,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                   side="bottom"
                   sideOffset={8}
                   className={achievementPopupClass}
+                  arrowClassName={achievementTooltipArrowClass}
                 >
                   {detailContent}
                 </TooltipContent>
@@ -583,7 +586,12 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                           </p>
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
+                      <TooltipContent
+                        side="bottom"
+                        sideOffset={8}
+                        className={achievementPopupClass}
+                        arrowClassName={achievementTooltipArrowClass}
+                      >
                         <AchievementDetailGrid
                           items={backgroundChargenRowMajorOrder(eligibleBackgrounds)}
                           hasWins={hasWins}
@@ -798,7 +806,12 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                         </p>
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
+                    <TooltipContent
+                      side="bottom"
+                      sideOffset={8}
+                      className={achievementPopupClass}
+                      arrowClassName={achievementTooltipArrowClass}
+                    >
                       <div className="grid grid-cols-3 gap-x-4 gap-y-0.5 py-0.5">
                         {tooltipSpecies.map((sp) => {
                           const hasWin = wonSpecies.has(sp)
@@ -886,7 +899,12 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                           </p>
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
+                      <TooltipContent
+                        side="bottom"
+                        sideOffset={8}
+                        className={achievementPopupClass}
+                        arrowClassName={achievementTooltipArrowClass}
+                      >
                         <AchievementDetailGrid items={devotedTooltipGods} hasWins={hasWins} />
                       </TooltipContent>
                     </Tooltip>
@@ -964,7 +982,12 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
                           </p>
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="bottom" sideOffset={8} className={achievementPopupClass}>
+                      <TooltipContent
+                        side="bottom"
+                        sideOffset={8}
+                        className={achievementPopupClass}
+                        arrowClassName={achievementTooltipArrowClass}
+                      >
                         <AchievementDetailGrid
                           items={backgroundChargenRowMajorOrder(eligibleBackgrounds)}
                           hasWins={hasWins}
