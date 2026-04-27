@@ -267,10 +267,11 @@ export function UploadsTable({
   const totalCount = morgues.length
   const filteredCount = filteredAndSortedData.length
   const pct = totalCount > 0 ? Math.round((filteredCount / totalCount) * 100) : 0
+  const gamesWord = (n: number) => (n === 1 ? "Game" : "Games")
   const titleText =
     filteredCount === totalCount
-      ? `${totalCount} Files`
-      : `${filteredCount} of ${totalCount} Files (${pct}%)`
+      ? `${totalCount} ${gamesWord(totalCount)}`
+      : `${filteredCount} of ${totalCount} ${gamesWord(totalCount)} (${pct}%)`
 
   useEffect(() => {
     if (!fillViewportHeight) return
@@ -380,7 +381,7 @@ export function UploadsTable({
         <CardHeader
           className={cn("border-b-2 border-primary/20 py-3 px-4", fillViewportHeight && "shrink-0")}
         >
-          <CardTitle>Files</CardTitle>
+          <CardTitle>Games</CardTitle>
         </CardHeader>
         <CardContent className={cn("p-8", fillViewportHeight && "flex min-h-0 flex-1 items-center justify-center")}>
           <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
@@ -403,7 +404,7 @@ export function UploadsTable({
         <CardHeader
           className={cn("border-b-2 border-primary/20 py-3 px-4", fillViewportHeight && "shrink-0")}
         >
-          <CardTitle>0 Files</CardTitle>
+          <CardTitle>0 Games</CardTitle>
         </CardHeader>
         <CardContent className={cn("p-8 text-center", fillViewportHeight && "flex min-h-0 flex-1 items-center justify-center")}>
           <p className="text-sm text-muted-foreground">
@@ -428,11 +429,11 @@ export function UploadsTable({
           fillViewportHeight && "shrink-0",
         )}
       >
-        <div className="flex w-full min-w-0 flex-col gap-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="flex w-full min-w-0 flex-col gap-0 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
           <CardTitle className="shrink-0">{titleText}</CardTitle>
-          <div className="flex w-full min-w-0 flex-col gap-3 py-3 sm:w-auto sm:flex-row sm:justify-end">
+          <div className="flex w-full min-w-0 flex-col gap-3 py-3 lg:w-auto lg:flex-row lg:flex-wrap lg:items-center lg:justify-end lg:gap-x-3 lg:gap-y-2">
             {/* Result Filter */}
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1">
               {(["all", "win", "death"] as const).map((filter) => (
                 <FilterToggleButton
                   key={filter}
@@ -450,111 +451,119 @@ export function UploadsTable({
                 </FilterToggleButton>
               ))}
             </div>
-            {/* Species filter */}
-            <Select
-              value={speciesFilter}
-              onValueChange={(value) => {
-                const v = value as SpeciesFilter
-                setSpeciesFilter(v)
-                setCurrentPage(1)
-                updateMorguesSettings({
-                  speciesFilter: v,
-                  currentPage: 1,
-                })
-              }}
-            >
-              <SelectTrigger className="w-[140px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 bg-background">
-                <SelectValue placeholder="Species" />
-              </SelectTrigger>
-              <SelectContent className="rounded-none border-2 border-primary/50 bg-background">
-                <SelectItem value="all" className="font-mono text-sm cursor-pointer">
-                  All species
-                </SelectItem>
-                {fullSpeciesList.map((s) => {
-                  const inData = speciesInData.has(s)
-                  return (
-                    <SelectItem
-                      key={s}
-                      value={s}
-                      disabled={!inData}
-                      className={`font-mono text-sm ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
-                    >
-                      {s}
+            <div className="grid w-full min-w-0 grid-cols-3 gap-2 lg:flex lg:w-auto lg:shrink-0 lg:gap-x-3">
+              {/* Species filter */}
+              <div className="min-w-0">
+                <Select
+                  value={speciesFilter}
+                  onValueChange={(value) => {
+                    const v = value as SpeciesFilter
+                    setSpeciesFilter(v)
+                    setCurrentPage(1)
+                    updateMorguesSettings({
+                      speciesFilter: v,
+                      currentPage: 1,
+                    })
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-full min-w-0 rounded-none border-2 border-primary/50 bg-background font-mono text-sm lg:w-[196px] lg:shrink-0">
+                    <SelectValue placeholder="Species" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-none border-2 border-primary/50 bg-background">
+                    <SelectItem value="all" className="font-mono text-sm cursor-pointer">
+                      All species
                     </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
-            {/* Background filter */}
-            <Select
-              value={backgroundFilter}
-              onValueChange={(value) => {
-                const v = value as BackgroundFilter
-                setBackgroundFilter(v)
-                setCurrentPage(1)
-                updateMorguesSettings({
-                  backgroundFilter: v,
-                  currentPage: 1,
-                })
-              }}
-            >
-              <SelectTrigger className="w-[160px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 bg-background">
-                <SelectValue placeholder="Background" />
-              </SelectTrigger>
-              <SelectContent className="rounded-none border-2 border-primary/50 bg-background">
-                <SelectItem value="all" className="font-mono text-sm cursor-pointer">
-                  All backgrounds
-                </SelectItem>
-                {ALL_BACKGROUND_NAMES.map((b) => {
-                  const inData = backgroundsInData.has(b)
-                  return (
-                    <SelectItem
-                      key={b}
-                      value={b}
-                      disabled={!inData}
-                      className={`font-mono text-sm ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
-                    >
-                      {b}
+                    {fullSpeciesList.map((s) => {
+                      const inData = speciesInData.has(s)
+                      return (
+                        <SelectItem
+                          key={s}
+                          value={s}
+                          disabled={!inData}
+                          className={`font-mono text-sm ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
+                        >
+                          {s}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Background filter */}
+              <div className="min-w-0">
+                <Select
+                  value={backgroundFilter}
+                  onValueChange={(value) => {
+                    const v = value as BackgroundFilter
+                    setBackgroundFilter(v)
+                    setCurrentPage(1)
+                    updateMorguesSettings({
+                      backgroundFilter: v,
+                      currentPage: 1,
+                    })
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-full min-w-0 rounded-none border-2 border-primary/50 bg-background font-mono text-sm lg:w-[224px] lg:shrink-0">
+                    <SelectValue placeholder="Background" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-none border-2 border-primary/50 bg-background">
+                    <SelectItem value="all" className="font-mono text-sm cursor-pointer">
+                      All backgrounds
                     </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
-            {/* God filter */}
-            <Select
-              value={godFilter}
-              onValueChange={(value) => {
-                const v = value as GodFilter
-                setGodFilter(v)
-                setCurrentPage(1)
-                updateMorguesSettings({
-                  godFilter: v,
-                  currentPage: 1,
-                })
-              }}
-            >
-              <SelectTrigger className="w-[130px] rounded-none border-2 border-primary/50 font-mono text-sm h-8 bg-background">
-                <SelectValue placeholder="God" />
-              </SelectTrigger>
-              <SelectContent className="rounded-none border-2 border-primary/50 bg-background">
-                <SelectItem value="all" className="font-mono text-sm cursor-pointer">
-                  All gods
-                </SelectItem>
-                {ALL_GOD_NAMES.map((g) => {
-                  const inData = godsInData.has(g)
-                  return (
-                    <SelectItem
-                      key={g}
-                      value={g}
-                      disabled={!inData}
-                      className={`font-mono text-sm ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
-                    >
-                      {g}
+                    {ALL_BACKGROUND_NAMES.map((b) => {
+                      const inData = backgroundsInData.has(b)
+                      return (
+                        <SelectItem
+                          key={b}
+                          value={b}
+                          disabled={!inData}
+                          className={`font-mono text-sm ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
+                        >
+                          {b}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* God filter */}
+              <div className="min-w-0">
+                <Select
+                  value={godFilter}
+                  onValueChange={(value) => {
+                    const v = value as GodFilter
+                    setGodFilter(v)
+                    setCurrentPage(1)
+                    updateMorguesSettings({
+                      godFilter: v,
+                      currentPage: 1,
+                    })
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-full min-w-0 rounded-none border-2 border-primary/50 bg-background font-mono text-sm lg:w-[182px] lg:shrink-0">
+                    <SelectValue placeholder="God" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-none border-2 border-primary/50 bg-background">
+                    <SelectItem value="all" className="font-mono text-sm cursor-pointer">
+                      All gods
                     </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
+                    {ALL_GOD_NAMES.map((g) => {
+                      const inData = godsInData.has(g)
+                      return (
+                        <SelectItem
+                          key={g}
+                          value={g}
+                          disabled={!inData}
+                          className={`font-mono text-sm ${inData ? "cursor-pointer" : "text-muted-foreground opacity-70"}`}
+                        >
+                          {g}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
         </div>
       </CardHeader>

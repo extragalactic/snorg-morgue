@@ -171,19 +171,16 @@ export function SpeciesBackgroundComboGrid({
         <Card className="border-2 border-primary/30 rounded-none">
           <CardHeader className="border-b-2 border-primary/20 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <CardTitle>SPECIES–BACKGROUND COMBO GRID</CardTitle>
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-sm text-primary">SHOW:</span>
-              <div className="flex gap-2">
-                <FilterToggleButton selected={mode === "wins"} onClick={() => setModePersisted("wins")}>
-                  Wins
-                </FilterToggleButton>
-                <FilterToggleButton
-                  selected={mode === "attempts"}
-                  onClick={() => setModePersisted("attempts")}
-                >
-                  Attempts
-                </FilterToggleButton>
-              </div>
+            <div className="flex flex-wrap gap-2">
+              <FilterToggleButton selected={mode === "wins"} onClick={() => setModePersisted("wins")}>
+                Wins
+              </FilterToggleButton>
+              <FilterToggleButton
+                selected={mode === "attempts"}
+                onClick={() => setModePersisted("attempts")}
+              >
+                Attempts
+              </FilterToggleButton>
             </div>
           </CardHeader>
           <CardContent className="pt-4">

@@ -30,16 +30,24 @@ Features:
 - the icons used in the stat boxes are kinda random/lame
 - make a Planner page that lets you take notes, make lists of combos you should try, add commentary about different combos, etc. Using the Browse feature you could see other peoples' notes to learn from.
 - would be funny to show a "condolences card" if a user uploads a character that died in Zot 5
-
+- should have a "3rd Rune Tracker", given how much trouble I have with it. Show which character types found: Vaults, Slime, or Abyss (incl. version number)
+- new chart showing Death Location (Dungeon, Lair, Orc, Swamp, Vaults, Vaults 5, etc.)
+- perhaps have a Winners Summary that gives several charts of data specifically to analyze your winners, with data like: melee vs. magic vs. ranged vs. hybrid character ratios, and a visual/pictoral summary of common char types like "You are good with gnolls and djinni, common gods are chei and mak"
+- show the winners who collected different 3rd runes (so you can see for example which chars got the Abyssal rune vs. vaults vs. slime)
+- show Most Attempted Combos summary (is hard to see via the combo grid)
+- for most popular spells find a way to indicate which spells were used by winning characters, perhaps via multi-colour bars where the secondary colour shows what ratio of the spell count was used by a winning character. Also consider adding more than 5 for each level
+- some charts will show the Compare data overlaid, while other charts will use a toggle switch
+- make another style that is a darker/black background, with interesting colour schemes (not just mono-colour), generate a bunch of colour schemes
 
 Fixes:
+- Browse should instead be "Compare"
+- bug: on morgue viewer for my winning DjFE the highlighting is broken for the core stat block
 - draconian filter logic is broken on morgue page
 - sharing a morgue needs better feedback after clicking button, then the morgue file needs to show the player name at the top and remove the Back to Morgues button
 - all of the tooltips should be made with larger text with simplified presentation (to convey useful data quickly)
-- overall the font should globally increase a point or two
 - remove red from Sign Out button
 - what's the proper terminology: Grand Player or Greater Player? And how is it defined?
-- need to normalize the Level at Death graph when comparing to the average data
+- need to normalize the Level at Death graph when comparing to the average data (make it percentage of total deaths)
 - y-axis units messed up on Levels at Death
 - Avg species performance data is broken for Wins, and also wrong on Level at Death graph
 - server import cards have wobbly text when you click
@@ -48,14 +56,21 @@ Fixes:
 - consider combinining DCSS Chargen with Win Performance by adding bar underlays beneath the names on DCSS Chargen
 - put a New Achievement award tag in anything that hits a new record, like Fastest Win
 - the Milestone chart data looks broken for the particleface data
+- fix security issue with permissions, see email from April 15th (on Coinmiles email)
+- perhaps have a floating Browse/Spectate control on all page that lets you quickly compare data from other players (including the average)
 
 Combos to try:
-    Draconian Shapeshifter of Ru, 
+    Mi^Fi^Oka
+    GrFE^Veh
+    DjFW^Nem
+    Draconian Shapeshifter of Ru
     DsBr^Mak
     DsRe^Mak
     DjFE^Ely
     Reaver of Wu Jian ... Dj, Ds, Dr, Gr, Gn
     An Oni mage (since defense sucks so no melee)
+    FeBe^Trog
+    FeSu^Kiku/Jivya
 
 Key Character Sheet Stats (example)
 

@@ -258,7 +258,7 @@ export function UploadDialog({ onUploadComplete }: UploadDialogProps) {
     <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-sm">
+        <Button className="gap-2 rounded-none border-2 border-primary bg-background font-mono text-sm text-primary hover:bg-primary/10">
           <Upload className="h-4 w-4" />
           Upload Morgue
         </Button>

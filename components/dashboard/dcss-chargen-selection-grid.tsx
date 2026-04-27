@@ -423,24 +423,21 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
           <CardHeader className="flex flex-col gap-3 border-b-2 border-primary/20 pb-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-lg sm:text-xl">DCSS CHARGEN (SPECIES / BACKGROUND / GODS)</CardTitle>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <span className="font-mono text-sm text-primary">VIEW:</span>
-              <div className="flex gap-2">
-                <FilterToggleButton
-                  selected={mode === "species"}
-                  onClick={() => setModePersisted("species")}
-                >
-                  Species
-                </FilterToggleButton>
-                <FilterToggleButton
-                  selected={mode === "background"}
-                  onClick={() => setModePersisted("background")}
-                >
-                  Background
-                </FilterToggleButton>
-                <FilterToggleButton selected={mode === "gods"} onClick={() => setModePersisted("gods")}>
-                  Gods
-                </FilterToggleButton>
-              </div>
+              <FilterToggleButton
+                selected={mode === "species"}
+                onClick={() => setModePersisted("species")}
+              >
+                Species
+              </FilterToggleButton>
+              <FilterToggleButton
+                selected={mode === "background"}
+                onClick={() => setModePersisted("background")}
+              >
+                Background
+              </FilterToggleButton>
+              <FilterToggleButton selected={mode === "gods"} onClick={() => setModePersisted("gods")}>
+                Gods
+              </FilterToggleButton>
             </div>
           </CardHeader>
           <CardContent className="pt-4">

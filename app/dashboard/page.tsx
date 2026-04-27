@@ -430,12 +430,23 @@ export default function DashboardPage({
       >
         <div
           className={cn(
-            "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
-            activeTab === "morgues" ? "mb-2 shrink-0" : "mb-6",
+            "flex flex-col gap-4",
+            activeTab === "morgues"
+              ? "mb-2 shrink-0 lg:flex-row lg:items-center lg:justify-between"
+              : "mb-6 sm:flex-row sm:items-center sm:justify-between",
           )}
         >
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
+          <div
+            className={cn(activeTab === "morgues" && "w-full min-w-0 lg:w-auto")}
+          >
+            <div
+              className={cn(
+                "flex gap-3",
+                activeTab === "morgues"
+                  ? "min-w-0 flex-nowrap items-center"
+                  : "flex-wrap items-center",
+              )}
+            >
               {activeTab === "analysis" && (
                 <Image
                   src="/images/tesseract-icon.png"
@@ -476,7 +487,12 @@ export default function DashboardPage({
                   style={{ width: TITLE_GRAPHIC_SIZE_LARGE, height: TITLE_GRAPHIC_SIZE_LARGE }}
                 />
               )}
-              <div className="min-w-0">
+              <div
+                className={cn(
+                  "min-w-0",
+                  activeTab === "morgues" && "flex-1",
+                )}
+              >
                 <h1 className={typography.primaryTitle}>
                   {activeTab === "analysis" && "GAME STATS"}
                   {activeTab === "skills" && "ANALYSIS"}
@@ -494,8 +510,22 @@ export default function DashboardPage({
               </div>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex flex-wrap items-center justify-end gap-6">
+          <div
+            className={cn(
+              "flex flex-col gap-2",
+              activeTab === "morgues"
+                ? "w-full items-stretch lg:w-auto lg:items-end"
+                : "items-end",
+            )}
+          >
+            <div
+              className={cn(
+                "flex items-center gap-6",
+                activeTab === "morgues"
+                  ? "w-full min-w-0 flex-nowrap justify-start gap-2 overflow-x-auto pb-0.5 lg:w-auto lg:flex-wrap lg:justify-end lg:gap-6 lg:overflow-visible lg:pb-0"
+                  : "flex-wrap justify-end",
+              )}
+            >
               {activeTab === "analysis" &&
                 isAdmin &&
                 globalStats &&
@@ -540,11 +570,13 @@ export default function DashboardPage({
                 </div>
               )}
               {activeTab === "morgues" && !isBrowsingOther && (
-                <UploadDialog onUploadComplete={loadData} />
+                <div className="shrink-0">
+                  <UploadDialog onUploadComplete={loadData} />
+                </div>
               )}
               {activeTab === "morgues" && !isBrowsingOther && (
                 <Button
-                  className="gap-2 rounded-none border-2 border-primary bg-background text-primary hover:bg-primary/10 font-mono text-sm"
+                  className="shrink-0 gap-2 rounded-none border-2 border-primary bg-background font-mono text-sm text-primary hover:bg-primary/10"
                   onClick={() => setOnlineImportOpen(true)}
                   disabled={!userId}
                 >
@@ -553,7 +585,7 @@ export default function DashboardPage({
               )}
               {activeTab === "morgues" && !isBrowsingOther && morgues.length > 0 && (
                 <Button
-                  className="gap-2 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-sm"
+                  className="shrink-0 gap-2 rounded-none border-2 border-primary bg-background font-mono text-sm text-primary hover:bg-primary/10"
                   onClick={() => setDownloadConfirmOpen(true)}
                   disabled={isDownloading}
                 >
@@ -857,11 +889,11 @@ export default function DashboardPage({
 
         {activeTab === "morgues" && (
           <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-2 pb-2">
-            <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-3">
-              <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground">
-                <span>Version range:</span>
+            <div className="flex w-full shrink-0 flex-wrap items-center justify-start gap-3 lg:-mt-[28px] lg:justify-end">
+              <div className="flex w-full min-w-0 flex-wrap items-center gap-2 font-mono text-sm text-muted-foreground sm:w-auto">
+                <span className="shrink-0">Version range:</span>
                 <Select value={versionStart} onValueChange={setVersionStart}>
-                  <SelectTrigger className="h-8 w-24 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
+                  <SelectTrigger className="h-8 w-[134px] rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
                     <SelectValue aria-label="Start version" />
                   </SelectTrigger>
                   <SelectContent className="rounded-none border-2 border-primary/40">
@@ -878,7 +910,7 @@ export default function DashboardPage({
                 </Select>
                 <span>to</span>
                 <Select value={versionEnd} onValueChange={setVersionEnd}>
-                  <SelectTrigger className="h-8 w-24 rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
+                  <SelectTrigger className="h-8 w-[134px] rounded-none border-2 border-primary/40 bg-background px-2 font-mono text-sm">
                     <SelectValue aria-label="End version" />
                   </SelectTrigger>
                   <SelectContent className="rounded-none border-2 border-primary/40">

@@ -4,7 +4,7 @@ import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-/** Shared filter/toggle (Morgues All/Wins/Deaths, DCSS Chargen VIEW row, Win Performance, etc.). Font matches Chargen `VIEW:` (`text-sm`). */
+/** Shared filter/toggle (Morgues All/Wins/Deaths, DCSS Chargen mode row, Win Performance, etc.). */
 export function FilterToggleButton({
   selected,
   onClick,
