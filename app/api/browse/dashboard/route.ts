@@ -37,24 +37,27 @@ export async function GET(request: Request) {
     "id, short_id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_8, reached_temple, reached_depths_milestone, reached_zot_milestone, version"
   const withoutShortId =
     "id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_8, reached_temple, reached_depths_milestone, reached_zot_milestone, version"
+  const selectAttempts = [
+    `${withShortId}, died_holding_orb`,
+    withShortId,
+    `${withoutShortId}, died_holding_orb`,
+    withoutShortId,
+  ]
 
-  const primary = await supabase
-    .from("parsed_morgues")
-    .select(withShortId)
-    .eq("user_id", targetUserId)
-    .order("created_at", { ascending: false })
-
-  let morgueRows: unknown[] = (primary.data ?? []) as unknown[]
-  if (primary.error) {
-    const fallback = await supabase
+  let morgueRows: unknown[] | null = null
+  for (const sel of selectAttempts) {
+    const res = await supabase
       .from("parsed_morgues")
-      .select(withoutShortId)
+      .select(sel)
       .eq("user_id", targetUserId)
       .order("created_at", { ascending: false })
-    if (fallback.error) {
-      return NextResponse.json({ error: "Failed to load morgues" }, { status: 500 })
+    if (!res.error) {
+      morgueRows = (res.data ?? []) as unknown[]
+      break
     }
-    morgueRows = (fallback.data ?? []) as unknown[]
+  }
+  if (morgueRows === null) {
+    return NextResponse.json({ error: "Failed to load morgues" }, { status: 500 })
   }
 
   const { data: statsRow } = await supabase

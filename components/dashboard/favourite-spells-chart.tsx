@@ -41,7 +41,7 @@ export function FavouriteSpellsChart({
     return (
       <Card className={cn(colors.cardBorder, "rounded-none")}>
         <CardHeader className={cn(colors.cardBorderBottom, "pb-3")}>
-          <CardTitle>FAVOURITE SPELLS</CardTitle>
+          <CardTitle>MOST USED SPELLS</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <div
@@ -58,7 +58,7 @@ export function FavouriteSpellsChart({
     return (
       <Card className={cn(colors.cardBorder, "rounded-none")}>
         <CardHeader className={cn(colors.cardBorderBottom, "pb-3")}>
-          <CardTitle>FAVOURITE SPELLS</CardTitle>
+          <CardTitle>MOST USED SPELLS</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <p className={cn(typography.bodyMuted, SPELL_BODY, "leading-relaxed")}>
@@ -73,7 +73,7 @@ export function FavouriteSpellsChart({
   return (
     <Card className={cn(colors.cardBorder, "rounded-none")}>
       <CardHeader className={cn(colors.cardBorderBottom, "pb-3")}>
-        <CardTitle>FAVOURITE SPELLS</CardTitle>
+        <CardTitle>MOST USED SPELLS</CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

@@ -57,6 +57,11 @@ export interface GameRecord {
   reachedZotMilestone?: boolean
   /** Short DCSS version for this game (e.g. "0.33", "0.34", "git"). */
   version?: string
+  /**
+   * For deaths: true if the morgue shows the run ended with the orb obtained (orb run) before dying
+   * (buckets as Orb Run, not by dungeon floor). Omitted or false for older DB rows.
+   */
+  diedHoldingOrb?: boolean
 }
 
 export interface UploadResult {
@@ -725,6 +730,7 @@ export function parsedMorgueRowsToGameRecords(data: unknown[] | null | undefined
       reached_temple?: boolean
       reached_depths_milestone?: boolean
       reached_zot_milestone?: boolean
+      died_holding_orb?: boolean
     }
     return {
       id: row.id,
@@ -753,6 +759,7 @@ export function parsedMorgueRowsToGameRecords(data: unknown[] | null | undefined
       reachedDepthsMilestone: row.reached_depths_milestone ?? false,
       reachedZotMilestone: row.reached_zot_milestone ?? false,
       version: row.version?.trim() || undefined,
+      diedHoldingOrb: row.died_holding_orb === true,
     }
   })
 }
@@ -769,24 +776,26 @@ export async function fetchMorgues(
     "id, short_id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_8, reached_temple, reached_depths_milestone, reached_zot_milestone, version"
   const withoutShortId =
     "id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_8, reached_temple, reached_depths_milestone, reached_zot_milestone, version"
+  const withShortIdOrb = `${withShortId}, died_holding_orb`
+  const withoutShortIdOrb = `${withoutShortId}, died_holding_orb`
 
-  let { data, error } = await supabase
-    .from("parsed_morgues")
-    .select(withShortId)
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
+  const selectAttempts = [withShortIdOrb, withShortId, withoutShortIdOrb, withoutShortId]
 
-  if (error) {
-    const fallback = await supabase
+  let data: unknown[] | null = null
+  for (const sel of selectAttempts) {
+    const r = await supabase
       .from("parsed_morgues")
-      .select(withoutShortId)
+      .select(sel)
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
-    if (fallback.error) return []
-    data = fallback.data
+    if (!r.error) {
+      data = (r.data ?? []) as unknown[]
+      break
+    }
   }
 
-  return parsedMorgueRowsToGameRecords(data as unknown[])
+  if (!data) return []
+  return parsedMorgueRowsToGameRecords(data)
 }
 
 /**

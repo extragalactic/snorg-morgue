@@ -926,8 +926,8 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           <CardHeader className="border-b-2 border-primary/20 pb-3">
             <CardTitle className="flex items-baseline gap-2">
               <span>ENTHUSIASTIC SPECIES</span>
-              <span className="text-xs text-muted-foreground">
-                …on the path to Greater Species
+              <span className="text-xs text-muted-foreground ml-3 sm:ml-4">
+                Shows <span className="text-primary">attempts</span> on the path to Greater Species
               </span>
             </CardTitle>
           </CardHeader>

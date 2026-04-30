@@ -21,6 +21,8 @@ import { Navigation } from "@/components/dashboard/navigation"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { GoalProgress } from "@/components/dashboard/goal-progress"
 import { LevelAtDeathChart } from "@/components/dashboard/level-at-death-chart"
+import { DeathPlaceImpactChart } from "@/components/dashboard/death-place-impact-chart"
+import { CharacterTitlesChart } from "@/components/dashboard/character-titles-chart"
 import { TotalTimeSpentAtEachLevelChart } from "@/components/dashboard/level-time-distribution-chart"
 import { RuneCollectionChart } from "@/components/dashboard/rune-collection-chart"
 import { TestPerformanceChart } from "@/components/dashboard/test-performance-chart"
@@ -817,13 +819,16 @@ export default function DashboardPage({
                   globalAverageDeathsPerLevel={showGlobalComparison ? (globalLevelDeathAverages ?? undefined) : undefined}
                   globalAverageUserCount={showGlobalComparison ? globalLevelDeathUserCount ?? undefined : undefined}
                 />
-                <MilestoneProgressionChart
-                  morgues={morgues}
-                  loading={statsLoading}
-                  globalLair5ReachRate={
-                    showGlobalComparison && globalStats ? globalStats.totals.lair5ReachRate : undefined
-                  }
-                />
+                <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+                  <DeathPlaceImpactChart morgues={morgues} loading={statsLoading} />
+                  <MilestoneProgressionChart
+                    morgues={morgues}
+                    loading={statsLoading}
+                    globalLair5ReachRate={
+                      showGlobalComparison && globalStats ? globalStats.totals.lair5ReachRate : undefined
+                    }
+                  />
+                </div>
                 <PerformanceAndRunesLayout
                   stats={stats}
                   statsLoading={statsLoading}
@@ -835,6 +840,7 @@ export default function DashboardPage({
                   <Top10Killers morgues={morgues} loading={statsLoading} />
                   <Top10NotoriousKillers morgues={morgues} loading={statsLoading} />
                 </div>
+                <CharacterTitlesChart morgues={morgues} loading={statsLoading} />
                 <FavouriteSpellsChart rows={favouriteSpells} loading={statsLoading} />
                 <AverageLevelByGodChart morgues={morgues} />
                 </>
