@@ -29,6 +29,7 @@ import { TestPerformanceChart } from "@/components/dashboard/test-performance-ch
 import { FavouriteSpellsChart } from "@/components/dashboard/favourite-spells-chart"
 import { Top10Killers, Top10NotoriousKillers } from "@/components/dashboard/top-10-killers"
 import { SpeciesBackgroundComboGrid } from "@/components/dashboard/species-background-combo-grid"
+import { ZotSplats } from "@/components/dashboard/zot-splats"
 import { DcssChargenSelectionGrid } from "@/components/dashboard/dcss-chargen-selection-grid"
 import { UploadDialog } from "@/components/dashboard/upload-dialog"
 import { OnlineImportDialog } from "@/components/dashboard/online-import-dialog"
@@ -840,6 +841,12 @@ export default function DashboardPage({
                   <Top10Killers morgues={morgues} loading={statsLoading} />
                   <Top10NotoriousKillers morgues={morgues} loading={statsLoading} />
                 </div>
+                <ZotSplats
+                  morgues={morgues}
+                  loading={statsLoading}
+                  usernameSlug={isBrowsingOther && browseTarget ? browseTarget.usernameSlug : routeSlug || undefined}
+                  actionAveragesUserId={isBrowsingOther && browseTarget ? browseTarget.userId : userId ?? null}
+                />
                 <CharacterTitlesChart morgues={morgues} loading={statsLoading} />
                 <FavouriteSpellsChart rows={favouriteSpells} loading={statsLoading} />
                 <AverageLevelByGodChart morgues={morgues} />

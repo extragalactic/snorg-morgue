@@ -38,8 +38,19 @@ Features:
 - for most popular spells find a way to indicate which spells were used by winning characters, perhaps via multi-colour bars where the secondary colour shows what ratio of the spell count was used by a winning character. Also consider adding more than 5 for each level
 - some charts will show the Compare data overlaid, while other charts will use a toggle switch
 - make another style that is a darker/black background, with interesting colour schemes (not just mono-colour), generate a bunch of colour schemes
+- add the Aptitudes data somewhere, would be nice to browse this while looking at your games to help plan future dudes
+- make the importer dialog more interesting during the import, perhaps show in large font the title for each character as it imports, including the icon for that species (i.e. "*icon* Level 26 Merfolk Gladiator of Hep"). Maybe show the last 3 import lines in a rolling list, with previous ones becoming darker colour shades
+- would be neat to have data on the list of summon spells in particular each character had, and make it accessible via tooltip so it's easy to compare. Or make a visual indicator (colored bar) of the summon strength, perhaps via total spell levels
+- needs a fresh design/skin that doesn't look like "Claude Default"
+- make the data tables into infinite scroll instead of paged
+- make a section called Zot Splats that lists all characters that died in Zot and for which you haven't yet won with that combo
 
 Fixes:
+- after importing new files, the table needs to auto-run the sort
+- on title "13 of 141 Games (9%)", the percentage should be to one decimal place
+- subtitle font on Snorg Awards title is too small
+- after local file import the message saying "2 games imported" should be larger font
+- the popup on the Great Player award is not updating... e.g. not showing my new Draconian win
 - Browse should instead be "Compare"
 - bug: on morgue viewer for my winning DjFE the highlighting is broken for the core stat block
 - draconian filter logic is broken on morgue page
@@ -59,22 +70,44 @@ Fixes:
 - fix security issue with permissions, see email from April 15th (on Coinmiles email)
 - perhaps have a floating Browse/Spectate control on all page that lets you quickly compare data from other players (including the average)
 - there are duplicate icons on DCSS Chargen chart
+- the x-axis labels on the species-background grid shouldn't be diagonal
+- "Win with all available backgrounds" and simnilar bottom text should be moved into a subtitle to avoid so much repetition
+- "Upload Morgue" should be perhaps "Upload from computer", and be separate from Download
 
 Combos to try:
-    DEHs^Hep(hex)
+
+    MiFi^Qaz
     MiFi^Oka
     MiHu^Oka
+    MiHu^Qaz / BaHu^Qaz
     Mi?^Usk
-    GrFE^Veh
-    DjFW^Nem
+    TeAE^Veh
+    DjCo^Nem (Dj is strong so good chance to get a Nem and Co win)
     DrSh^Ru
-    DsBr^Mak
-    DsRe^Mak
+    DrSh^Goz
+    DsWn^Mak
+    GrFE^Veh
     DjFE^Ely
+    HuMo^Chei
     Reaver of Wu Jian ... Dj, Ds, Dr, Gr, Gn
-    An Oni mage (since defense sucks so no melee)
-    Hunter^Qaz
+    OnFW^??
+    OnWr^Sif
+    OnNe^Kiku
+    Op??^Ash
+    DgHu
+    Po??^Usk (stabber)
+    Vs??^Mak (Unleash Destruction should be spammable with Vs)
+    FoFi^Usk
+    ??Ar^Dith
+    DEHs^Ash (YASD, is a great combo though)
+    Fo??^Ru (Ru comes recommended for Fo)
+    Fo??^Zin (Zin is apparently good for Fo with escape options)
+    ??Co^Qaz (lean into making noise with Qaz and Fulminant Prism)
+    Sp??^Ely (apparently Ely is good for Sp)
+    Usk on an AOE char (like blaster casters, or axes melee)
+    VsNe^Wu
 
+    
 Key Character Sheet Stats (example)
 
 Name: Archol the Slayer

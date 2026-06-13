@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Eye, ChevronLeft, ChevronRight, Skull, Trophy, ChevronUp, ChevronDown, Trash2, ArrowLeft } from "lucide-react"
+import { Eye, ChevronLeft, ChevronRight, Skull, Trophy, ChevronUp, ChevronDown, Trash2, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,13 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { MorgueBrowser } from "./morgue-browser"
+import { MorgueViewerModal } from "./morgue-viewer-modal"
 import { supabase } from "@/lib/supabase"
 import { deleteMorgue } from "@/lib/morgue-api"
 import { useAuth } from "@/contexts/auth-context"
@@ -47,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useSettings } from "@/contexts/settings-context"
+import { defaultMorguesTableSettings, useSettings } from "@/contexts/settings-context"
 
 type ResultFilter = "all" | "win" | "death"
 type SpeciesFilter = "all" | string
@@ -128,6 +122,24 @@ export function UploadsTable({
         ...prev.morguesTable,
         ...partial,
       },
+    }))
+  }
+
+  const filtersAtDefault =
+    resultFilter === "all" &&
+    speciesFilter === "all" &&
+    backgroundFilter === "all" &&
+    godFilter === "all" &&
+    sortField === null &&
+    sortDirection === "asc" &&
+    currentPage === 1 &&
+    settings.morguesTable.searchQuery === ""
+
+  const resetMorgueFilters = () => {
+    setCurrentPage(1)
+    setSettings((prev) => ({
+      ...prev,
+      morguesTable: { ...defaultMorguesTableSettings },
     }))
   }
 
@@ -564,6 +576,16 @@ export function UploadsTable({
                 </Select>
               </div>
             </div>
+            <Button
+              type="button"
+              className="gap-2 shrink-0 rounded-none border-2 border-primary bg-background font-mono text-sm text-primary hover:bg-primary/10"
+              onClick={resetMorgueFilters}
+              disabled={filtersAtDefault}
+              aria-label="Reset filters"
+            >
+              <RotateCcw className="h-4 w-4" aria-hidden />
+              Reset
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -740,52 +762,16 @@ export function UploadsTable({
         </div>
       </CardContent>
     </Card>
-    {viewingMorgue && (
-      <Dialog
-        open={!!viewingMorgue}
-        onOpenChange={(open) => {
-          if (!open) {
-            setViewingMorgue(null)
-            if (usernameSlug) router.replace(`/${usernameSlug}/morgues`)
-          }
-        }}
-      >
-        <DialogContent
-          showCloseButton={false}
-          className="morgue-detail-modal fixed left-1/2 top-5 bottom-5 m-0 flex h-[calc(100vh-40px)] w-[min(2400px,calc(100vw-100px))] max-w-none sm:max-w-none -translate-x-1/2 translate-y-0 flex-col gap-0 rounded-none border-2 border-primary/30 p-0"
-        >
-          <DialogHeader className="flex shrink-0 flex-row items-center gap-2 border-b-2 border-primary/20 px-4 py-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn("gap-2 rounded-none font-mono text-sm", colors.inputBorder, colors.highlightHover)}
-              onClick={() => {
-                setViewingMorgue(null)
-                if (usernameSlug) router.replace(`/${usernameSlug}/morgues`)
-              }}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Morgue list
-            </Button>
-            <DialogTitle className="sr-only">Morgue details</DialogTitle>
-          </DialogHeader>
-          <div className="morgue-modal-scroll flex min-h-0 flex-1 flex-col overflow-hidden p-4">
-            <MorgueBrowser
-              game={viewingMorgue}
-              onBack={() => {
-                setViewingMorgue(null)
-                if (usernameSlug) router.replace(`/${usernameSlug}/morgues`)
-              }}
-              hideBackButton
-              showDownloadButton
-              fillHeight
-              sharePath={usernameSlug && viewingMorgue ? `/${usernameSlug}/morgues/${viewingMorgue.shortId || viewingMorgue.id}` : undefined}
-              actionAveragesUserId={actionAveragesUserId ?? userId}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-    )}
+    <MorgueViewerModal
+      game={viewingMorgue}
+      onClose={() => {
+        setViewingMorgue(null)
+        if (usernameSlug) router.replace(`/${usernameSlug}/morgues`)
+      }}
+      usernameSlug={usernameSlug}
+      actionAveragesUserId={actionAveragesUserId ?? userId}
+      backLabel="Back to Morgue list"
+    />
     </>
   )
 }
