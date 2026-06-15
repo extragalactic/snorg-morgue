@@ -18,7 +18,9 @@ import {
 } from "@/components/ui/dialog"
 import { useAuth } from "@/contexts/auth-context"
 import { useTheme } from "@/contexts/theme-context"
+import { typography } from "@/lib/typography"
 import Image from "next/image"
+import { cn } from "@/lib/utils"
 
 export default function LoginPage() {
   const { signIn, signInWithGoogle, signUp, isLoading, error, clearError } = useAuth()
@@ -106,7 +108,7 @@ export default function LoginPage() {
                 </h1>
               </div>
             )}
-            <p className="text-left text-muted-foreground mt-2">
+            <p className={cn("text-left mt-2", typography.primaryPageSubtitle)}>
               Dungeon Crawl Stone Soup Analytics
             </p>
           </div>

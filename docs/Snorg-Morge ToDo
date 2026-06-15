@@ -24,38 +24,90 @@ Features:
 - Browse needs a search filter and sort alphabetically or by wins
 - consider reorganizing the data so that a single page is dedicated to tracking species/background/god completion stats, which would include: Win Performance, DCSS Chargen, Species-Background Grid, All Awards. Something like Completion or Completion Tracking
 - tooltips can also include a larger version of the appropriate icon
-- list of Favourite Spells
 - add a title and/or graphic to many tooltips, incl for awards
 - perhaps transform the regular tooltips with more information? e.g. for awards show the highest level you got for each species/background/god with a bar chart underneath the text items. Don't be shy about repeating info, that's part of the point of this, to have many ways to read the data.
 - consider changing how to handle the Browse spectator data. Could make the blue data always be the single browsed account, and the toggle switch would show the name of the connected comparison account. So then a person could connect to the data for a good player and visually compare the differences. Not all sections will get multi-data, so perhaps add a subtitle to each active section. The chart data would need to be normalized. Whatever method it used, it needs to be fun and easy to use. For sections where overlaid extra data won't work maybe add a switch (i.e. You <==> particleface)
 - the icons used in the stat boxes are kinda random/lame
 - make a Planner page that lets you take notes, make lists of combos you should try, add commentary about different combos, etc. Using the Browse feature you could see other peoples' notes to learn from.
-
-
+- would be funny to show a "condolences card" if a user uploads a character that died in Zot 5
+- should have a "3rd Rune Tracker", given how much trouble I have with it. Show which character types found: Vaults, Slime, or Abyss (incl. version number)
+- new chart showing Death Location (Dungeon, Lair, Orc, Swamp, Vaults, Vaults 5, etc.)
+- perhaps have a Winners Summary that gives several charts of data specifically to analyze your winners, with data like: melee vs. magic vs. ranged vs. hybrid character ratios, and a visual/pictoral summary of common char types like "You are good with gnolls and djinni, common gods are chei and mak"
+- show the winners who collected different 3rd runes (so you can see for example which chars got the Abyssal rune vs. vaults vs. slime)
+- show Most Attempted Combos summary (is hard to see via the combo grid)
+- for most popular spells find a way to indicate which spells were used by winning characters, perhaps via multi-colour bars where the secondary colour shows what ratio of the spell count was used by a winning character. Also consider adding more than 5 for each level
+- some charts will show the Compare data overlaid, while other charts will use a toggle switch
+- make another style that is a darker/black background, with interesting colour schemes (not just mono-colour), generate a bunch of colour schemes
+- add the Aptitudes data somewhere, would be nice to browse this while looking at your games to help plan future dudes
+- make the importer dialog more interesting during the import, perhaps show in large font the title for each character as it imports, including the icon for that species (i.e. "*icon* Level 26 Merfolk Gladiator of Hep"). Maybe show the last 3 import lines in a rolling list, with previous ones becoming darker colour shades
+- would be neat to have data on the list of summon spells in particular each character had, and make it accessible via tooltip so it's easy to compare. Or make a visual indicator (colored bar) of the summon strength, perhaps via total spell levels
+- needs a fresh design/skin that doesn't look like "Claude Default"
+- make the data tables into infinite scroll instead of paged
+- make a section called Zot Splats that lists all characters that died in Zot and for which you haven't yet won with that combo
 
 Fixes:
+- after importing new files, the table needs to auto-run the sort
+- on title "13 of 141 Games (9%)", the percentage should be to one decimal place
+- subtitle font on Snorg Awards title is too small
+- after local file import the message saying "2 games imported" should be larger font
+- the popup on the Great Player award is not updating... e.g. not showing my new Draconian win
+- Browse should instead be "Compare"
+- bug: on morgue viewer for my winning DjFE the highlighting is broken for the core stat block
 - draconian filter logic is broken on morgue page
 - sharing a morgue needs better feedback after clicking button, then the morgue file needs to show the player name at the top and remove the Back to Morgues button
 - all of the tooltips should be made with larger text with simplified presentation (to convey useful data quickly)
-- overall the font should globally increase a point or two
 - remove red from Sign Out button
 - what's the proper terminology: Grand Player or Greater Player? And how is it defined?
-- need to normalize the Level at Death graph when comparing to the average data
+- need to normalize the Level at Death graph when comparing to the average data (make it percentage of total deaths)
 - y-axis units messed up on Levels at Death
 - Avg species performance data is broken for Wins, and also wrong on Level at Death graph
 - server import cards have wobbly text when you click
 - need to review all the minor branch names like: gauntlet, volcano, etc. and ensure they are shown correctly in various spots
 - investigate why "divine providence" appears as a top killer
 - consider combinining DCSS Chargen with Win Performance by adding bar underlays beneath the names on DCSS Chargen
-
+- put a New Achievement award tag in anything that hits a new record, like Fastest Win
+- the Milestone chart data looks broken for the particleface data
+- fix security issue with permissions, see email from April 15th (on Coinmiles email)
+- perhaps have a floating Browse/Spectate control on all page that lets you quickly compare data from other players (including the average)
+- there are duplicate icons on DCSS Chargen chart
+- the x-axis labels on the species-background grid shouldn't be diagonal
+- "Win with all available backgrounds" and simnilar bottom text should be moved into a subtitle to avoid so much repetition
+- "Upload Morgue" should be perhaps "Upload from computer", and be separate from Download
 
 Combos to try:
-    Draconian Shapeshifter of Ru, 
-    DsBr^Mak
-    DjCo
-    DjFE^Ely (since that gives healing which Dj wants)
-    Reaver of Wu Jian (Rending Blade) ... VS, Ds, Dr, Fo
 
+    MiFi^Qaz
+    MiFi^Oka
+    MiHu^Oka
+    MiHu^Qaz / BaHu^Qaz
+    Mi?^Usk
+    TeAE^Veh
+    DjCo^Nem (Dj is strong so good chance to get a Nem and Co win)
+    DrSh^Ru
+    DrSh^Goz
+    DsWn^Mak
+    GrFE^Veh
+    DjFE^Ely
+    HuMo^Chei
+    Reaver of Wu Jian ... Dj, Ds, Dr, Gr, Gn
+    OnFW^??
+    OnWr^Sif
+    OnNe^Kiku
+    Op??^Ash
+    DgHu
+    Po??^Usk (stabber)
+    Vs??^Mak (Unleash Destruction should be spammable with Vs)
+    FoFi^Usk
+    ??Ar^Dith
+    DEHs^Ash (YASD, is a great combo though)
+    Fo??^Ru (Ru comes recommended for Fo)
+    Fo??^Zin (Zin is apparently good for Fo with escape options)
+    ??Co^Qaz (lean into making noise with Qaz and Fulminant Prism)
+    Sp??^Ely (apparently Ely is good for Sp)
+    Usk on an AOE char (like blaster casters, or axes melee)
+    VsNe^Wu
+
+    
 Key Character Sheet Stats (example)
 
 Name: Archol the Slayer

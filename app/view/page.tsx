@@ -103,7 +103,7 @@ export default function MorgueViewerPage() {
         <h1 className={cn(typography.primaryTitle, "text-center")}>
           DCSS Morgue Viewer
         </h1>
-        <p className="text-center text-sm text-muted-foreground font-mono">
+        <p className={cn("text-center font-mono", typography.primaryPageSubtitle)}>
           Paste a URL to a morgue file on a DCSS game server.
         </p>
         <form onSubmit={handleSubmit} className="space-y-3">

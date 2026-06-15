@@ -279,7 +279,7 @@ export function SkillingAnalysis({ globalOnly = true }: SkillingAnalysisProps) {
             <FilterToggleButton
               selected={false}
               onClick={openGodModal}
-              className="px-5 py-2 text-sm"
+              className="px-5 py-2"
             >
               View God Data
             </FilterToggleButton>

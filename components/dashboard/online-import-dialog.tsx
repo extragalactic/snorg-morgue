@@ -539,7 +539,7 @@ export function OnlineImportDialog({ open, onOpenChange, onImportComplete }: Onl
             </p>
             <div className="flex justify-end pt-2">
               <Button
-                className="rounded-none border-2 border-primary/60 font-mono text-xs"
+                className="rounded-none border-2 border-primary/60 font-mono text-sm"
                 onClick={handleSuccessOk}
               >
                 OK

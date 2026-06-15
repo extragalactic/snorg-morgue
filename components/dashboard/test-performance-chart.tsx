@@ -331,28 +331,25 @@ export function TestPerformanceChart({
           </div>
         </div>
         <div className="flex flex-col gap-3 pt-3">
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-xs text-primary">SHOW:</span>
-            <div className="flex gap-2">
-              <FilterToggleButton
-                selected={showMode === "wins"}
-                onClick={() => {
-                  setShowMode("wins")
-                  updatePerformanceSettings({ showMode: "wins" })
-                }}
-              >
-                Wins
-              </FilterToggleButton>
-              <FilterToggleButton
-                selected={showMode === "attempts"}
-                onClick={() => {
-                  setShowMode("attempts")
-                  updatePerformanceSettings({ showMode: "attempts" })
-                }}
-              >
-                Attempts
-              </FilterToggleButton>
-            </div>
+          <div className="flex flex-wrap gap-2">
+            <FilterToggleButton
+              selected={showMode === "wins"}
+              onClick={() => {
+                setShowMode("wins")
+                updatePerformanceSettings({ showMode: "wins" })
+              }}
+            >
+              Wins
+            </FilterToggleButton>
+            <FilterToggleButton
+              selected={showMode === "attempts"}
+              onClick={() => {
+                setShowMode("attempts")
+                updatePerformanceSettings({ showMode: "attempts" })
+              }}
+            >
+              Attempts
+            </FilterToggleButton>
           </div>
         </div>
       </CardHeader>
@@ -381,7 +378,7 @@ export function TestPerformanceChart({
                 label={{
                   value: showMode === "wins" ? "Number of Wins" : "Number of Attempts",
                   position: "bottom",
-                  style: { fill: "var(--muted-foreground)", fontSize: 12 },
+                  style: { fill: "var(--muted-foreground)", fontSize: 14 },
                   offset: 0,
                 }}
               />

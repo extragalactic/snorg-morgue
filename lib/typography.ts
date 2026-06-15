@@ -39,6 +39,10 @@ export const typography = {
   bodyMuted:
     "text-sm text-muted-foreground",
 
+  /** Tagline directly under the main page title (dashboard, browse, admin, login header, view). Text-sm + 2pt. */
+  primaryPageSubtitle:
+    "text-[calc(0.875rem+2pt)] text-muted-foreground",
+
   /** Body text, monospace (e.g. character names, values) */
   bodyMono:
     "font-mono text-sm text-foreground",

@@ -14,7 +14,7 @@ import {
   mergeSpellUsesFromActionHistoryInto,
   type ActionHistory,
 } from "./action-history"
-import { DCSS_SPELL_LEVELS, lookupDcssSpellLevel } from "./dcss-spell-levels"
+import { DCSS_SPELL_LEVELS, lookupDcssSpellLevel, resolveCanonicalDcssSpellName } from "./dcss-spell-levels"
 import {
   parsedToRow,
   formatPlayTime,
@@ -57,6 +57,11 @@ export interface GameRecord {
   reachedZotMilestone?: boolean
   /** Short DCSS version for this game (e.g. "0.33", "0.34", "git"). */
   version?: string
+  /**
+   * For deaths: true if the morgue shows the run ended with the orb obtained (orb run) before dying
+   * (buckets as Orb Run, not by dungeon floor). Omitted or false for older DB rows.
+   */
+  diedHoldingOrb?: boolean
 }
 
 export interface UploadResult {
@@ -267,10 +272,14 @@ export type UserActionAverageRow = {
   avg_count: number
 }
 
+/** How many spells are kept per DCSS spell level (1–9) in `user_favourite_spells`. */
+export const FAVOURITE_SPELLS_PER_LEVEL = 7
+
 /** One row from user_favourite_spells (dashboard / browse API). */
 export type UserFavouriteSpellRow = {
   /** Spell level 1–9 (DCSS), stored as text in DB. */
   level_group: string
+  /** 1 … {@link FAVOURITE_SPELLS_PER_LEVEL} within this level_group. */
   rank: number
   spell_key: string
   spell_name: string
@@ -380,6 +389,7 @@ export async function recomputeUserActionAverages(
 
 /**
  * Rebuild user_favourite_spells from all morgue_files.raw_text for the user.
+ * Persists the top {@link FAVOURITE_SPELLS_PER_LEVEL} spells by total casts for each spell level 1–9.
  */
 export async function recomputeUserFavouriteSpells(
   supabase: SupabaseClient,
@@ -446,7 +456,7 @@ export async function recomputeUserFavouriteSpells(
     if (inner.size === 0) continue
     const top = [...inner.entries()]
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-      .slice(0, 3)
+      .slice(0, FAVOURITE_SPELLS_PER_LEVEL)
     let rank = 1
     for (const [key, total] of top) {
       insertRows.push({
@@ -454,7 +464,7 @@ export async function recomputeUserFavouriteSpells(
         level_group: String(level),
         rank,
         spell_key: key,
-        spell_name: labels.get(key) ?? key,
+        spell_name: resolveCanonicalDcssSpellName(key) ?? labels.get(key) ?? key,
         total_uses: Math.round(total),
         morgue_count: actionTableCount,
         updated_at: updatedAt,
@@ -473,12 +483,16 @@ export async function recomputeUserFavouriteSpells(
 
   const { error: insErr } = await supabase.from("user_favourite_spells").insert(insertRows)
   if (insErr) {
-    console.warn("[snorg-morgue] user_favourite_spells insert:", insErr.message)
+    console.warn(
+      "[snorg-morgue] user_favourite_spells insert:",
+      insErr.message,
+      "(if the rank check rejects rank > 5, run supabase/alter_user_favourite_spells_rank_top7.sql)",
+    )
   }
 }
 
 /**
- * Fetch per-user favourite spells (top 3 per spell level 1–9). Empty if none.
+ * Fetch per-user favourite spells (top {@link FAVOURITE_SPELLS_PER_LEVEL} per spell level 1–9). Empty if none.
  */
 export async function fetchUserFavouriteSpells(
   supabase: SupabaseClient,
@@ -716,6 +730,7 @@ export function parsedMorgueRowsToGameRecords(data: unknown[] | null | undefined
       reached_temple?: boolean
       reached_depths_milestone?: boolean
       reached_zot_milestone?: boolean
+      died_holding_orb?: boolean
     }
     return {
       id: row.id,
@@ -744,6 +759,7 @@ export function parsedMorgueRowsToGameRecords(data: unknown[] | null | undefined
       reachedDepthsMilestone: row.reached_depths_milestone ?? false,
       reachedZotMilestone: row.reached_zot_milestone ?? false,
       version: row.version?.trim() || undefined,
+      diedHoldingOrb: row.died_holding_orb === true,
     }
   })
 }
@@ -760,24 +776,26 @@ export async function fetchMorgues(
     "id, short_id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_8, reached_temple, reached_depths_milestone, reached_zot_milestone, version"
   const withoutShortId =
     "id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_8, reached_temple, reached_depths_milestone, reached_zot_milestone, version"
+  const withShortIdOrb = `${withShortId}, died_holding_orb`
+  const withoutShortIdOrb = `${withoutShortId}, died_holding_orb`
 
-  let { data, error } = await supabase
-    .from("parsed_morgues")
-    .select(withShortId)
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
+  const selectAttempts = [withShortIdOrb, withShortId, withoutShortIdOrb, withoutShortId]
 
-  if (error) {
-    const fallback = await supabase
+  let data: unknown[] | null = null
+  for (const sel of selectAttempts) {
+    const r = await supabase
       .from("parsed_morgues")
-      .select(withoutShortId)
+      .select(sel)
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
-    if (fallback.error) return []
-    data = fallback.data
+    if (!r.error) {
+      data = (r.data ?? []) as unknown[]
+      break
+    }
   }
 
-  return parsedMorgueRowsToGameRecords(data as unknown[])
+  if (!data) return []
+  return parsedMorgueRowsToGameRecords(data)
 }
 
 /**

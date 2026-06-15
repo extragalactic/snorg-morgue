@@ -401,7 +401,7 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
         </CardTitle>
         <div className="flex flex-wrap items-center gap-6 pt-3">
           <div className="flex items-center gap-3">
-            <span className="font-mono text-xs text-primary">SORT BY:</span>
+            <span className="font-mono text-sm text-primary">SORT BY:</span>
             <div className="flex gap-2">
               <FilterToggleButton
                 selected={sortMethod === "wins"}
@@ -432,37 +432,34 @@ export function PlayerStatsChart({ speciesStats = [], backgroundStats = [], godS
               </FilterToggleButton>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-xs text-primary">SHOW:</span>
-            <div className="flex gap-2">
-              <FilterToggleButton
-                selected={showMode === "wins"}
-                onClick={() => {
-                  setShowMode("wins")
-                  updatePerformanceSettings({ showMode: "wins" })
-                }}
-              >
-                Wins
-              </FilterToggleButton>
-              <FilterToggleButton
-                selected={showMode === "attempts"}
-                onClick={() => {
-                  setShowMode("attempts")
-                  updatePerformanceSettings({ showMode: "attempts" })
-                }}
-              >
-                Attempts
-              </FilterToggleButton>
-              <FilterToggleButton
-                selected={showMode === "both"}
-                onClick={() => {
-                  setShowMode("both")
-                  updatePerformanceSettings({ showMode: "both" })
-                }}
-              >
-                Both
-              </FilterToggleButton>
-            </div>
+          <div className="flex flex-wrap gap-2">
+            <FilterToggleButton
+              selected={showMode === "wins"}
+              onClick={() => {
+                setShowMode("wins")
+                updatePerformanceSettings({ showMode: "wins" })
+              }}
+            >
+              Wins
+            </FilterToggleButton>
+            <FilterToggleButton
+              selected={showMode === "attempts"}
+              onClick={() => {
+                setShowMode("attempts")
+                updatePerformanceSettings({ showMode: "attempts" })
+              }}
+            >
+              Attempts
+            </FilterToggleButton>
+            <FilterToggleButton
+              selected={showMode === "both"}
+              onClick={() => {
+                setShowMode("both")
+                updatePerformanceSettings({ showMode: "both" })
+              }}
+            >
+              Both
+            </FilterToggleButton>
           </div>
         </div>
       </CardHeader>

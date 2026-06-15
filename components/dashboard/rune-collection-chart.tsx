@@ -214,25 +214,25 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                 <XAxis
                   dataKey="runes"
                   stroke="var(--muted-foreground)"
-                  fontSize={12}
+                  fontSize={14}
                   tickLine={false}
                   label={{
                     value: "Runes collected",
                     position: "bottom",
                     offset: 0,
-                    style: { fill: "var(--muted-foreground)", fontSize: 12 },
+                    style: { fill: "var(--muted-foreground)", fontSize: 14 },
                   }}
                 />
                 <YAxis
                   stroke="var(--muted-foreground)"
-                  fontSize={12}
+                  fontSize={14}
                   tickLine={false}
                   allowDecimals={false}
                   label={{
                     value: "Number of games",
                     angle: -90,
                     position: "insideLeft",
-                    style: { fill: "var(--muted-foreground)", fontSize: 12, textAnchor: "middle" },
+                    style: { fill: "var(--muted-foreground)", fontSize: 14, textAnchor: "middle" },
                   }}
                 />
                 <Tooltip
@@ -343,7 +343,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
                           dy={18}
                           textAnchor="end"
                           fill={fill}
-                          fontSize={12}
+                          fontSize={14}
                           opacity={0.9}
                         >
                           {secondary ? `(${secondary})` : "\u00A0"}

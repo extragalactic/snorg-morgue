@@ -37,6 +37,11 @@ export interface ParsedMorgue {
   reachedDepthsMilestone: boolean
   /** Stepped into Zot:1+ (branch / action log / final place), or a win. */
   reachedZotMilestone: boolean
+  /**
+   * For deaths only: true if the morgue shows the character had the Orb of Zot (orb run) before dying
+   * (e.g. died during escape). Those deaths are bucketed as Orb Run, not by floor.
+   */
+  diedHoldingOrb: boolean
 }
 
 const ERR_PREFIX = "This doesn’t look like a valid DCSS morgue file."
@@ -208,7 +213,10 @@ function formatDuration(totalSeconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`
 }
 
-function parsePlaceBranchDepth(place: string): { branch: string; depth: number } | null {
+/**
+ * Parse "Branch:depth" from morgue `place` (e.g. D:8, Lair:3). Public for death-place impact chart.
+ */
+export function parsePlaceBranchDepth(place: string): { branch: string; depth: number } | null {
   const p = place.trim()
   if (!p || p === "unknown" || p === "Escaped with Orb") return null
   const m = p.match(/^([^:]+):(\d+)$/)
@@ -216,6 +224,21 @@ function parsePlaceBranchDepth(place: string): { branch: string; depth: number }
   const depth = parseInt(m[2], 10)
   if (!Number.isFinite(depth)) return null
   return { branch: m[1].trim(), depth }
+}
+
+/**
+ * True if a death morgue indicates the character had found/picked up the Orb of Zot (orb run) before dying.
+ * Does not return true for wins.
+ */
+function morgueIndicatesDiedHoldingOrb(text: string): boolean {
+  if (!/\bOrb of Zot\b/.test(text)) return false
+  if (/\b(?:Picked|Pick|picking|pick)\s+up\s+the\s+Orb of Zot\b/i.test(text)) return true
+  if (/\bFound the\s+Orb of Zot/i.test(text)) return true
+  if (/\bcarrying the\s+Orb of Zot\b/i.test(text)) return true
+  if (/\d+:\s*You (?:pick up|now have) the Orb of Zot/i.test(text)) return true
+  if (/^[!+].*Orb of Zot/m.test(text)) return true
+  if (/! .*the Orb of Zot|! .*Orb of Zot/m.test(text)) return true
+  return false
 }
 
 function maxDungeonDepthFromMessages(text: string): number {
@@ -475,6 +498,8 @@ export function parseMorgue(rawText: string): ParsedMorgue {
   if (isWin) place = "Escaped with Orb"
   if (!place) place = "unknown"
 
+  const diedHoldingOrb = !isWin && morgueIndicatesDiedHoldingOrb(text)
+
   // Gold - support both "You have collected" and "You collected" (0.33+)
   const goldCollectedMatch = text.match(/You (?:have )?collected (\d+) gold pieces/)
   const goldCollected = goldCollectedMatch ? parseInt(goldCollectedMatch[1], 10) : 0
@@ -566,6 +591,7 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     gameCompletionDate: gameCompletionDate || "",
     reachedLair5: /Lair\s*\(\s*5\s*\/\s*5\s*\)/.test(text),
     ...computeMorgueMilestones(text, place, isWin),
+    diedHoldingOrb,
   }
 }
 

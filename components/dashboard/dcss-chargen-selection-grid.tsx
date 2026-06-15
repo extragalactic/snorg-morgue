@@ -1,6 +1,6 @@
 "use client"
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FilterToggleButton } from "@/components/ui/filter-toggle-button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -12,6 +12,7 @@ import {
   godsIntoChargenColumns,
 } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
+import { readChargenViewMode, writeChargenViewMode } from "@/lib/dashboard-chart-preferences"
 import { cn } from "@/lib/utils"
 
 const RLTILES_BASE =
@@ -133,6 +134,19 @@ const GOD_TILE_PATH: Record<string, string> = {
 
 function tileUrl(path: string): string {
   return `${RLTILES_BASE}/${path}`
+}
+
+/** Full URL for chargen species tile art (trunk rltiles). */
+export function chargenSpeciesTileUrl(species: string): string | undefined {
+  const sp = normalizeChargenSpecies(species.trim())
+  const path = SPECIES_TILE_PATH[sp]
+  return path ? tileUrl(path) : undefined
+}
+
+/** Full URL for god tile used in chargen (invocations / spells). */
+export function chargenGodTileUrl(god: string): string | undefined {
+  const path = GOD_TILE_PATH[god]
+  return path ? tileUrl(path) : undefined
 }
 
 const SPECIES_COLUMNS: { title: string; species: readonly string[] }[] = [
@@ -352,6 +366,16 @@ function buildGodRollups(morgues: GameRecord[]): Map<string, WinDeathBuckets> {
 export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecord[] }) {
   const [mode, setMode] = useState<Mode>("species")
 
+  useLayoutEffect(() => {
+    const stored = readChargenViewMode()
+    if (stored) setMode(stored)
+  }, [])
+
+  const setModePersisted = useCallback((m: Mode) => {
+    setMode(m)
+    writeChargenViewMode(m)
+  }, [])
+
   const speciesRollups = useMemo(() => buildSpeciesRollups(morgues), [morgues])
   const backgroundRollups = useMemo(() => buildBackgroundRollups(morgues), [morgues])
   const godRollups = useMemo(() => buildGodRollups(morgues), [morgues])
@@ -399,24 +423,21 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
           <CardHeader className="flex flex-col gap-3 border-b-2 border-primary/20 pb-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-lg sm:text-xl">DCSS CHARGEN (SPECIES / BACKGROUND / GODS)</CardTitle>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <span className="font-mono text-sm text-primary">VIEW:</span>
-              <div className="flex gap-2">
-                <FilterToggleButton
-                  selected={mode === "species"}
-                  onClick={() => setMode("species")}
-                >
-                  Species
-                </FilterToggleButton>
-                <FilterToggleButton
-                  selected={mode === "background"}
-                  onClick={() => setMode("background")}
-                >
-                  Background
-                </FilterToggleButton>
-                <FilterToggleButton selected={mode === "gods"} onClick={() => setMode("gods")}>
-                  Gods
-                </FilterToggleButton>
-              </div>
+              <FilterToggleButton
+                selected={mode === "species"}
+                onClick={() => setModePersisted("species")}
+              >
+                Species
+              </FilterToggleButton>
+              <FilterToggleButton
+                selected={mode === "background"}
+                onClick={() => setModePersisted("background")}
+              >
+                Background
+              </FilterToggleButton>
+              <FilterToggleButton selected={mode === "gods"} onClick={() => setModePersisted("gods")}>
+                Gods
+              </FilterToggleButton>
             </div>
           </CardHeader>
           <CardContent className="pt-4">

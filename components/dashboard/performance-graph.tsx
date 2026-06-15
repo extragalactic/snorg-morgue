@@ -76,10 +76,10 @@ export function PerformanceGraph({ morgues = [] }: { morgues?: GameRecord[] }) {
             <XAxis
               dataKey="month"
               stroke="var(--muted-foreground)"
-              fontSize={12}
+              fontSize={14}
               tickLine={false}
             />
-            <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={14} tickLine={false} />
             <Tooltip content={<CustomTooltip />} />
             <Line
               type="stepAfter"

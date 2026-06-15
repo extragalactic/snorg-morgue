@@ -116,21 +116,21 @@ export function AverageLevelByGodChart({ morgues }: AverageLevelByGodChartProps)
             <XAxis
               dataKey="short"
               stroke="var(--muted-foreground)"
-              fontSize={12}
+              fontSize={14}
               tickLine={false}
               interval={0}
               height={50}
             />
             <YAxis
               stroke="var(--muted-foreground)"
-              fontSize={12}
+              fontSize={14}
               tickLine={false}
               allowDecimals={false}
               label={{
                 value: "Best & average XL",
                 angle: -90,
                 position: "insideLeft",
-                style: { fill: "var(--muted-foreground)", fontSize: 12, textAnchor: "middle" },
+                style: { fill: "var(--muted-foreground)", fontSize: 14, textAnchor: "middle" },
               }}
               domain={[0, 27]}
             />
@@ -195,7 +195,7 @@ export function AverageLevelByGodChart({ morgues }: AverageLevelByGodChartProps)
           </ComposedChart>
         </ResponsiveContainer>
         <div className="mt-1 flex flex-col items-center gap-2">
-          <p className="text-xs text-muted-foreground font-mono text-center">
+          <p className="text-center font-mono text-sm text-muted-foreground">
             God Worshipped
           </p>
           <div className="mt-1 flex flex-wrap items-center justify-center gap-4">

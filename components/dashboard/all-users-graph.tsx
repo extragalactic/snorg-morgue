@@ -98,10 +98,10 @@ export function AllUsersGraph() {
               <XAxis
                 dataKey="date"
                 stroke="var(--muted-foreground)"
-                fontSize={11}
+                fontSize={14}
                 tickLine={false}
               />
-              <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} />
+              <YAxis stroke="var(--muted-foreground)" fontSize={14} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
               <Area
                 type="stepAfter"

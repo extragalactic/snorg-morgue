@@ -1,6 +1,9 @@
 import type { ReactNode } from "react"
+import { colors } from "@/lib/colors"
 
 const hl = "text-primary"
+/** Species/background/god intro block (Began as / Was / win outcome lines). */
+const hlExtra = colors.success
 
 function primaryStatsRange(lines: string[]): { start: number; end: number } | null {
   let start = -1
@@ -130,7 +133,7 @@ function highlightBeganAsSpecies(line: string): ReactNode | null {
   return (
     <>
       {m[1]}
-      <span className={hl}>{m[2]}</span>
+      <span className={hlExtra}>{m[2]}</span>
       {m[3]}
     </>
   )
@@ -143,7 +146,7 @@ function highlightWasGodTitle(line: string): ReactNode | null {
   return (
     <>
       {m[1]}
-      <span className={hl}>{m[2]}</span>
+      <span className={hlExtra}>{m[2]}</span>
       {m[3]}
     </>
   )
@@ -155,7 +158,7 @@ function highlightWinRunesLineWithoutDate(line: string): ReactNode | null {
   if (!m) return null
   return (
     <>
-      <span className={hl}>{m[1]}</span>
+      <span className={hlExtra}>{m[1]}</span>
       {m[2]}
       {m[3]}
     </>
@@ -221,7 +224,7 @@ function highlightIntroHeaderPartialLine(line: string): ReactNode | null {
   const was = highlightWasGodTitle(line)
   if (was !== null) return was
   if (/^\s*Escaped with the Orb\s*!?\s*$/i.test(line)) {
-    return <span className={hl}>{line}</span>
+    return <span className={hlExtra}>{line}</span>
   }
   return highlightWinRunesLineWithoutDate(line)
 }

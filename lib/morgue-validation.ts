@@ -167,5 +167,6 @@ export function validateAndSanitizeParsedMorgue(p: ParsedMorgue): ParsedMorgue {
     reachedTemple: Boolean(p.reachedTemple),
     reachedDepthsMilestone: Boolean(p.reachedDepthsMilestone),
     reachedZotMilestone: Boolean(p.reachedZotMilestone),
+    diedHoldingOrb: Boolean(p.diedHoldingOrb),
   }
 }

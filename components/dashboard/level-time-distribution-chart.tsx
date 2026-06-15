@@ -324,27 +324,27 @@ export function TotalTimeSpentAtEachLevelChart({
               type="category"
               dataKey="level"
               stroke="var(--muted-foreground)"
-              fontSize={11}
+              fontSize={14}
               tickLine={false}
               interval={0}
               label={{
                 value: "Character level",
                 position: "bottom",
                 offset: 0,
-                style: { fill: "var(--muted-foreground)", fontSize: 12 },
+                style: { fill: "var(--muted-foreground)", fontSize: 14 },
               }}
             />
             <YAxis
               domain={[0, yAxisMax]}
               stroke="var(--muted-foreground)"
-              fontSize={12}
+              fontSize={14}
               tickLine={false}
               width={52}
               label={{
                 value: "Estimated hours (smoothed)",
                 angle: -90,
                 position: "insideLeft",
-                style: { fill: "var(--muted-foreground)", fontSize: 12, textAnchor: "middle" },
+                style: { fill: "var(--muted-foreground)", fontSize: 14, textAnchor: "middle" },
               }}
             />
             <Tooltip content={<EstimatedTimeTooltip />} />

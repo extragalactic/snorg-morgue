@@ -32,22 +32,25 @@ export interface UserSettings {
   }
 }
 
+/** Default Morgues table filters + pagination (used for initial state, localStorage merge, and Reset). */
+export const defaultMorguesTableSettings: UserSettings["morguesTable"] = {
+  searchQuery: "",
+  currentPage: 1,
+  resultFilter: "all",
+  speciesFilter: "all",
+  backgroundFilter: "all",
+  godFilter: "all",
+  sortField: null,
+  sortDirection: "asc",
+}
+
 const defaultSettings: UserSettings = {
   performanceChart: {
     sortMethod: "wins",
     showMode: "wins",
     chartType: "species",
   },
-  morguesTable: {
-    searchQuery: "",
-    currentPage: 1,
-    resultFilter: "all",
-    speciesFilter: "all",
-    backgroundFilter: "all",
-    godFilter: "all",
-    sortField: null,
-    sortDirection: "asc",
-  },
+  morguesTable: defaultMorguesTableSettings,
 }
 
 function loadInitialSettings(): UserSettings {
