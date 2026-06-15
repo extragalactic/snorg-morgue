@@ -273,7 +273,7 @@ export type UserActionAverageRow = {
 }
 
 /** How many spells are kept per DCSS spell level (1–9) in `user_favourite_spells`. */
-export const FAVOURITE_SPELLS_PER_LEVEL = 5
+export const FAVOURITE_SPELLS_PER_LEVEL = 7
 
 /** One row from user_favourite_spells (dashboard / browse API). */
 export type UserFavouriteSpellRow = {
@@ -486,7 +486,7 @@ export async function recomputeUserFavouriteSpells(
     console.warn(
       "[snorg-morgue] user_favourite_spells insert:",
       insErr.message,
-      "(if rank check is still 1–3, run supabase/alter_user_favourite_spells_rank_top5.sql)",
+      "(if the rank check rejects rank > 5, run supabase/alter_user_favourite_spells_rank_top7.sql)",
     )
   }
 }

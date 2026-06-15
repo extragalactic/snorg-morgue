@@ -58,10 +58,10 @@ export function ZotSplats({
       return <p className={typography.bodyMuted}>No Zot deaths for combos you haven&apos;t won yet.</p>
     }
     return (
-      <div className="overflow-x-auto">
+      <div className="overflow-auto max-h-[418px]">
         <table className={cn("w-full", typography.bodyMono)}>
           <thead>
-            <tr className="border-b-2 border-primary/20 text-left text-muted-foreground">
+            <tr className="border-b-2 border-primary/20 text-left text-muted-foreground [&>th]:sticky [&>th]:top-0 [&>th]:bg-background">
               <th className="py-1.5 pr-3 font-normal">Species</th>
               <th className="py-1.5 pr-3 font-normal">Background</th>
               <th className="py-1.5 pr-3 font-normal">God</th>

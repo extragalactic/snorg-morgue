@@ -22,7 +22,8 @@ import { StatCard } from "@/components/dashboard/stat-card"
 import { GoalProgress } from "@/components/dashboard/goal-progress"
 import { LevelAtDeathChart } from "@/components/dashboard/level-at-death-chart"
 import { DeathPlaceImpactChart } from "@/components/dashboard/death-place-impact-chart"
-import { CharacterTitlesChart } from "@/components/dashboard/character-titles-chart"
+// Hidden for now; may re-enable later.
+// import { CharacterTitlesChart } from "@/components/dashboard/character-titles-chart"
 import { TotalTimeSpentAtEachLevelChart } from "@/components/dashboard/level-time-distribution-chart"
 import { RuneCollectionChart } from "@/components/dashboard/rune-collection-chart"
 import { TestPerformanceChart } from "@/components/dashboard/test-performance-chart"
@@ -847,7 +848,8 @@ export default function DashboardPage({
                   usernameSlug={isBrowsingOther && browseTarget ? browseTarget.usernameSlug : routeSlug || undefined}
                   actionAveragesUserId={isBrowsingOther && browseTarget ? browseTarget.userId : userId ?? null}
                 />
-                <CharacterTitlesChart morgues={morgues} loading={statsLoading} />
+                {/* Hidden for now; may re-enable later. */}
+                {/* <CharacterTitlesChart morgues={morgues} loading={statsLoading} /> */}
                 <FavouriteSpellsChart rows={favouriteSpells} loading={statsLoading} />
                 <AverageLevelByGodChart morgues={morgues} />
                 </>
