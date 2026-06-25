@@ -278,7 +278,7 @@ export function UploadsTable({
   }, [fillViewportHeight, loading, morgues.length, filteredAndSortedData.length, measuredItemsPerPage])
   const totalCount = morgues.length
   const filteredCount = filteredAndSortedData.length
-  const pct = totalCount > 0 ? Math.round((filteredCount / totalCount) * 100) : 0
+  const pct = totalCount > 0 ? ((filteredCount / totalCount) * 100).toFixed(1) : "0.0"
   const gamesWord = (n: number) => (n === 1 ? "Game" : "Games")
   const titleText =
     filteredCount === totalCount

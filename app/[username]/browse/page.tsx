@@ -118,7 +118,7 @@ export default function BrowsePage() {
             style={{ width: TITLE_GRAPHIC_SIZE_LARGE, height: TITLE_GRAPHIC_SIZE_LARGE }}
           />
           <div className="min-w-0">
-            <h1 className={typography.primaryTitle}>BROWSE PLAYERS</h1>
+            <h1 className={typography.primaryTitle}>COMPARE PLAYERS</h1>
             <p className={typography.primaryPageSubtitle}>View another player&apos;s Snorg dashboard</p>
           </div>
         </div>

@@ -217,7 +217,11 @@ export function TestPerformanceChart({
   }, [data, showMode, chartType])
 
   const winsColor =
-    themeStyle === "ascii" ? "oklch(0.62 0.2 145)" : "rgba(250, 204, 21, 0.9)"
+    showMode === "wins"
+      ? "var(--success)"
+      : themeStyle === "ascii"
+        ? "oklch(0.62 0.2 145)"
+        : "rgba(250, 204, 21, 0.9)"
   const attemptsColor = "var(--average)"
 
   const averageAxisLabel =
@@ -333,6 +337,7 @@ export function TestPerformanceChart({
         <div className="flex flex-col gap-3 pt-3">
           <div className="flex flex-wrap gap-2">
             <FilterToggleButton
+              tone="success"
               selected={showMode === "wins"}
               onClick={() => {
                 setShowMode("wins")

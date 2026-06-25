@@ -29,7 +29,7 @@ interface NavigationProps {
 }
 
 const navItems = [
-  { id: "analysis", label: "Statistics", icon: BarChart3 },
+  { id: "analysis", label: "Progress", icon: BarChart3 },
   { id: "skills", label: "Analysis", icon: Flame },
   { id: "achievements", label: "Achievements", icon: Trophy },
   { id: "morgues", label: "Morgues", icon: ScrollText },
@@ -67,7 +67,7 @@ export function Navigation({ activeTab, onTabChange, usernameSlug, adminActive }
       <Link href={browseHref} onClick={() => mobile && setMobileMenuOpen(false)}>
         <Button variant="ghost" size="default" className={cn(buttonClass, mobile && "w-full justify-start")}>
           <Users className="h-4 w-4" />
-          Browse
+          Compare
         </Button>
       </Link>
     )
