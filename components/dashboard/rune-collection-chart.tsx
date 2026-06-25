@@ -44,17 +44,17 @@ function buildRuneData(morgues: GameRecord[] = []) {
 
   // For the chart, we want wins to visually overwrite attempts where they overlap.
   // Use attemptsNonWin = attempts - wins as the grey base, and wins as the bright top segment.
-  return counts
-    .filter((c) => c.attempts > 0)
-    .map((c) => {
-      const nonWin = Math.max(0, c.attempts - c.wins)
-      return {
-        runes: c.runes,
-        wins: c.wins,
-        attemptsNonWin: nonWin,
-        attemptsTotal: c.attempts,
-      }
-    })
+  // Keep all rune buckets (1–MAX_RUNES) so the x-axis always spans the full range,
+  // even where no games have that many runes.
+  return counts.map((c) => {
+    const nonWin = Math.max(0, c.attempts - c.wins)
+    return {
+      runes: c.runes,
+      wins: c.wins,
+      attemptsNonWin: nonWin,
+      attemptsTotal: c.attempts,
+    }
+  })
 }
 
 type RuneDatum = {
@@ -193,7 +193,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
   const attemptsColor =
     themeStyle === "ascii" ? "oklch(0.52 0.12 145)" : "rgba(148, 163, 184, 0.9)"
 
-  const hasTotalRunes = data.length > 0
+  const hasTotalRunes = data.some((d) => d.attemptsTotal > 0)
   const hasRuneByType = runeByTypeData.length > 0
 
   if (!hasTotalRunes && !hasRuneByType) {

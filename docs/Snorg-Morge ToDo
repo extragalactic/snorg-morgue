@@ -43,11 +43,14 @@ Features:
 - would be neat to have data on the list of summon spells in particular each character had, and make it accessible via tooltip so it's easy to compare. Or make a visual indicator (colored bar) of the summon strength, perhaps via total spell levels
 - needs a fresh design/skin that doesn't look like "Claude Default"
 - make the data tables into infinite scroll instead of paged
-- make a section called Zot Splats that lists all characters that died in Zot and for which you haven't yet won with that combo
+- make a feature that lets you see the spell memorization progression over the XLs of a character, using an interesting UI, possibly with a multi-colour horz bar chart with XL on the x-axis
+- a key value of the site is for individual morgue analysis, so more of that would be good, so perhaps add some extra UI to the viewer, with persistent buttons on the side/top
+- build a UI style that resembles the actual game UI as closely as possible!
+- put a "work in progress" banner somewhere 
+- before going live it'll need an About page with a contact email and perhaps a forum for bugs
 
 Fixes:
 - after importing new files, the table needs to auto-run the sort
-- on title "13 of 141 Games (9%)", the percentage should be to one decimal place
 - subtitle font on Snorg Awards title is too small
 - after local file import the message saying "2 games imported" should be larger font
 - the popup on the Great Player award is not updating... e.g. not showing my new Draconian win
@@ -73,25 +76,32 @@ Fixes:
 - the x-axis labels on the species-background grid shouldn't be diagonal
 - "Win with all available backgrounds" and simnilar bottom text should be moved into a subtitle to avoid so much repetition
 - "Upload Morgue" should be perhaps "Upload from computer", and be separate from Download
+- date sorting on the morgues table is ignoring time of day, so games within the same day are not sorted correctly
 
 Combos to try:
 
+    (2) TeAE^Veh
+    (2) DjCo^Nem (Dj is strong so good chance to get a Nem and Co win)
+    (2) DEHs^Ash (YASD, is a great combo though)
+    (1) HuWr^Chei
+    Usk on an AOE char (like blaster casters)
+    Hexer^Dith
+    TrFi^Ru
     MiFi^Qaz
     MiFi^Oka
     MiHu^Oka
     MiHu^Qaz / BaHu^Qaz
     Mi?^Usk
-    TeAE^Veh
-    DjCo^Nem (Dj is strong so good chance to get a Nem and Co win)
     DrSh^Ru
     DrSh^Goz
-    DsWn^Mak
+    DsWn^Mak (a classic random game)
     GrFE^Veh
     DjFE^Ely
     HuMo^Chei
     Reaver of Wu Jian ... Dj, Ds, Dr, Gr, Gn
     OnFW^??
     OnWr^Sif
+    On??^Chei
     OnNe^Kiku
     Op??^Ash
     DgHu
@@ -99,12 +109,10 @@ Combos to try:
     Vs??^Mak (Unleash Destruction should be spammable with Vs)
     FoFi^Usk
     ??Ar^Dith
-    DEHs^Ash (YASD, is a great combo though)
     Fo??^Ru (Ru comes recommended for Fo)
     Fo??^Zin (Zin is apparently good for Fo with escape options)
     ??Co^Qaz (lean into making noise with Qaz and Fulminant Prism)
     Sp??^Ely (apparently Ely is good for Sp)
-    Usk on an AOE char (like blaster casters, or axes melee)
     VsNe^Wu
 
     

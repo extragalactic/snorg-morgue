@@ -104,38 +104,6 @@ function formatComboSubtitle(species: string, background: string, god?: string):
   return `${line1}\n${line2}`
 }
 
-function PerformanceAndRunesLayout({
-  stats,
-  statsLoading,
-  morgues,
-  showGlobalAverages,
-  globalStats,
-}: {
-  stats: Awaited<ReturnType<typeof fetchUserStats>>
-  statsLoading: boolean
-  morgues: GameRecord[]
-  showGlobalAverages: boolean
-  globalStats: GlobalAnalysisStats | null
-}) {
-  return (
-    <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
-      <div className="flex min-h-0 flex-col">
-        <TestPerformanceChart
-          speciesStats={stats?.species_stats ?? []}
-          backgroundStats={stats?.background_stats ?? []}
-          godStats={stats?.god_stats ?? []}
-          showAverages={showGlobalAverages}
-          averagePlayerCount={globalStats?.userCount}
-          fillHeight
-        />
-      </div>
-      <div className="flex min-h-0 flex-col">
-        <RuneCollectionChart morgues={morgues} />
-      </div>
-    </div>
-  )
-}
-
 export default function DashboardPage({
   activeTab: activeTabProp,
   onTabChange: onTabChangeProp,
@@ -498,7 +466,7 @@ export default function DashboardPage({
                 )}
               >
                 <h1 className={typography.primaryTitle}>
-                  {activeTab === "analysis" && "GAME STATS"}
+                  {activeTab === "analysis" && "PROGRESS"}
                   {activeTab === "skills" && "ANALYSIS"}
                   {activeTab === "achievements" && "OFFICIAL ACHIEVEMENTS"}
                   {activeTab === "morgues" && "MORGUE FILES"}
@@ -815,6 +783,31 @@ export default function DashboardPage({
                     icon={Timer}
                   />
                 </div>
+                <DcssChargenSelectionGrid morgues={morgues} />
+                <TestPerformanceChart
+                  speciesStats={stats?.species_stats ?? []}
+                  backgroundStats={stats?.background_stats ?? []}
+                  godStats={stats?.god_stats ?? []}
+                  showAverages={showGlobalComparison}
+                  averagePlayerCount={globalStats?.userCount}
+                />
+                </>
+              )}
+            </div>
+            {!morguesLoading && morgues.length > 0 && (
+              <SpeciesBackgroundComboGrid morgues={morgues} />
+            )}
+          </>
+        )}
+
+        {activeTab === "skills" && (
+          <div className="space-y-6">
+            {isEmpty ? (
+              <AnalysisEmptyState morguesPageHref={morguesPageHref} />
+            ) : statsLoading ? (
+              <AnalysisLoadingState />
+            ) : (
+              <>
                 <LevelAtDeathChart
                   morgues={morgues}
                   loading={statsLoading}
@@ -831,13 +824,7 @@ export default function DashboardPage({
                     }
                   />
                 </div>
-                <PerformanceAndRunesLayout
-                  stats={stats}
-                  statsLoading={statsLoading}
-                  morgues={morgues}
-                  showGlobalAverages={showGlobalComparison}
-                  globalStats={globalStats}
-                />
+                <RuneCollectionChart morgues={morgues} />
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Top10Killers morgues={morgues} loading={statsLoading} />
                   <Top10NotoriousKillers morgues={morgues} loading={statsLoading} />
@@ -848,30 +835,8 @@ export default function DashboardPage({
                   usernameSlug={isBrowsingOther && browseTarget ? browseTarget.usernameSlug : routeSlug || undefined}
                   actionAveragesUserId={isBrowsingOther && browseTarget ? browseTarget.userId : userId ?? null}
                 />
-                {/* Hidden for now; may re-enable later. */}
-                {/* <CharacterTitlesChart morgues={morgues} loading={statsLoading} /> */}
                 <FavouriteSpellsChart rows={favouriteSpells} loading={statsLoading} />
                 <AverageLevelByGodChart morgues={morgues} />
-                </>
-              )}
-            </div>
-            {!morguesLoading && (
-              <>
-                <DcssChargenSelectionGrid morgues={morgues} />
-                {morgues.length > 0 && <SpeciesBackgroundComboGrid morgues={morgues} />}
-              </>
-            )}
-          </>
-        )}
-
-        {activeTab === "skills" && (
-          <div className="space-y-6">
-            {isEmpty ? (
-              <AnalysisEmptyState morguesPageHref={morguesPageHref} />
-            ) : statsLoading ? (
-              <AnalysisLoadingState />
-            ) : (
-              <>
                 {!isEmpty && (
                   <TotalTimeSpentAtEachLevelChart morgues={morgues} loading={false} />
                 )}
