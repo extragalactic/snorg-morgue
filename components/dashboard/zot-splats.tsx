@@ -34,6 +34,14 @@ function buildZotSplats(morgues: GameRecord[]): GameRecord[] {
     .sort((a, b) => (b.xl ?? 0) - (a.xl ?? 0))
 }
 
+/** Human-readable death location, e.g. "Zot 3" or "Orb Run". */
+function deathLocationLabel(m: GameRecord): string {
+  const parsed = parsePlaceBranchDepth(m.place)
+  if (parsed) return `${parsed.branch} ${parsed.depth}`
+  if (m.diedHoldingOrb) return "Orb Run"
+  return m.place?.trim() || "—"
+}
+
 export function ZotSplats({
   morgues = [],
   loading,
@@ -66,6 +74,7 @@ export function ZotSplats({
               <th className="py-1.5 pr-3 font-normal">Background</th>
               <th className="py-1.5 pr-3 font-normal">God</th>
               <th className="py-1.5 pr-3 font-normal">XL</th>
+              <th className="py-1.5 pr-3 font-normal">Death Location</th>
               <th className="py-1.5 font-normal" />
             </tr>
           </thead>
@@ -80,6 +89,7 @@ export function ZotSplats({
                 <td className="py-1.5 pr-3 text-foreground">{m.background}</td>
                 <td className="py-1.5 pr-3 text-muted-foreground">{m.god?.trim() || "—"}</td>
                 <td className="py-1.5 pr-3 text-foreground">{m.xl}</td>
+                <td className="py-1.5 pr-3 text-foreground">{deathLocationLabel(m)}</td>
                 <td className="py-1.5">
                   <button
                     type="button"

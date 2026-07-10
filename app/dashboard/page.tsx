@@ -21,7 +21,8 @@ import { Navigation } from "@/components/dashboard/navigation"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { GoalProgress } from "@/components/dashboard/goal-progress"
 import { LevelAtDeathChart } from "@/components/dashboard/level-at-death-chart"
-import { DeathPlaceImpactChart } from "@/components/dashboard/death-place-impact-chart"
+// Hidden for now; may re-enable later.
+// import { DeathPlaceImpactChart } from "@/components/dashboard/death-place-impact-chart"
 // Hidden for now; may re-enable later.
 // import { CharacterTitlesChart } from "@/components/dashboard/character-titles-chart"
 import { TotalTimeSpentAtEachLevelChart } from "@/components/dashboard/level-time-distribution-chart"
@@ -58,8 +59,10 @@ import { GOD_SHORT_FORMS } from "@/lib/dcss-constants"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { slugifyUsername, TAB_TO_PAGE } from "@/lib/slug"
 import { typography, TITLE_GRAPHIC_SIZE_LARGE } from "@/lib/typography"
-import { SkillingAnalysis } from "@/components/dashboard/skilling-analysis"
+// Hidden for now; may re-enable later.
+// import { SkillingAnalysis } from "@/components/dashboard/skilling-analysis"
 import { AverageLevelByGodChart } from "@/components/dashboard/average-level-by-god-chart"
+import { WinnerSkillsChart } from "@/components/dashboard/winner-skills-chart"
 import { MilestoneProgressionChart } from "@/components/dashboard/milestone-progression-chart"
 import { cn } from "@/lib/utils"
 import { isAdminEmail } from "@/lib/admin-auth"
@@ -815,7 +818,9 @@ export default function DashboardPage({
                   globalAverageUserCount={showGlobalComparison ? globalLevelDeathUserCount ?? undefined : undefined}
                 />
                 <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-                  <DeathPlaceImpactChart morgues={morgues} loading={statsLoading} />
+                  {/* Hidden for now; may re-enable later. */}
+                  {/* <DeathPlaceImpactChart morgues={morgues} loading={statsLoading} /> */}
+                  <RuneCollectionChart morgues={morgues} section="byType" />
                   <MilestoneProgressionChart
                     morgues={morgues}
                     loading={statsLoading}
@@ -824,7 +829,7 @@ export default function DashboardPage({
                     }
                   />
                 </div>
-                <RuneCollectionChart morgues={morgues} />
+                <RuneCollectionChart morgues={morgues} section="perGame" />
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Top10Killers morgues={morgues} loading={statsLoading} />
                   <Top10NotoriousKillers morgues={morgues} loading={statsLoading} />
@@ -837,10 +842,16 @@ export default function DashboardPage({
                 />
                 <FavouriteSpellsChart rows={favouriteSpells} loading={statsLoading} />
                 <AverageLevelByGodChart morgues={morgues} />
+                <WinnerSkillsChart
+                  morgues={morgues}
+                  loading={statsLoading}
+                  userId={isBrowsingOther && browseTarget ? browseTarget.userId : userId ?? null}
+                />
                 {!isEmpty && (
                   <TotalTimeSpentAtEachLevelChart morgues={morgues} loading={false} />
                 )}
-                {isAdmin && (
+                {/* Hidden for now; may re-enable later. */}
+                {/* {isAdmin && (
                   <>
                     <div
                       className="flex items-center gap-4 py-2"
@@ -855,7 +866,7 @@ export default function DashboardPage({
                     </div>
                     <SkillingAnalysis globalOnly />
                   </>
-                )}
+                )} */}
               </>
             )}
           </div>

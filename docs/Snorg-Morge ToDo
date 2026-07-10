@@ -48,6 +48,13 @@ Features:
 - build a UI style that resembles the actual game UI as closely as possible!
 - put a "work in progress" banner somewhere 
 - before going live it'll need an About page with a contact email and perhaps a forum for bugs
+- create a Chrome extension that auto-opens any text morgue file with Snorg (then add more features to the morgue viewer)
+- change some tooltips to show the data in a natural language sentence, e.g. "You played 31 games where you found a total of 3 runes, and 18 of those games (58%) were winners." and "You played 10 games where you found a total of 2 runes."
+- another stat to show is Best Win Rate that shows the highest win rate you ever had (if lower than currently)
+- change Total Runes by Type to Third Rune, which only shows: Vaults, Slime, or Abyss (or Other) Showing the other data is not interesting, but 3rd rune tracking is useful.
+- an accessible Bug Reporter feature would be good
+- Winner Skills chart should make the legend categories into filter buttons (and include an All button)
+- Zot Splats should also show (in a different colour) the Zot splats that later got a win for that combo
 
 Fixes:
 - after importing new files, the table needs to auto-run the sort
@@ -76,17 +83,23 @@ Fixes:
 - the x-axis labels on the species-background grid shouldn't be diagonal
 - "Win with all available backgrounds" and simnilar bottom text should be moved into a subtitle to avoid so much repetition
 - "Upload Morgue" should be perhaps "Upload from computer", and be separate from Download
-- date sorting on the morgues table is ignoring time of day, so games within the same day are not sorted correctly
+- date sorting on the morgues table is ignoring time of day, so games within the same day are not sorted correctly... and in fact it might be just wrong (it is showing import date?)
+
 
 Combos to try:
 
     (2) TeAE^Veh
-    (2) DjCo^Nem (Dj is strong so good chance to get a Nem and Co win)
-    (2) DEHs^Ash (YASD, is a great combo though)
-    (1) HuWr^Chei
+    (2) TrFi^Ru
+    (3) TrDe^Ru
+    (2) ??Ne^Wu (Wu is good with necro summon hordes)
+    (2) MiDe^??
+    DsMo^Yred or GnMo^Yred
+    Ko??^Nem/Qaz (compress the god powers via small LOS)
+    ReNe^Usk (torment scroll can auto-paralyze the whole screen on first round, shortblades for stabbing with Re bonus casting)
+    PoNe^Usk (...because Re might suck as stabber)
     Usk on an AOE char (like blaster casters)
     Hexer^Dith
-    TrFi^Ru
+    Merfolk w/ talismans
     MiFi^Qaz
     MiFi^Oka
     MiHu^Oka
@@ -94,14 +107,13 @@ Combos to try:
     Mi?^Usk
     DrSh^Ru
     DrSh^Goz
-    DsWn^Mak (a classic random game)
     GrFE^Veh
-    DjFE^Ely
-    HuMo^Chei
     Reaver of Wu Jian ... Dj, Ds, Dr, Gr, Gn
     OnFW^??
-    OnWr^Sif
+    OnWr^Sif/TSO/Mak
     On??^Chei
+    On??^Mak (high HP good for Mak)
+    OnSu^??
     OnNe^Kiku
     Op??^Ash
     DgHu

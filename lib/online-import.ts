@@ -11,7 +11,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { nanoid } from "nanoid"
 import { parseMorgue } from "./morgue-parser"
 import { parsedToRow } from "./morgue-db"
-import { parseSkillHistory, computeSkillSnapshotsFromHistory } from "./skill-history"
+import { parseSkillHistory, computeSkillSnapshotsFromHistory, computeWinnerSkillLevelsFromHistory } from "./skill-history"
 import { validateAndSanitizeParsedMorgue } from "./morgue-validation"
 
 export type OnlineImportServerStatus = "ok" | "skipped" | "error"
@@ -442,6 +442,18 @@ export async function runOnlineImport(
                   level: s.level,
                 }))
                 await supabase.from("skill_snapshots").insert(snapshotRows)
+              }
+
+              const winnerSkills = computeWinnerSkillLevelsFromHistory(skillHistory)
+              if (winnerSkills.length > 0 && inserted?.id) {
+                await supabase.from("winner_skill_levels").insert(
+                  winnerSkills.map((s) => ({
+                    user_id: userId,
+                    game_id: inserted.id,
+                    skill: s.skill,
+                    level: s.level,
+                  })),
+                )
               }
             }
           }

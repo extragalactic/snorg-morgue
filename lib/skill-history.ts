@@ -123,6 +123,24 @@ export function parseSkillHistory(rawText: string): SkillHistory | null {
   return Object.keys(history).length > 0 ? history : null
 }
 
+export type WinnerSkillLevel = { skill: string; level: number }
+
+/**
+ * Final integer skill level (floor) per skill for a winning game, from its Skill Usage History.
+ * Uses the last XL column (the character's actual final XL), so winners who ended below XL 27 are
+ * handled correctly. Skills never trained (level 0) are omitted.
+ */
+export function computeWinnerSkillLevelsFromHistory(history: SkillHistory): WinnerSkillLevel[] {
+  const out: WinnerSkillLevel[] = []
+  for (const [skill, series] of Object.entries(history)) {
+    const last = series.samples[series.samples.length - 1]
+    if (!last) continue
+    const level = Math.floor(last.level)
+    if (level >= 1) out.push({ skill, level })
+  }
+  return out
+}
+
 function normalizeSkillName(name: string): string {
   const trimmed = name.trim()
   if (!trimmed) return ""
