@@ -12,6 +12,12 @@ import {
   godsIntoChargenColumns,
 } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
+import {
+  APTITUDE_COLUMNS,
+  aptitudeToneClass,
+  formatAptitudeValue,
+  getSpeciesAptitudes,
+} from "@/lib/dcss-species-aptitudes"
 import { readChargenViewMode, writeChargenViewMode } from "@/lib/dashboard-chart-preferences"
 import { cn } from "@/lib/utils"
 
@@ -237,17 +243,66 @@ type ChargenTooltipDetailsProps = WinDeathBuckets & {
   primaryLabel: string
 }
 
+function SpeciesAptitudePanel({ species }: { species: string }) {
+  const apts = getSpeciesAptitudes(species)
+  if (!apts) return null
+
+  return (
+    <div className="mb-3 grid min-w-0 grid-cols-1 gap-4 border-b border-primary/25 pb-3 sm:grid-cols-3 sm:gap-5">
+      {APTITUDE_COLUMNS.map((col) => (
+        <div key={col.title} className="min-w-0">
+          <div className="text-[11px] leading-tight text-neutral-300">{col.title}</div>
+          <div className="mb-1.5 text-[11px] leading-none tracking-tight text-neutral-500">
+            {"-".repeat(Math.min(col.title.length, 26))}
+          </div>
+          <div className="flex flex-col gap-2.5">
+            {col.groups.map((group, gi) => (
+              <div key={gi} className="flex flex-col gap-0.5">
+                {group.map((skill) => {
+                  const value = apts[skill.key]
+                  return (
+                    <div
+                      key={skill.key}
+                      className="grid grid-cols-[2.75ch_3.75ch_minmax(0,1fr)] items-baseline gap-x-1 text-[11px] leading-snug"
+                    >
+                      <span className="text-neutral-400">{skill.abbr}</span>
+                      <span
+                        className={cn(
+                          "text-right tabular-nums",
+                          aptitudeToneClass(value),
+                        )}
+                      >
+                        {formatAptitudeValue(value, skill.kind)}
+                      </span>
+                      <span className="min-w-0 truncate text-neutral-200">
+                        <span className="text-neutral-500">- </span>
+                        {skill.name}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function ChargenTooltipDetails({ mode, primaryLabel, wins, deaths }: ChargenTooltipDetailsProps) {
   const winSorted = sortChargenByLevelDesc(wins, mode)
   const deathSorted = sortChargenByLevelDesc(deaths, mode)
   const containerRef = useRef<HTMLDivElement>(null)
   const [needsYScroll, setNeedsYScroll] = useState(false)
   const dataRowCount = winSorted.length + deathSorted.length
-  const useScrollCap = dataRowCount > 20
+  const useScrollCap = dataRowCount > 15
+  const showAptitudes = mode === "species"
+  const hasGames = winSorted.length > 0 || deathSorted.length > 0
 
   useLayoutEffect(() => {
     const el = containerRef.current
-    if (!el || !useScrollCap || (winSorted.length === 0 && deathSorted.length === 0)) {
+    if (!el || !useScrollCap || !hasGames) {
       setNeedsYScroll(false)
       return
     }
@@ -258,7 +313,7 @@ function ChargenTooltipDetails({ mode, primaryLabel, wins, deaths }: ChargenTool
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [useScrollCap, dataRowCount, winSorted.length, deathSorted.length, wins, deaths])
+  }, [useScrollCap, dataRowCount, winSorted.length, deathSorted.length, wins, deaths, hasGames])
 
   const titleEl = (
     <div className="mb-2 shrink-0 border-b border-primary/25 pb-2 font-mono text-xl font-semibold tracking-tight text-neutral-50">
@@ -266,60 +321,67 @@ function ChargenTooltipDetails({ mode, primaryLabel, wins, deaths }: ChargenTool
     </div>
   )
 
-  if (winSorted.length === 0 && deathSorted.length === 0) {
-    return (
-      <div className="flex min-w-0 max-w-md flex-col text-left">
-        {titleEl}
-        <span className="text-sm text-neutral-400">No recorded games</span>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex min-w-0 max-w-md flex-col text-left">
+    <div
+      className={cn(
+        "flex min-w-0 flex-col text-left",
+        showAptitudes
+          ? "w-[min(calc(36rem+25px),calc(100vw-2rem))] max-w-[calc(36rem+25px)]"
+          : "max-w-md",
+      )}
+    >
       {titleEl}
-      <div
-        ref={containerRef}
-        className={cn(
-          "box-border min-h-0 min-w-0 overflow-x-clip text-sm leading-snug",
-          useScrollCap && !needsYScroll && "overflow-y-clip",
-          needsYScroll && "overflow-y-auto",
-        )}
-        style={
-          useScrollCap
-            ? {
-                maxHeight: "min(70vh, calc(5.5rem + 20 * 1.6em))",
-              }
-            : undefined
-        }
-      >
-        <div className="flex flex-col gap-3">
-          {winSorted.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <div className="text-xs font-normal text-neutral-500">Winners:</div>
-              <ul className="list-none space-y-0.5 pl-0">
-                {winSorted.map((m) => (
-                  <li key={m.id} className="break-words font-medium text-primary">
-                    {formatChargenTooltipGameLine(m, mode)}
-                  </li>
-                ))}
-              </ul>
-            </div>
+      {showAptitudes && <SpeciesAptitudePanel species={primaryLabel} />}
+      {!hasGames ? (
+        <span className="text-sm text-neutral-400">No recorded games</span>
+      ) : (
+        <div
+          ref={containerRef}
+          className={cn(
+            "box-border min-h-0 min-w-0 overflow-x-clip text-sm leading-snug",
+            useScrollCap && !needsYScroll && "overflow-y-clip",
+            needsYScroll && "overflow-y-auto",
           )}
-          {deathSorted.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <div className="text-xs font-normal text-neutral-500">Attempts:</div>
-              <ul className="list-none space-y-0.5 pl-0">
-                {deathSorted.map((m) => (
-                  <li key={m.id} className="break-words text-neutral-100">
-                    {formatChargenTooltipGameLine(m, mode)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          style={
+            useScrollCap
+              ? {
+                  maxHeight: "min(70vh, calc(5.5rem + 15 * 1.6em))",
+                }
+              : undefined
+          }
+        >
+          <div className="flex flex-col gap-3">
+            {winSorted.length > 0 && (
+              <div className="flex flex-col gap-1">
+                <div className="text-sm font-normal text-neutral-500">
+                  Winners ({winSorted.length})
+                </div>
+                <ul className="list-none space-y-0.5 pl-0">
+                  {winSorted.map((m) => (
+                    <li key={m.id} className="break-words font-medium text-primary">
+                      {formatChargenTooltipGameLine(m, mode)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {deathSorted.length > 0 && (
+              <div className="flex flex-col gap-1">
+                <div className="text-sm font-normal text-neutral-500">
+                  Attempts ({deathSorted.length})
+                </div>
+                <ul className="list-none space-y-0.5 pl-0">
+                  {deathSorted.map((m) => (
+                    <li key={m.id} className="break-words text-neutral-100">
+                      {formatChargenTooltipGameLine(m, mode)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -494,7 +556,10 @@ export function DcssChargenSelectionGrid({ morgues = [] }: { morgues?: GameRecor
                               <TooltipTrigger asChild>
                                 <div className="w-fit max-w-full cursor-default">{row}</div>
                               </TooltipTrigger>
-                              <TooltipContent side="right" className={CHARGEN_TOOLTIP_CONTENT_CLASS}>
+                              <TooltipContent
+                                side="right"
+                                className={cn(CHARGEN_TOOLTIP_CONTENT_CLASS, "max-w-none text-left text-wrap")}
+                              >
                                 <ChargenTooltipDetails
                                   mode={mode}
                                   primaryLabel={sp}
