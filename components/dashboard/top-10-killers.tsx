@@ -12,8 +12,22 @@ function normalizeKillerForGrouping(killer: string): string {
   return killer
 }
 
-function buildTop10Killers(morgues: GameRecord[]): { name: string; count: number }[] {
-  const deaths = morgues.filter((m) => m.result === "death" && m.killer?.trim())
+const KILLER_XL_BRACKETS = [
+  { label: "XL 1–10", min: 1, max: 10 },
+  { label: "XL 11–20", min: 11, max: 20 },
+  { label: "XL 21–27", min: 21, max: 27 },
+] as const
+
+function buildTop10KillersForBracket(
+  morgues: GameRecord[],
+  minXl: number,
+  maxXl: number,
+): { name: string; count: number }[] {
+  const deaths = morgues.filter((m) => {
+    if (m.result !== "death" || !m.killer?.trim()) return false
+    const xl = m.xl ?? 0
+    return xl >= minXl && xl <= maxXl
+  })
   const byKiller: Record<string, { count: number; maxXl: number }> = {}
   deaths.forEach((m) => {
     const k = m.killer!.trim()
@@ -27,6 +41,13 @@ function buildTop10Killers(morgues: GameRecord[]): { name: string; count: number
     .sort((a, b) => b.count - a.count || b.maxXl - a.maxXl)
     .slice(0, 10)
     .map(({ name, count }) => ({ name, count }))
+}
+
+function buildTop10KillersByBracket(morgues: GameRecord[]) {
+  return KILLER_XL_BRACKETS.map((bracket) => ({
+    ...bracket,
+    killers: buildTop10KillersForBracket(morgues, bracket.min, bracket.max),
+  }))
 }
 
 /** Sum of XL at death per killer (hydra variants grouped like Top 10 Killers). */
@@ -50,7 +71,8 @@ function buildTop10NotoriousKillers(morgues: GameRecord[]): { name: string; poin
 }
 
 export function Top10Killers({ morgues = [], loading }: { morgues?: GameRecord[]; loading?: boolean }) {
-  const top10 = useMemo(() => buildTop10Killers(morgues), [morgues])
+  const byBracket = useMemo(() => buildTop10KillersByBracket(morgues), [morgues])
+  const hasAny = byBracket.some((b) => b.killers.length > 0)
 
   if (loading) {
     return (
@@ -65,7 +87,7 @@ export function Top10Killers({ morgues = [], loading }: { morgues?: GameRecord[]
     )
   }
 
-  if (top10.length === 0) {
+  if (!hasAny) {
     return (
       <Card className="border-2 border-primary/30 rounded-none">
         <CardHeader className="border-b-2 border-primary/20 pb-3">
@@ -84,14 +106,31 @@ export function Top10Killers({ morgues = [], loading }: { morgues?: GameRecord[]
         <CardTitle>TOP 10 KILLERS</CardTitle>
       </CardHeader>
       <CardContent className="pt-1.5">
-        <ol className={cn("list-decimal list-inside space-y-1.5", typography.bodyMono)}>
-          {top10.map(({ name, count }, i) => (
-            <li key={`${name}-${i}`} className="text-foreground">
-              <span className="text-primary">{name}</span>
-              <span className="text-muted-foreground ml-1">({count})</span>
-            </li>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {byBracket.map(({ label, killers }) => (
+            <div key={label} className="min-w-0">
+              <div
+                className={cn(
+                  "mb-2 border-b border-primary/15 pb-1 font-mono text-sm uppercase tracking-wider text-muted-foreground",
+                )}
+              >
+                {label}
+              </div>
+              {killers.length === 0 ? (
+                <p className={cn(typography.bodyMuted, "text-sm")}>—</p>
+              ) : (
+                <ol className={cn("list-decimal list-inside space-y-1.5", typography.bodyMono)}>
+                  {killers.map(({ name, count }, i) => (
+                    <li key={`${label}-${name}-${i}`} className="text-foreground">
+                      <span className="text-primary">{name}</span>
+                      <span className="text-muted-foreground ml-1">({count})</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
           ))}
-        </ol>
+        </div>
       </CardContent>
     </Card>
   )

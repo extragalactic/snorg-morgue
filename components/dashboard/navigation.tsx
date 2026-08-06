@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, ScrollText, Menu, X, LogOut, ExternalLink, Monitor, Terminal, Trophy, Shield, Flame, Users } from "lucide-react"
+import { BarChart3, ScrollText, Menu, X, LogOut, ExternalLink, Monitor, Terminal, Trophy, Shield, Flame, Users, Crown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -30,6 +30,7 @@ interface NavigationProps {
 
 const navItems = [
   { id: "analysis", label: "Progress", icon: BarChart3 },
+  { id: "winners", label: "Winners", icon: Crown },
   { id: "skills", label: "Analysis", icon: Flame },
   { id: "achievements", label: "Achievements", icon: Trophy },
   { id: "morgues", label: "Morgues", icon: ScrollText },

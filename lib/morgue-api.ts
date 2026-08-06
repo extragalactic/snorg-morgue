@@ -7,7 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { nanoid } from "nanoid"
 import { parseMorgue, getMessageHistorySignature, parseSpeciesBackground, isAbandonedCharacterMorgue } from "./morgue-parser"
 import { validateAndSanitizeParsedMorgue } from "./morgue-validation"
-import { parseSkillHistory, computeSkillSnapshotsFromHistory } from "./skill-history"
+import { parseSkillHistory, computeSkillSnapshotsFromHistory, computeWinnerSkillLevelsFromHistory } from "./skill-history"
 import {
   parseActionHistory,
   normalizeActionKey,
@@ -223,6 +223,18 @@ export async function uploadMorgues(
               level: s.level,
             }))
             await supabase.from("skill_snapshots").insert(snapshotRows)
+          }
+
+          const winnerSkills = computeWinnerSkillLevelsFromHistory(skillHistory)
+          if (winnerSkills.length > 0) {
+            await supabase.from("winner_skill_levels").insert(
+              winnerSkills.map((s) => ({
+                user_id: userId,
+                game_id: insertedRow!.id,
+                skill: s.skill,
+                level: s.level,
+              })),
+            )
           }
         }
       }
@@ -1024,8 +1036,32 @@ export async function fetchMorgueById(
   }
 }
 
+/** One row from winner_skill_levels (final integer skill level for a winning game). */
+export interface WinnerSkillLevelRow {
+  game_id: string
+  skill: string
+  level: number
+}
+
+/**
+ * Precomputed final skill levels for the user's winning games (powers the Winner Skills chart).
+ * Populated at import; read-only here.
+ */
+export async function fetchWinnerSkillLevels(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<WinnerSkillLevelRow[]> {
+  const { data, error } = await supabase
+    .from("winner_skill_levels")
+    .select("game_id, skill, level")
+    .eq("user_id", userId)
+  if (error || !data) return []
+  return data as WinnerSkillLevelRow[]
+}
+
 /**
  * Delete a morgue (parsed row + its skill_snapshots; if manually uploaded, also delete the morgue_files row), then recalc user stats.
+ * winner_skill_levels rows are removed automatically via the parsed_morgues FK (ON DELETE CASCADE).
  */
 export async function deleteMorgue(
   supabase: SupabaseClient,
@@ -1136,15 +1172,18 @@ export async function refreshMorguesFromRaw(
       const insertPayload = { ...row, message_history_signature: signature, short_id: nanoid(6) }
 
       let insertParsedErr: { message: string; code?: string; details?: unknown } | null = null
-      let res = await supabase.from("parsed_morgues").insert(insertPayload)
+      let insertedId: string | null = null
+      let res = await supabase.from("parsed_morgues").insert(insertPayload).select("id").single()
       insertParsedErr = res.error
+      insertedId = res.data?.id ?? null
 
       // If short_id column doesn't exist (migration not run), retry without it so refresh still works.
       if (insertParsedErr && /short_id.*schema cache/i.test(insertParsedErr.message)) {
         const { message_history_signature: _sig, short_id: _sid, ...rowWithoutShort } =
           insertPayload as typeof insertPayload & { short_id?: string }
-        res = await supabase.from("parsed_morgues").insert(rowWithoutShort)
+        res = await supabase.from("parsed_morgues").insert(rowWithoutShort).select("id").single()
         insertParsedErr = res.error
+        insertedId = res.data?.id ?? null
       }
 
       if (insertParsedErr) {
@@ -1156,6 +1195,25 @@ export async function refreshMorguesFromRaw(
           dbDetails: insertParsedErr.details as string | undefined,
         })
         continue
+      }
+
+      // For winning games, recompute winner skill levels from the saved raw text.
+      // (Stale rows for the old parsed_morgues id were removed via ON DELETE CASCADE above.)
+      if (insertedId && parsed.isWin) {
+        const skillHistory = parseSkillHistory(file.raw_text)
+        if (skillHistory) {
+          const winnerSkills = computeWinnerSkillLevelsFromHistory(skillHistory)
+          if (winnerSkills.length > 0) {
+            await supabase.from("winner_skill_levels").insert(
+              winnerSkills.map((s) => ({
+                user_id: userId,
+                game_id: insertedId!,
+                skill: s.skill,
+                level: s.level,
+              })),
+            )
+          }
+        }
       }
 
       success++

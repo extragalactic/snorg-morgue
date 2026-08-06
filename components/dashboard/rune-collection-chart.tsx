@@ -20,6 +20,8 @@ import { colors } from "@/lib/colors"
 
 interface RuneCollectionChartProps {
   morgues?: GameRecord[]
+  /** Which card(s) to render. "all" (default) shows both stacked. */
+  section?: "all" | "perGame" | "byType"
 }
 
 const MAX_RUNES = 15
@@ -164,7 +166,9 @@ function RuneByTypeTooltip({
   )
 }
 
-export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) {
+export function RuneCollectionChart({ morgues = [], section = "all" }: RuneCollectionChartProps) {
+  const showPerGame = section === "all" || section === "perGame"
+  const showByType = section === "all" || section === "byType"
   const data = buildRuneData(morgues)
   const rawRuneByType = buildRuneByTypeData(morgues)
   const runeByTypeData =
@@ -193,8 +197,8 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
   const attemptsColor =
     themeStyle === "ascii" ? "oklch(0.52 0.12 145)" : "rgba(148, 163, 184, 0.9)"
 
-  const hasTotalRunes = data.some((d) => d.attemptsTotal > 0)
-  const hasRuneByType = runeByTypeData.length > 0
+  const hasTotalRunes = showPerGame && data.some((d) => d.attemptsTotal > 0)
+  const hasRuneByType = showByType && runeByTypeData.length > 0
 
   if (!hasTotalRunes && !hasRuneByType) {
     return null
@@ -285,7 +289,7 @@ export function RuneCollectionChart({ morgues = [] }: RuneCollectionChartProps) 
             <CardTitle>TOTAL RUNES BY TYPE</CardTitle>
           </CardHeader>
           <CardContent className="pt-1.5">
-            <ResponsiveContainer width="100%" height={Math.max(260, runeByTypeData.length * 40)}>
+            <ResponsiveContainer width="100%" height={Math.max(260, runeByTypeData.length * 43)}>
               <BarChart
                 layout="vertical"
                 data={runeByTypeData}

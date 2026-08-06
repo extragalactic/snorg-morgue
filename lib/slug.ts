@@ -22,6 +22,7 @@ export const PAGE_TO_TAB: Record<string, string> = {
   analysis: "skills",
   /** Legacy path; same tab as analysis */
   skills: "skills",
+  winners: "winners",
   achievements: "achievements",
   morgues: "morgues",
   // resources: "extras", // Hidden - uncomment to restore
@@ -30,6 +31,7 @@ export const PAGE_TO_TAB: Record<string, string> = {
 /** Map dashboard tab id -> canonical URL segment */
 export const TAB_TO_PAGE: Record<string, string> = {
   analysis: "statistics",
+  winners: "winners",
   skills: "analysis",
   achievements: "achievements",
   morgues: "morgues",
