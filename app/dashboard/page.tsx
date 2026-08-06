@@ -63,6 +63,7 @@ import { typography, TITLE_GRAPHIC_SIZE_LARGE } from "@/lib/typography"
 // import { SkillingAnalysis } from "@/components/dashboard/skilling-analysis"
 import { AverageLevelByGodChart } from "@/components/dashboard/average-level-by-god-chart"
 import { WinnerSkillsChart } from "@/components/dashboard/winner-skills-chart"
+import { WinnersTable } from "@/components/dashboard/winners-table"
 import { MilestoneProgressionChart } from "@/components/dashboard/milestone-progression-chart"
 import { cn } from "@/lib/utils"
 import { isAdminEmail } from "@/lib/admin-auth"
@@ -361,14 +362,16 @@ export default function DashboardPage({
     }
   }, [userId, morgues, isDownloading, isBrowsingOther])
 
+  const fillsViewport = activeTab === "morgues" || activeTab === "winners"
+
   return (
     <div
       className={cn(
         "bg-background min-w-0",
-        activeTab === "morgues" ? "flex h-dvh min-h-0 flex-col overflow-hidden" : "min-h-screen",
+        fillsViewport ? "flex h-dvh min-h-0 flex-col overflow-hidden" : "min-h-screen",
       )}
     >
-      <div className={cn(activeTab === "morgues" && "shrink-0")}>
+      <div className={cn(fillsViewport && "shrink-0")}>
         <Navigation activeTab={activeTab} onTabChange={setActiveTab} usernameSlug={usernameSlug} />
       </div>
 
@@ -400,31 +403,37 @@ export default function DashboardPage({
       <main
         className={cn(
           "mx-auto w-full min-w-0 max-w-7xl px-4 py-6",
-          activeTab === "morgues" && "flex min-h-0 flex-1 flex-col overflow-hidden",
+          fillsViewport && "flex min-h-0 flex-1 flex-col overflow-hidden",
         )}
       >
         <div
           className={cn(
             "flex flex-col gap-4",
-            activeTab === "morgues"
+            fillsViewport
               ? "mb-2 shrink-0 lg:flex-row lg:items-center lg:justify-between"
               : "mb-6 sm:flex-row sm:items-center sm:justify-between",
           )}
         >
-          <div
-            className={cn(activeTab === "morgues" && "w-full min-w-0 lg:w-auto")}
-          >
+          <div className={cn(fillsViewport && "w-full min-w-0 lg:w-auto")}>
             <div
               className={cn(
                 "flex gap-3",
-                activeTab === "morgues"
-                  ? "min-w-0 flex-nowrap items-center"
-                  : "flex-wrap items-center",
+                fillsViewport ? "min-w-0 flex-nowrap items-center" : "flex-wrap items-center",
               )}
             >
               {activeTab === "analysis" && (
                 <Image
                   src="/images/tesseract-icon.png"
+                  alt=""
+                  width={TITLE_GRAPHIC_SIZE_LARGE}
+                  height={TITLE_GRAPHIC_SIZE_LARGE}
+                  className="object-contain shrink-0"
+                  style={{ width: TITLE_GRAPHIC_SIZE_LARGE, height: TITLE_GRAPHIC_SIZE_LARGE }}
+                />
+              )}
+              {activeTab === "winners" && (
+                <Image
+                  src="/images/achievement-award-icon.png"
                   alt=""
                   width={TITLE_GRAPHIC_SIZE_LARGE}
                   height={TITLE_GRAPHIC_SIZE_LARGE}
@@ -470,6 +479,7 @@ export default function DashboardPage({
               >
                 <h1 className={typography.primaryTitle}>
                   {activeTab === "analysis" && "PROGRESS"}
+                  {activeTab === "winners" && "WINNERS"}
                   {activeTab === "skills" && "ANALYSIS"}
                   {activeTab === "achievements" && "OFFICIAL ACHIEVEMENTS"}
                   {activeTab === "morgues" && "MORGUE FILES"}
@@ -477,6 +487,7 @@ export default function DashboardPage({
                 </h1>
                 <p className={typography.primaryPageSubtitle}>
                   {activeTab === "analysis" && "Track your DCSS progress"}
+                  {activeTab === "winners" && "Characters that escaped with the Orb of Zot"}
                   {activeTab === "skills" && "Deeper analysis to find the patterns"}
                   {activeTab === "achievements" && "Impressive metrics of DCSS prowess"}
                   {activeTab === "morgues" && "Upload and browse your morgue files"}
@@ -803,6 +814,17 @@ export default function DashboardPage({
           </>
         )}
 
+        {activeTab === "winners" && (
+          <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col pb-2">
+            <WinnersTable
+              morgues={morgues}
+              loading={morguesLoading}
+              usernameSlug={isBrowsingOther && browseTarget ? browseTarget.usernameSlug : routeSlug || undefined}
+              actionAveragesUserId={isBrowsingOther && browseTarget ? browseTarget.userId : userId ?? null}
+            />
+          </div>
+        )}
+
         {activeTab === "skills" && (
           <div className="space-y-6">
             {isEmpty ? (
@@ -830,7 +852,7 @@ export default function DashboardPage({
                   />
                 </div>
                 <RuneCollectionChart morgues={morgues} section="perGame" />
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-4">
                   <Top10Killers morgues={morgues} loading={statsLoading} />
                   <Top10NotoriousKillers morgues={morgues} loading={statsLoading} />
                 </div>
@@ -968,7 +990,7 @@ export default function DashboardPage({
       <footer
         className={cn(
           "border-t-4 border-primary/30 bg-card",
-          activeTab === "morgues" ? "mt-0 shrink-0" : "mt-8",
+          fillsViewport ? "mt-0 shrink-0" : "mt-8",
         )}
       >
         <div className="mx-auto max-w-7xl px-4 py-6">

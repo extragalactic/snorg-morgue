@@ -55,6 +55,9 @@ Features:
 - an accessible Bug Reporter feature would be good
 - Winner Skills chart should make the legend categories into filter buttons (and include an All button)
 - Zot Splats should also show (in a different colour) the Zot splats that later got a win for that combo
+- make a Top 10 Killers for levels 1-10, 11-20, 21-27
+- the DCSS Chargen chart should show extra data for each item, for example: aptitudes for Species, starting kit for Background, and ability list for God
+- would be cool to have a feature that helps you win with a particular combo, by searching all other winners with that combo. However this functionality may already be on the existing tools, and this site should offer unique analysis options
 
 Fixes:
 - after importing new files, the table needs to auto-run the sort
@@ -84,45 +87,47 @@ Fixes:
 - "Win with all available backgrounds" and simnilar bottom text should be moved into a subtitle to avoid so much repetition
 - "Upload Morgue" should be perhaps "Upload from computer", and be separate from Download
 - date sorting on the morgues table is ignoring time of day, so games within the same day are not sorted correctly... and in fact it might be just wrong (it is showing import date?)
+- the Milestone Progression chart should perhaps use the same milestones as the DCSS tournaments
+- can probably hide Enthusiastic Species, not very interesting
 
 
 Combos to try:
 
     (2) TeAE^Veh
+    (2) MfSh^Wu (Wu and Merfolk are good with shape shifting, Nemelex would also be good)
     (2) TrFi^Ru
     (3) TrDe^Ru
-    (2) ??Ne^Wu (Wu is good with necro summon hordes)
     (2) MiDe^??
+    (2) VsNe^Wu (have done many attempts...)
+    DsNe^??
+    Co??^Hep (Hep is reliably powerful to offset Co)
     DsMo^Yred or GnMo^Yred
     Ko??^Nem/Qaz (compress the god powers via small LOS)
     ReNe^Usk (torment scroll can auto-paralyze the whole screen on first round, shortblades for stabbing with Re bonus casting)
     PoNe^Usk (...because Re might suck as stabber)
     Usk on an AOE char (like blaster casters)
     Hexer^Dith
-    Merfolk w/ talismans
     MiFi^Qaz
     MiFi^Oka
     MiHu^Oka
     MiHu^Qaz / BaHu^Qaz
     Mi?^Usk
     DrSh^Ru
-    DrSh^Goz
     GrFE^Veh
     Reaver of Wu Jian ... Dj, Ds, Dr, Gr, Gn
-    OnFW^??
-    OnWr^Sif/TSO/Mak
     On??^Chei
     On??^Mak (high HP good for Mak)
     OnSu^??
     OnNe^Kiku
-    Op??^Ash
+    OpSh^??
     DgHu
+    Md??^Zin
     Po??^Usk (stabber)
     Vs??^Mak (Unleash Destruction should be spammable with Vs)
     FoFi^Usk
     ??Ar^Dith
-    Fo??^Ru (Ru comes recommended for Fo)
-    Fo??^Zin (Zin is apparently good for Fo with escape options)
+    FoAl^Ru (Ru comes recommended for Fo)
+    Fo??^Zin (Zin is good for Fo with escape options)
     ??Co^Qaz (lean into making noise with Qaz and Fulminant Prism)
     Sp??^Ely (apparently Ely is good for Sp)
     VsNe^Wu

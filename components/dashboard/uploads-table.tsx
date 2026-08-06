@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Eye, ChevronLeft, ChevronRight, Skull, Trophy, ChevronUp, ChevronDown, Trash2, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -51,9 +51,10 @@ type SortField = "character" | "combo" | "god" | "xl" | "place" | "duration" | "
 type SortDirection = "asc" | "desc"
 
 const DEFAULT_PAGE_SIZE = 15
-const MIN_DYNAMIC_ROWS = 3
-const FALLBACK_ROW_PX = 46
-const FALLBACK_HEADER_PX = 41
+const INITIAL_VISIBLE = 30
+const LOAD_MORE = 20
+const STICKY_TABLE_HEAD =
+  "sticky top-0 z-10 bg-background shadow-[0_1px_0_0_hsl(var(--primary)/0.2)]"
 
 interface UploadsTableProps {
   morgues: GameRecord[]
@@ -61,7 +62,7 @@ interface UploadsTableProps {
   onRefresh?: () => void
   /** When set, row click navigates to /usernameSlug/morgues/shortId for shareable URL. */
   usernameSlug?: string
-  /** Grow with the parent flex column and fit page size to available table body height. */
+  /** Grow with the parent flex column and use infinite scroll within available height. */
   fillViewportHeight?: boolean
   /** When true, hide delete and other mutations (e.g. viewing another user's morgues). */
   readOnly?: boolean
@@ -100,10 +101,11 @@ export function UploadsTable({
   const [godFilter, setGodFilter] = useState<GodFilter>(settings.morguesTable.godFilter as GodFilter)
   const [sortField, setSortField] = useState<SortField | null>(settings.morguesTable.sortField as SortField | null)
   const [sortDirection, setSortDirection] = useState<SortDirection>(settings.morguesTable.sortDirection as SortDirection)
-  const [measuredItemsPerPage, setMeasuredItemsPerPage] = useState(DEFAULT_PAGE_SIZE)
-  const tableBodySlotRef = useRef<HTMLDivElement>(null)
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const loadMoreRef = useRef<HTMLTableRowElement>(null)
 
-  const itemsPerPage = fillViewportHeight ? measuredItemsPerPage : DEFAULT_PAGE_SIZE
+  const itemsPerPage = DEFAULT_PAGE_SIZE
 
   // Keep local state in sync if settings change elsewhere
   useEffect(() => {
@@ -254,28 +256,40 @@ export function UploadsTable({
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedData = filteredAndSortedData.slice(startIndex, startIndex + itemsPerPage)
 
-  useLayoutEffect(() => {
+  const filteredDataKey = useMemo(
+    () => filteredAndSortedData.map((d) => d.id).join(","),
+    [filteredAndSortedData],
+  )
+
+  useEffect(() => {
     if (!fillViewportHeight) return
-    const el = tableBodySlotRef.current
-    if (!el) return
+    setVisibleCount(INITIAL_VISIBLE)
+    scrollRef.current?.scrollTo({ top: 0 })
+  }, [fillViewportHeight, filteredDataKey])
 
-    const measure = () => {
-      const rect = el.getBoundingClientRect()
-      const theadRow = el.querySelector("thead tr")
-      const headerH = theadRow?.getBoundingClientRect().height ?? FALLBACK_HEADER_PX
-      const firstBodyRow = el.querySelector("tbody tr")
-      const rowH = firstBodyRow?.getBoundingClientRect().height ?? FALLBACK_ROW_PX
-      const available = rect.height - headerH
-      if (available <= 0 || rowH <= 0) return
-      const next = Math.max(MIN_DYNAMIC_ROWS, Math.floor(available / rowH))
-      setMeasuredItemsPerPage((prev) => (prev === next ? prev : next))
-    }
+  const displayData = fillViewportHeight
+    ? filteredAndSortedData.slice(0, visibleCount)
+    : paginatedData
+  const hasMore = fillViewportHeight && visibleCount < filteredAndSortedData.length
 
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    measure()
-    return () => ro.disconnect()
-  }, [fillViewportHeight, loading, morgues.length, filteredAndSortedData.length, measuredItemsPerPage])
+  useEffect(() => {
+    if (!fillViewportHeight) return
+    const root = scrollRef.current
+    const sentinel = loadMoreRef.current
+    if (!root || !sentinel || !hasMore) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setVisibleCount((prev) => Math.min(prev + LOAD_MORE, filteredAndSortedData.length))
+        }
+      },
+      { root, rootMargin: "120px", threshold: 0 },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [fillViewportHeight, hasMore, filteredAndSortedData.length, visibleCount, filteredDataKey])
+
   const totalCount = morgues.length
   const filteredCount = filteredAndSortedData.length
   const pct = totalCount > 0 ? ((filteredCount / totalCount) * 100).toFixed(1) : "0.0"
@@ -284,18 +298,6 @@ export function UploadsTable({
     filteredCount === totalCount
       ? `${totalCount} ${gamesWord(totalCount)}`
       : `${filteredCount} of ${totalCount} ${gamesWord(totalCount)} (${pct}%)`
-
-  useEffect(() => {
-    if (!fillViewportHeight) return
-    const tp = Math.max(1, Math.ceil(filteredAndSortedData.length / itemsPerPage) || 1)
-    if (currentPage > tp) {
-      setCurrentPage(tp)
-      setSettings((prev) => ({
-        ...prev,
-        morguesTable: { ...prev.morguesTable, currentPage: tp },
-      }))
-    }
-  }, [fillViewportHeight, filteredAndSortedData.length, itemsPerPage, currentPage, setSettings])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -313,7 +315,11 @@ export function UploadsTable({
 
   const SortableHeader = ({ field, children, className = "" }: { field: SortField; children: React.ReactNode; className?: string }) => (
     <TableHead 
-      className={`font-mono text-sm text-primary cursor-pointer hover:bg-primary/10 select-none ${className}`}
+      className={cn(
+        "font-mono text-sm text-primary cursor-pointer hover:bg-primary/10 select-none",
+        fillViewportHeight && cn(STICKY_TABLE_HEAD, "hover:bg-background"),
+        className,
+      )}
       onClick={() => handleSort(field)}
     >
       <div className="flex items-center gap-1">
@@ -387,7 +393,7 @@ export function UploadsTable({
       <Card
         className={cn(
           "w-full min-w-0 border-2 border-primary/30 rounded-none",
-          fillViewportHeight && "min-h-0 flex-1 gap-0 py-0",
+          fillViewportHeight && "flex min-h-0 flex-1 flex-col gap-0 py-0",
         )}
       >
         <CardHeader
@@ -410,7 +416,7 @@ export function UploadsTable({
       <Card
         className={cn(
           "w-full min-w-0 border-2 border-primary/30 rounded-none",
-          fillViewportHeight && "min-h-0 flex-1 gap-0 py-0",
+          fillViewportHeight && "flex min-h-0 flex-1 flex-col gap-0 py-0",
         )}
       >
         <CardHeader
@@ -432,7 +438,7 @@ export function UploadsTable({
     <Card
       className={cn(
         "w-full min-w-0 border-2 border-primary/30 rounded-none",
-        fillViewportHeight && "min-h-0 flex-1 gap-0 py-0",
+        fillViewportHeight && "flex min-h-0 flex-1 flex-col gap-0 py-0",
       )}
     >
       <CardHeader
@@ -592,31 +598,36 @@ export function UploadsTable({
       <CardContent
         className={cn("p-0", fillViewportHeight && "flex min-h-0 flex-1 flex-col overflow-hidden")}
       >
-        <div
-          ref={tableBodySlotRef}
-          className={cn(
+        <Table
+          containerRef={fillViewportHeight ? scrollRef : undefined}
+          containerClassName={cn(
             "w-full min-w-0 min-h-0",
-            fillViewportHeight && "flex-1 overflow-y-hidden",
+            fillViewportHeight && "flex-1 overflow-y-auto overflow-x-auto",
           )}
         >
-          <Table>
-            <TableHeader>
-              <TableRow className="border-b-2 border-primary/20 hover:bg-transparent">
-                <SortableHeader field="character">Character</SortableHeader>
-                <SortableHeader field="combo">Combo</SortableHeader>
-                <SortableHeader field="god">God</SortableHeader>
-                <SortableHeader field="xl">XL</SortableHeader>
-                <SortableHeader field="place" className="hidden sm:table-cell">Place</SortableHeader>
-                <SortableHeader field="duration" className="hidden md:table-cell">Duration</SortableHeader>
-                <SortableHeader field="date">Date</SortableHeader>
-                <SortableHeader field="result">Result</SortableHeader>
-                <TableHead className={cn("font-mono text-sm text-primary text-right", readOnly ? "w-14" : "w-24")}>
-                  {readOnly ? "View" : "Actions"}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedData.map((game) => (
+          <TableHeader>
+            <TableRow className="border-b-2 border-primary/20 hover:bg-transparent">
+              <SortableHeader field="character">Character</SortableHeader>
+              <SortableHeader field="combo">Combo</SortableHeader>
+              <SortableHeader field="god">God</SortableHeader>
+              <SortableHeader field="xl">XL</SortableHeader>
+              <SortableHeader field="place" className="hidden sm:table-cell">Place</SortableHeader>
+              <SortableHeader field="duration" className="hidden md:table-cell">Duration</SortableHeader>
+              <SortableHeader field="date">Date</SortableHeader>
+              <SortableHeader field="result">Result</SortableHeader>
+              <TableHead
+                className={cn(
+                  "font-mono text-sm text-primary text-right",
+                  fillViewportHeight && STICKY_TABLE_HEAD,
+                  readOnly ? "w-14" : "w-24",
+                )}
+              >
+                {readOnly ? "View" : "Actions"}
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+              {displayData.map((game) => (
                 <TableRow
                   key={game.id}
                   className="border-b border-primary/10 hover:bg-primary/5 cursor-pointer"
@@ -682,9 +693,18 @@ export function UploadsTable({
                   </TableCell>
                 </TableRow>
               ))}
+              {hasMore && (
+                <TableRow ref={loadMoreRef} className="border-0 hover:bg-transparent">
+                  <TableCell
+                    colSpan={9}
+                    className="py-3 text-center font-mono text-sm text-muted-foreground"
+                  >
+                    Loading more…
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
-        </div>
 
         <AlertDialog open={!readOnly && !!deleteConfirmGame} onOpenChange={(open) => !open && setDeleteConfirmGame(null)}>
           <AlertDialogContent className="rounded-none border-2 border-primary/30">
@@ -715,51 +735,37 @@ export function UploadsTable({
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Pagination */}
-        <div
-          className={cn(
-            "flex items-center justify-between border-t-2 border-primary/20 p-4",
-            fillViewportHeight && "shrink-0",
-          )}
-        >
-          <p className="text-sm text-muted-foreground">
-            Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredAndSortedData.length)} of{" "}
-            {filteredAndSortedData.length}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="group h-9 w-9 rounded-none border-2 border-primary/50"
-              disabled={currentPage === 1}
-              onClick={() => {
-                setCurrentPage((p) => {
-                  const next = p - 1
-                  return next
-                })
-              }}
-            >
-              <ChevronLeft className="h-5 w-5 group-hover:text-primary" />
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {currentPage} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              className="group h-9 w-9 rounded-none border-2 border-primary/50"
-              disabled={currentPage === totalPages}
-              onClick={() => {
-                setCurrentPage((p) => {
-                  const next = p + 1
-                  return next
-                })
-              }}
-            >
-              <ChevronRight className="h-5 w-5 group-hover:text-primary" />
-            </Button>
+        {!fillViewportHeight && (
+          <div className="flex items-center justify-between border-t-2 border-primary/20 p-4">
+            <p className="text-sm text-muted-foreground">
+              Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredAndSortedData.length)} of{" "}
+              {filteredAndSortedData.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="group h-9 w-9 rounded-none border-2 border-primary/50"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => p - 1)}
+              >
+                <ChevronLeft className="h-5 w-5 group-hover:text-primary" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="group h-9 w-9 rounded-none border-2 border-primary/50"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => p + 1)}
+              >
+                <ChevronRight className="h-5 w-5 group-hover:text-primary" />
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
     <MorgueViewerModal
