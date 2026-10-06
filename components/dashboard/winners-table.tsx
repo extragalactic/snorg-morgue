@@ -1,9 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Eye } from "lucide-react"
+import { ChevronDown, ChevronUp } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import {
   Table,
   TableBody,
@@ -15,7 +14,6 @@ import {
 import { cn } from "@/lib/utils"
 import { typography } from "@/lib/typography"
 import { formatCharacterEpithetDisplay } from "@/lib/dcss-character-titles"
-import { GOD_SHORT_FORMS } from "@/lib/dcss-constants"
 import type { GameRecord } from "@/lib/morgue-api"
 import { MorgueViewerModal } from "./morgue-viewer-modal"
 
@@ -27,6 +25,13 @@ const WINNERS_TABLE_TEXT = "font-mono text-base"
 const INITIAL_VISIBLE = 30
 const LOAD_MORE = 20
 
+type SortField = "order" | "character" | "species" | "background" | "god" | "runes" | "defense"
+type SortDirection = "asc" | "desc"
+
+function dateCompareNewestFirst(a: GameRecord, b: GameRecord): number {
+  return b.date.localeCompare(a.date) || b.xl - a.xl || a.id.localeCompare(b.id)
+}
+
 function splitCharacterName(character: string): { name: string; title: string | null } {
   const trimmed = character.trim()
   const title = formatCharacterEpithetDisplay(trimmed)
@@ -35,18 +40,59 @@ function splitCharacterName(character: string): { name: string; title: string | 
   return { name: base || trimmed, title }
 }
 
-function godLabel(god: string | undefined): string {
-  const g = (god ?? "").trim()
-  if (!g) return "—"
-  if (g.toLowerCase().includes("shining one")) return "TSO"
-  return GOD_SHORT_FORMS[g] ?? g
+function defenseTotal(game: GameRecord): number {
+  return (game.ac ?? 0) + (game.ev ?? 0) + (game.sh ?? 0)
+}
+
+function compareWinners(
+  a: GameRecord,
+  b: GameRecord,
+  field: SortField,
+  direction: SortDirection,
+  orderById: Map<string, number>,
+): number {
+  let comparison = 0
+  switch (field) {
+    case "order":
+      comparison = (orderById.get(a.id) ?? 0) - (orderById.get(b.id) ?? 0)
+      break
+    case "character":
+      comparison = a.character.localeCompare(b.character, undefined, { sensitivity: "base" })
+      break
+    case "species":
+      comparison = (a.species ?? "").localeCompare(b.species ?? "", undefined, { sensitivity: "base" })
+      break
+    case "background":
+      comparison = (a.background ?? "").localeCompare(b.background ?? "", undefined, {
+        sensitivity: "base",
+      })
+      break
+    case "god": {
+      const godA = (a.god ?? "").trim() || "—"
+      const godB = (b.god ?? "").trim() || "—"
+      comparison = godA.localeCompare(godB, undefined, { sensitivity: "base" })
+      break
+    }
+    case "runes":
+      comparison = (a.runes ?? 0) - (b.runes ?? 0)
+      break
+    case "defense":
+      comparison = defenseTotal(a) - defenseTotal(b)
+      break
+  }
+  if (comparison === 0 && field !== "order") {
+    comparison = dateCompareNewestFirst(a, b)
+  }
+  return direction === "asc" ? comparison : -comparison
 }
 
 function WinnerRow({
   game,
+  order,
   onView,
 }: {
   game: GameRecord
+  order: number
   onView: (game: GameRecord) => void
 }) {
   const { name, title } = splitCharacterName(game.character)
@@ -55,26 +101,23 @@ function WinnerRow({
       className="border-b border-primary/10 hover:bg-primary/5 cursor-pointer"
       onClick={() => onView(game)}
     >
+      <TableCell className={cn(WINNERS_TABLE_TEXT, "text-muted-foreground tabular-nums w-14")}>
+        {order}
+      </TableCell>
       <TableCell className={WINNERS_TABLE_TEXT}>
         <div className="text-primary">{name}</div>
         {title && <div className={cn(WINNERS_TABLE_TEXT, "text-muted-foreground")}>{title}</div>}
       </TableCell>
       <TableCell className={cn(WINNERS_TABLE_TEXT, "text-foreground")}>{game.species}</TableCell>
       <TableCell className={cn(WINNERS_TABLE_TEXT, "text-foreground")}>{game.background}</TableCell>
-      <TableCell className={cn(WINNERS_TABLE_TEXT, "text-foreground")}>{godLabel(game.god)}</TableCell>
+      <TableCell className={cn(WINNERS_TABLE_TEXT, "text-foreground")}>
+        {(game.god ?? "").trim() || "—"}
+      </TableCell>
       <TableCell className={cn(WINNERS_TABLE_TEXT, "text-foreground tabular-nums")}>
         {game.runes ?? 0}
       </TableCell>
-      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 rounded-none hover:bg-primary/20"
-          onClick={() => onView(game)}
-          aria-label="View morgue"
-        >
-          <Eye className="h-5 w-5" />
-        </Button>
+      <TableCell className={cn(WINNERS_TABLE_TEXT, "text-foreground tabular-nums")}>
+        {defenseTotal(game)}
       </TableCell>
     </TableRow>
   )
@@ -93,21 +136,33 @@ export function WinnersTable({
 }) {
   const [viewingMorgue, setViewingMorgue] = useState<GameRecord | null>(null)
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE)
+  const [sortField, setSortField] = useState<SortField>("order")
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
   const scrollRef = useRef<HTMLDivElement>(null)
   const loadMoreRef = useRef<HTMLTableRowElement>(null)
 
-  const winners = useMemo(() => {
-    return morgues
+  /** Date-based rank: 1 = most recent win (default Order sort shows 1, 2, 3… top to bottom). */
+  const orderById = useMemo(() => {
+    const byDate = morgues
       .filter((m) => m.result === "win")
-      .sort((a, b) => b.date.localeCompare(a.date) || b.xl - a.xl)
+      .sort(dateCompareNewestFirst)
+    const map = new Map<string, number>()
+    byDate.forEach((g, i) => map.set(g.id, i + 1))
+    return map
   }, [morgues])
 
+  const winners = useMemo(() => {
+    const wins = morgues.filter((m) => m.result === "win")
+    return [...wins].sort((a, b) => compareWinners(a, b, sortField, sortDirection, orderById))
+  }, [morgues, sortField, sortDirection, orderById])
+
   const winnerKey = useMemo(() => winners.map((w) => w.id).join(","), [winners])
+  const sortKey = `${sortField}:${sortDirection}`
 
   useEffect(() => {
     setVisibleCount(INITIAL_VISIBLE)
     scrollRef.current?.scrollTo({ top: 0 })
-  }, [winnerKey])
+  }, [winnerKey, sortKey])
 
   const visibleWinners = winners.slice(0, visibleCount)
   const hasMore = visibleCount < winners.length
@@ -127,7 +182,44 @@ export function WinnersTable({
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [hasMore, winners.length, visibleCount, winnerKey])
+  }, [hasMore, winners.length, visibleCount, winnerKey, sortKey])
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortField(field)
+      // Order defaults to ascending (1 = newest at top); other columns start ascending A→Z / low→high.
+      setSortDirection("asc")
+    }
+  }
+
+  const SortableHeader = ({
+    field,
+    children,
+  }: {
+    field: SortField
+    children: React.ReactNode
+  }) => (
+    <TableHead
+      className={cn(
+        STICKY_TABLE_HEAD,
+        WINNERS_TABLE_TEXT,
+        "cursor-pointer select-none text-primary hover:bg-background",
+      )}
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {sortField === field &&
+          (sortDirection === "asc" ? (
+            <ChevronUp className="h-3.5 w-3.5 shrink-0" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+          ))}
+      </div>
+    </TableHead>
+  )
 
   const titleText =
     winners.length === 0
@@ -177,35 +269,27 @@ export function WinnersTable({
           >
             <TableHeader>
               <TableRow className="border-b-2 border-primary/20 hover:bg-transparent">
-                <TableHead className={cn(STICKY_TABLE_HEAD, WINNERS_TABLE_TEXT, "text-primary")}>
-                  Name &amp; title
-                </TableHead>
-                <TableHead className={cn(STICKY_TABLE_HEAD, WINNERS_TABLE_TEXT, "text-primary")}>
-                  Species
-                </TableHead>
-                <TableHead className={cn(STICKY_TABLE_HEAD, WINNERS_TABLE_TEXT, "text-primary")}>
-                  Background
-                </TableHead>
-                <TableHead className={cn(STICKY_TABLE_HEAD, WINNERS_TABLE_TEXT, "text-primary")}>
-                  God
-                </TableHead>
-                <TableHead className={cn(STICKY_TABLE_HEAD, WINNERS_TABLE_TEXT, "text-primary")}>
-                  Runes
-                </TableHead>
-                <TableHead
-                  className={cn(STICKY_TABLE_HEAD, WINNERS_TABLE_TEXT, "text-primary text-right w-14")}
-                >
-                  View
-                </TableHead>
+                <SortableHeader field="order">Order</SortableHeader>
+                <SortableHeader field="character">Name &amp; title</SortableHeader>
+                <SortableHeader field="species">Species</SortableHeader>
+                <SortableHeader field="background">Background</SortableHeader>
+                <SortableHeader field="god">God</SortableHeader>
+                <SortableHeader field="runes">Runes</SortableHeader>
+                <SortableHeader field="defense">Defense</SortableHeader>
               </TableRow>
             </TableHeader>
             <TableBody>
               {visibleWinners.map((game) => (
-                <WinnerRow key={game.id} game={game} onView={setViewingMorgue} />
+                <WinnerRow
+                  key={game.id}
+                  game={game}
+                  order={orderById.get(game.id) ?? 0}
+                  onView={setViewingMorgue}
+                />
               ))}
               {hasMore && (
                 <TableRow ref={loadMoreRef} className="border-0 hover:bg-transparent">
-                  <TableCell colSpan={6} className={cn("py-3 text-center", typography.bodyMuted, WINNERS_TABLE_TEXT)}>
+                  <TableCell colSpan={7} className={cn("py-3 text-center", typography.bodyMuted, WINNERS_TABLE_TEXT)}>
                     Loading more…
                   </TableCell>
                 </TableRow>

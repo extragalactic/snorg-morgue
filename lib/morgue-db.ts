@@ -48,6 +48,10 @@ export interface ParsedMorgueRow {
   reached_zot_milestone?: boolean
   /** Death while carrying the Orb of Zot (orb run; bucketed separately from place). */
   died_holding_orb?: boolean
+  /** Final AC / EV / SH from the morgue status block. */
+  ac?: number
+  ev?: number
+  sh?: number
 }
 
 /** One entry in species_stats, background_stats, or god_stats on user_stats. */
@@ -108,6 +112,9 @@ export function parsedToRow(
     reached_depths_milestone: p.reachedDepthsMilestone,
     reached_zot_milestone: p.reachedZotMilestone,
     died_holding_orb: p.diedHoldingOrb,
+    ac: p.ac,
+    ev: p.ev,
+    sh: p.sh,
   }
 }
 

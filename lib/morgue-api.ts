@@ -62,6 +62,10 @@ export interface GameRecord {
    * (buckets as Orb Run, not by dungeon floor). Omitted or false for older DB rows.
    */
   diedHoldingOrb?: boolean
+  /** Final AC / EV / SH from the morgue status block (0 if unknown / not yet backfilled). */
+  ac?: number
+  ev?: number
+  sh?: number
 }
 
 export interface UploadResult {
@@ -186,6 +190,18 @@ export async function uploadMorgues(
         res = await supabase
           .from("parsed_morgues")
           .insert(rowWithoutShort)
+          .select("id, is_win")
+          .single()
+        insertParsedErr = res.error
+        insertedRow = (res.data as { id: string; is_win: boolean } | null) ?? null
+      }
+
+      // If ac/ev/sh columns don't exist yet, retry without them.
+      if (insertParsedErr && /\b(ac|ev|sh)\b.*schema cache/i.test(insertParsedErr.message)) {
+        const { ac: _ac, ev: _ev, sh: _sh, ...rowWithoutDefense } = insertPayload
+        res = await supabase
+          .from("parsed_morgues")
+          .insert(rowWithoutDefense)
           .select("id, is_win")
           .single()
         insertParsedErr = res.error
@@ -743,6 +759,9 @@ export function parsedMorgueRowsToGameRecords(data: unknown[] | null | undefined
       reached_depths_milestone?: boolean
       reached_zot_milestone?: boolean
       died_holding_orb?: boolean
+      ac?: number | null
+      ev?: number | null
+      sh?: number | null
     }
     return {
       id: row.id,
@@ -772,6 +791,9 @@ export function parsedMorgueRowsToGameRecords(data: unknown[] | null | undefined
       reachedZotMilestone: row.reached_zot_milestone ?? false,
       version: row.version?.trim() || undefined,
       diedHoldingOrb: row.died_holding_orb === true,
+      ac: typeof row.ac === "number" && Number.isFinite(row.ac) ? row.ac : 0,
+      ev: typeof row.ev === "number" && Number.isFinite(row.ev) ? row.ev : 0,
+      sh: typeof row.sh === "number" && Number.isFinite(row.sh) ? row.sh : 0,
     }
   })
 }
@@ -790,8 +812,17 @@ export async function fetchMorgues(
     "id, morgue_file_id, morgue_url, character_name, species, background, xl, place, turns, duration_formatted, duration_seconds, created_at, is_win, runes_count, runes_text, killer, god, game_completion_date, reached_lair_5, reached_dungeon_8, reached_temple, reached_depths_milestone, reached_zot_milestone, version"
   const withShortIdOrb = `${withShortId}, died_holding_orb`
   const withoutShortIdOrb = `${withoutShortId}, died_holding_orb`
+  const withShortIdDefense = `${withShortIdOrb}, ac, ev, sh`
+  const withoutShortIdDefense = `${withoutShortIdOrb}, ac, ev, sh`
 
-  const selectAttempts = [withShortIdOrb, withShortId, withoutShortIdOrb, withoutShortId]
+  const selectAttempts = [
+    withShortIdDefense,
+    withoutShortIdDefense,
+    withShortIdOrb,
+    withShortId,
+    withoutShortIdOrb,
+    withoutShortId,
+  ]
 
   let data: unknown[] | null = null
   for (const sel of selectAttempts) {
@@ -1182,6 +1213,14 @@ export async function refreshMorguesFromRaw(
         const { message_history_signature: _sig, short_id: _sid, ...rowWithoutShort } =
           insertPayload as typeof insertPayload & { short_id?: string }
         res = await supabase.from("parsed_morgues").insert(rowWithoutShort).select("id").single()
+        insertParsedErr = res.error
+        insertedId = res.data?.id ?? null
+      }
+
+      // If ac/ev/sh columns don't exist yet, retry without them.
+      if (insertParsedErr && /\b(ac|ev|sh)\b.*schema cache/i.test(insertParsedErr.message)) {
+        const { ac: _ac, ev: _ev, sh: _sh, ...rowWithoutDefense } = insertPayload
+        res = await supabase.from("parsed_morgues").insert(rowWithoutDefense).select("id").single()
         insertParsedErr = res.error
         insertedId = res.data?.id ?? null
       }

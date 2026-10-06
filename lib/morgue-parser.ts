@@ -25,7 +25,7 @@ export interface ParsedMorgue {
   creaturesVanquished: number
   isWin: boolean
   killer: string | null
-  /** Game completion date (YYYY-MM-DD) from morgue file. */
+  /** Game date from morgue "Began as … on Month DD, YYYY" (YYYY-MM-DD). Used for table display/sort. */
   gameCompletionDate: string
   /** True if the Branches section shows Lair (5/5), i.e. player reached Lair:5. */
   reachedLair5: boolean
@@ -42,6 +42,12 @@ export interface ParsedMorgue {
    * (e.g. died during escape). Those deaths are bucketed as Orb Run, not by floor.
    */
   diedHoldingOrb: boolean
+  /** Final armour class from the status block. */
+  ac: number
+  /** Final evasion from the status block. */
+  ev: number
+  /** Final shield value from the status block. */
+  sh: number
 }
 
 const ERR_PREFIX = "This doesn’t look like a valid DCSS morgue file."
@@ -384,6 +390,18 @@ export function parseMorgue(rawText: string): ParsedMorgue {
   const xl = xlMatch ? parseInt(xlMatch[1], 10) : 0
   if (!xlMatch || Number.isNaN(xl)) fail("Could not find experience level (XL).")
 
+  // Defense stats from status block: "AC: 15" / "EV: 25" / "SH: 14" (also older "AC 39" form).
+  // Avoid matching item props like "AC+3".
+  const parseStat = (label: "AC" | "EV" | "SH"): number => {
+    const m = text.match(new RegExp(`\\b${label}:?\\s+(\\d+)\\b`))
+    if (!m) return 0
+    const n = parseInt(m[1], 10)
+    return Number.isFinite(n) ? n : 0
+  }
+  const ac = parseStat("AC")
+  const ev = parseStat("EV")
+  const sh = parseStat("SH")
+
   // God: "God:    Wu Jian [******]" or fallback: "Was an Initiate of Gozag." / "Was a Worshipper of X."
   const godMatch = text.match(/God:\s+(.+?)(?:\s+\[|$)/)
   let god = godMatch ? godMatch[1].trim() : ""
@@ -402,15 +420,38 @@ export function parseMorgue(rawText: string): ParsedMorgue {
   // Win: escaped with the Orb (needed for place fallback below)
   const isWin = /escaped with the Orb/i.test(text)
 
-  // Game completion date: from "... and N runes on Month DD, YYYY!" (wins) or "Began as ... on Month DD, YYYY." (fallback)
+  // Game date for tables/sorting: prefer "Began as a … on Month DD, YYYY."
+  // Supports both abbreviated (May) and full (July) month names.
   const monthNames: Record<string, number> = {
-    Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6,
-    Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12,
+    jan: 1,
+    january: 1,
+    feb: 2,
+    february: 2,
+    mar: 3,
+    march: 3,
+    apr: 4,
+    april: 4,
+    may: 5,
+    jun: 6,
+    june: 6,
+    jul: 7,
+    july: 7,
+    aug: 8,
+    august: 8,
+    sep: 9,
+    sept: 9,
+    september: 9,
+    oct: 10,
+    october: 10,
+    nov: 11,
+    november: 11,
+    dec: 12,
+    december: 12,
   }
   function parseMorgueDate(s: string): string {
-    const m = s.match(/^(\w{3})\s+(\d{1,2}),\s+(\d{4})$/)
+    const m = s.trim().match(/^([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})$/)
     if (!m) return ""
-    const month = monthNames[m[1]]
+    const month = monthNames[m[1].toLowerCase()]
     if (!month) return ""
     const day = parseInt(m[2], 10)
     const year = m[3]
@@ -418,21 +459,28 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     return `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`
   }
   let gameCompletionDate = ""
-  const runesDateMatch = text.match(/\.\.\.\s+and\s+\d+\s+runes?\s+on\s+(\w{3}\s+\d{1,2},\s+\d{4})!/i)
-  if (runesDateMatch) {
-    gameCompletionDate = parseMorgueDate(runesDateMatch[1].trim())
+  const beganDateMatch = text.match(
+    /^\s*Began as\s+(?:a|an)\s+.+?\s+on\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})\.?/im,
+  )
+  if (beganDateMatch) {
+    gameCompletionDate = parseMorgueDate(beganDateMatch[1])
   }
-  // Fallback: use the *last* date in the morgue (end-of-game), not the start date.
+  // Fallback for older/odd dumps: "... and N runes on Month DD, YYYY!"
   if (!gameCompletionDate) {
-    const allDates = text.match(/\b\w{3}\s+\d{1,2},\s+\d{4}\b/g)
-    if (allDates && allDates.length > 0) {
-      gameCompletionDate = parseMorgueDate(allDates[allDates.length - 1].trim())
+    const runesDateMatch = text.match(
+      /\.\.\.\s+and\s+\d+\s+runes?\s+on\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})!/i,
+    )
+    if (runesDateMatch) {
+      gameCompletionDate = parseMorgueDate(runesDateMatch[1])
     }
   }
-  // Last resort: if we only have the "Began as ..." line, use that.
+  // Last resort: first Month DD, YYYY in the file header (avoid later message-history dates).
   if (!gameCompletionDate) {
-    const beganMatch = text.match(/Began as\s+.+?\s+on\s+(\w{3}\s+\d{1,2},\s+\d{4})\.?/i)
-    if (beganMatch) gameCompletionDate = parseMorgueDate(beganMatch[1].trim())
+    const header = text.slice(0, 1200)
+    const headerDate = header.match(/\b([A-Za-z]+\s+\d{1,2},\s+\d{4})\b/)
+    if (headerDate) {
+      gameCompletionDate = parseMorgueDate(headerDate[1])
+    }
   }
 
   // Place: "You are on level 4 of the Depths." -> Depths:4; normalize branch names.
@@ -592,6 +640,9 @@ export function parseMorgue(rawText: string): ParsedMorgue {
     reachedLair5: /Lair\s*\(\s*5\s*\/\s*5\s*\)/.test(text),
     ...computeMorgueMilestones(text, place, isWin),
     diedHoldingOrb,
+    ac,
+    ev,
+    sh,
   }
 }
 

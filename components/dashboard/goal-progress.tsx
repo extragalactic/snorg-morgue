@@ -418,9 +418,10 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
   const devotedSpeciesGoals = goals.filter((g) => g.name.startsWith("Devoted "))
   const devotedSpeciesWithProgress = devotedSpeciesGoals.filter((g) => g.current >= 3)
   const hasDevotedSpeciesProgress = devotedSpeciesWithProgress.length > 0
-  const enthusiasticSpeciesGoals = goals.filter((g) => g.name.startsWith("Enthusiastic "))
-  const enthusiasticSpeciesWithProgress = enthusiasticSpeciesGoals.filter((g) => g.current >= 3)
-  const hasEnthusiasticSpeciesProgress = enthusiasticSpeciesWithProgress.length > 0
+  // Enthusiastic Species chart temporarily hidden
+  // const enthusiasticSpeciesGoals = goals.filter((g) => g.name.startsWith("Enthusiastic "))
+  // const enthusiasticSpeciesWithProgress = enthusiasticSpeciesGoals.filter((g) => g.current >= 3)
+  // const hasEnthusiasticSpeciesProgress = enthusiasticSpeciesWithProgress.length > 0
 
   // Disciple of X data (per-god species completion)
   const discipleGods =
@@ -921,7 +922,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
           </CardContent>
         </Card>
 
-      {/* Enthusiastic Species card (bottom of achievements page) */}
+      {/* Enthusiastic Species chart temporarily hidden
       <Card className="mt-6 border-2 border-primary/30 rounded-none">
           <CardHeader className="border-b-2 border-primary/20 pb-3">
             <CardTitle className="flex items-baseline gap-2">
@@ -1006,6 +1007,7 @@ export function GoalProgress({ stats, morgues = [], loading }: GoalProgressProps
             )}
           </CardContent>
         </Card>
+      */}
 
     </>
   )

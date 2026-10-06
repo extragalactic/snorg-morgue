@@ -31,7 +31,7 @@ function buildZotSplats(morgues: GameRecord[]): GameRecord[] {
       if (!species || !background) return false
       return !wonCombos.has(`${species}|||${background}`)
     })
-    .sort((a, b) => (b.xl ?? 0) - (a.xl ?? 0))
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.xl ?? 0) - (a.xl ?? 0))
 }
 
 /** Human-readable death location, e.g. "Zot 3" or "Orb Run". */
@@ -74,8 +74,7 @@ export function ZotSplats({
               <th className="py-1.5 pr-3 font-normal">Background</th>
               <th className="py-1.5 pr-3 font-normal">God</th>
               <th className="py-1.5 pr-3 font-normal">XL</th>
-              <th className="py-1.5 pr-3 font-normal">Death Location</th>
-              <th className="py-1.5 font-normal" />
+              <th className="py-1.5 font-normal">Death Location</th>
             </tr>
           </thead>
           <tbody>
@@ -89,19 +88,7 @@ export function ZotSplats({
                 <td className="py-1.5 pr-3 text-foreground">{m.background}</td>
                 <td className="py-1.5 pr-3 text-muted-foreground">{m.god?.trim() || "—"}</td>
                 <td className="py-1.5 pr-3 text-foreground">{m.xl}</td>
-                <td className="py-1.5 pr-3 text-foreground">{deathLocationLabel(m)}</td>
-                <td className="py-1.5">
-                  <button
-                    type="button"
-                    className="text-primary underline-offset-2 hover:underline"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setViewingMorgue(m)
-                    }}
-                  >
-                    View morgue
-                  </button>
-                </td>
+                <td className="py-1.5 text-foreground">{deathLocationLabel(m)}</td>
               </tr>
             ))}
           </tbody>

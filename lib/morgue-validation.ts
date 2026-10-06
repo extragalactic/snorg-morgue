@@ -29,6 +29,10 @@ export const GOLD_MAX = 100_000
 export const CREATURES_VANQUISHED_MIN = 0
 export const CREATURES_VANQUISHED_MAX = 10_000
 
+/** AC / EV / SH from status block. Clamped. */
+export const DEFENSE_STAT_MIN = 0
+export const DEFENSE_STAT_MAX = 200
+
 /** Max string lengths for DB and display sanity. Truncate if longer. */
 export const MAX_LENGTH_VERSION = 50
 export const MAX_LENGTH_GAME_SEED = 100
@@ -121,6 +125,15 @@ export function validateAndSanitizeParsedMorgue(p: ParsedMorgue): ParsedMorgue {
     CREATURES_VANQUISHED_MIN,
     CREATURES_VANQUISHED_MAX
   )
+  const clampDefense = (v: unknown) =>
+    clamp(
+      typeof v === "number" && Number.isFinite(v) ? Math.floor(v) : 0,
+      DEFENSE_STAT_MIN,
+      DEFENSE_STAT_MAX,
+    )
+  const ac = clampDefense(p.ac)
+  const ev = clampDefense(p.ev)
+  const sh = clampDefense(p.sh)
 
   let gameCompletionDate =
     typeof p.gameCompletionDate === "string" ? p.gameCompletionDate.trim() : ""
@@ -168,5 +181,8 @@ export function validateAndSanitizeParsedMorgue(p: ParsedMorgue): ParsedMorgue {
     reachedDepthsMilestone: Boolean(p.reachedDepthsMilestone),
     reachedZotMilestone: Boolean(p.reachedZotMilestone),
     diedHoldingOrb: Boolean(p.diedHoldingOrb),
+    ac,
+    ev,
+    sh,
   }
 }

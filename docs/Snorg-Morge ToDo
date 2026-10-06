@@ -58,8 +58,16 @@ Features:
 - make a Top 10 Killers for levels 1-10, 11-20, 21-27
 - the DCSS Chargen chart should show extra data for each item, for example: aptitudes for Species, starting kit for Background, and ability list for God
 - would be cool to have a feature that helps you win with a particular combo, by searching all other winners with that combo. However this functionality may already be on the existing tools, and this site should offer unique analysis options
+- add a data column to morgue lists that shows total defensive value (AC + EV + SH)
+- on the Winners chart, add column for Type of Weapon & Brand (for their end-game weapon), and maybe what's in left hand
+- the tooltip for Background on the DCSS Chargen, for the spell-casting backgrounds, they should show in small text all of the species with the value for the relevent skill. So when you hover Summoner it shows the summoning aptitude for all the species. Also list the starter spells for each magic book.
+- on the DCSS Chargen the rollover should also change the text colour
 
 Fixes:
+- need to disable all of the group average stats code. It's not going to be used and it's slowing down the import. Need to ensure the import is optimized.
+- review the visual layout/style for the award progress bars (e.g. don't repeat the win condition text, put in a sub-title)
+- verify the source/accuracy of the icons for species, god, etc.
+- review the draconian types (is mottled in the game anymore?)
 - after importing new files, the table needs to auto-run the sort
 - subtitle font on Snorg Awards title is too small
 - after local file import the message saying "2 games imported" should be larger font
@@ -91,14 +99,25 @@ Fixes:
 - can probably hide Enthusiastic Species, not very interesting
 
 
+Top Combos:
+
+    FeSu^Beo or FeHw^Beo
+    CoFo^Dith
+    ViNe^Wu
+    MiCK^Xom or FoCK^Xom
+    MiBe^Trog
+
 Combos to try:
 
-    (2) TeAE^Veh
-    (2) MfSh^Wu (Wu and Merfolk are good with shape shifting, Nemelex would also be good)
-    (2) TrFi^Ru
-    (3) TrDe^Ru
-    (2) MiDe^??
+    (2) GrBe^Trog
+    (1) NaEE^Yred (do the medusa cosplay)
+    (2) FoCK^Xom
+    (1) TrMo^Jiyva(start with TSO/Ely)
+    (1) VsFi^Jiyva(start with TSO/Ely)
+    (2) MiBe^Trog
     (2) VsNe^Wu (have done many attempts...)
+    (1) MuSu^Ash
+    Fe??^Usk
     DsNe^??
     Co??^Hep (Hep is reliably powerful to offset Co)
     DsMo^Yred or GnMo^Yred
@@ -107,13 +126,9 @@ Combos to try:
     PoNe^Usk (...because Re might suck as stabber)
     Usk on an AOE char (like blaster casters)
     Hexer^Dith
-    MiFi^Qaz
-    MiFi^Oka
     MiHu^Oka
     MiHu^Qaz / BaHu^Qaz
     Mi?^Usk
-    DrSh^Ru
-    GrFE^Veh
     Reaver of Wu Jian ... Dj, Ds, Dr, Gr, Gn
     On??^Chei
     On??^Mak (high HP good for Mak)
@@ -122,15 +137,11 @@ Combos to try:
     OpSh^??
     DgHu
     Md??^Zin
-    Po??^Usk (stabber)
     Vs??^Mak (Unleash Destruction should be spammable with Vs)
-    FoFi^Usk
-    ??Ar^Dith
     FoAl^Ru (Ru comes recommended for Fo)
     Fo??^Zin (Zin is good for Fo with escape options)
     ??Co^Qaz (lean into making noise with Qaz and Fulminant Prism)
     Sp??^Ely (apparently Ely is good for Sp)
-    VsNe^Wu
 
     
 Key Character Sheet Stats (example)
